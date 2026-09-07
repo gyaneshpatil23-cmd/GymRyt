@@ -790,3 +790,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 });
+
+// ========================================
+  // ns ncsjhvbjhascvv ashbchj 
+  // ========================================
