@@ -348,6 +348,12 @@ class Payment(models.Model):
 
 
 class RegistrationQR(models.Model):
+
+    REGISTRATION_TYPE_CHOICES = [
+        ("MEMBER", "Member"),
+        ("TRAINER", "Trainer"),
+    ]
+
     id = models.BigAutoField(primary_key=True)
 
     admin = models.ForeignKey(
@@ -369,6 +375,12 @@ class RegistrationQR(models.Model):
         unique=True,
     )
 
+    registration_type = models.CharField(
+        max_length=10,
+        choices=REGISTRATION_TYPE_CHOICES,
+        default="MEMBER",
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -377,8 +389,28 @@ class RegistrationQR(models.Model):
         default=True,
     )
 
-    def __str__(self):
-        if self.workspace:
-            return f"{self.workspace.name} - Registration QR"
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "admin",
+                    "workspace",
+                    "registration_type",
+                ],
+                name="unique_registration_qr_per_type",
+            )
+        ]
 
-        return f"{self.admin.username} - Registration QR"
+    def __str__(self):
+        qr_type = self.get_registration_type_display()
+
+        if self.workspace:
+            return (
+                f"{self.workspace.name} - "
+                f"{qr_type} Registration QR"
+            )
+
+        return (
+            f"{self.admin.username} - "
+            f"{qr_type} Registration QR"
+        )

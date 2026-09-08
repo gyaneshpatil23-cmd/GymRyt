@@ -4,6 +4,7 @@ from .views import (
     LoginView,
     AdminRegisterView,
     RegistrationQRView,
+    TrainerRegistrationQRView,
     MemberRegisterView,
     LogoutAdminView,
     DashboardStatsView,
@@ -20,6 +21,11 @@ from .views import (
 
 
 urlpatterns = [
+
+    # ========================================================
+    # AUTHENTICATION
+    # ========================================================
+
     path(
         "login/",
         LoginView.as_view(),
@@ -38,6 +44,11 @@ urlpatterns = [
         name="admin-logout"
     ),
 
+
+    # ========================================================
+    # MEMBER REGISTRATION
+    # ========================================================
+
     path(
         "register/",
         MemberRegisterView.as_view(),
@@ -50,11 +61,32 @@ urlpatterns = [
         name="registration-qr"
     ),
 
+
+    # ========================================================
+    # TRAINER REGISTRATION
+    # ========================================================
+
+    path(
+        "trainer-registration-qr/",
+        TrainerRegistrationQRView.as_view(),
+        name="trainer-registration-qr"
+    ),
+
+
+    # ========================================================
+    # DASHBOARD
+    # ========================================================
+
     path(
         "dashboard-stats/",
         DashboardStatsView.as_view(),
         name="dashboard-stats"
     ),
+
+
+    # ========================================================
+    # PROFILE PICTURES
+    # ========================================================
 
     path(
         "profile-picture/",
@@ -67,6 +99,11 @@ urlpatterns = [
         AdminProfilePictureView.as_view(),
         name="admin-profile-picture"
     ),
+
+
+    # ========================================================
+    # PAYMENTS
+    # ========================================================
 
     path(
         "payments/",
@@ -86,6 +123,7 @@ urlpatterns = [
         name="revenue-stats"
     ),
 
+
     # ========================================================
     # OWNER - TRAINERS
     # ========================================================
@@ -101,6 +139,11 @@ urlpatterns = [
         TrainerCreateView.as_view(),
         name="trainer-create"
     ),
+
+
+    # ========================================================
+    # MEMBERS
+    # ========================================================
 
     path(
         "",

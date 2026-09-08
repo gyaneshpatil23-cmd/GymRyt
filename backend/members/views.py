@@ -486,6 +486,93 @@ class AdminRegistrationQRView(APIView):
             status=status.HTTP_200_OK
         )
 
+# ============================================================
+# TRAINER REGISTRATION QR
+# ============================================================
+
+class TrainerRegistrationQRView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        # ----------------------------------------------------
+        # ONLY OWNER / OWNER + TRAINER CAN GENERATE
+        # ----------------------------------------------------
+
+        try:
+            profile = request.user.profile
+        except UserProfile.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "message": "User profile not found."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not profile.is_owner:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Only gym owners can generate "
+                        "a trainer registration QR."
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # ----------------------------------------------------
+        # FIND OWNER'S WORKSPACE
+        # ----------------------------------------------------
+
+        workspace = (
+            Workspace.objects
+            .filter(
+                owner=request.user,
+                is_active=True
+            )
+            .first()
+        )
+
+        if not workspace:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Active gym workspace not found."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ----------------------------------------------------
+        # CREATE SIGNED TRAINER QR TOKEN
+        # ----------------------------------------------------
+
+        token = signing.dumps(
+            {
+                "type": "TRAINER",
+                "admin_id": request.user.id,
+                "workspace_id": workspace.id,
+            }
+        )
+
+        # ----------------------------------------------------
+        # RESPONSE
+        # ----------------------------------------------------
+
+        return Response(
+            {
+                "success": True,
+                "token": token,
+                "qr_type": "TRAINER",
+                "admin_id": request.user.id,
+                "admin_username": request.user.username,
+                "workspace_id": workspace.id,
+                "workspace_name": workspace.name,
+            },
+            status=status.HTTP_200_OK
+        )
 
 # ============================================================
 # LOGIN
@@ -1411,112 +1498,159 @@ class MemberDetailView(APIView):
 # ============================================================
 
 class DashboardStatsView(APIView):
+    """
+    Role-aware dashboard statistics.
+
+    OWNER / OWNER_TRAINER:
+        - Sees all members in their own workspace.
+        - Sees trainer count and assigned/unassigned member counts.
+        - Does not see data from another workspace.
+
+    TRAINER:
+        - Sees only members assigned to themselves.
+        - Does not see owner-wide member statistics.
+    """
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-
-        profile = get_or_create_profile(
-            request.user
-        )
-
-        workspace = get_user_workspace(
-            request.user
-        )
+        profile = get_or_create_profile(request.user)
+        workspace = get_user_workspace(request.user)
 
         if not workspace:
-
             return Response(
                 {
+                    "success": False,
+                    "message": "No active workspace found for this account.",
                     "total_members": 0,
                     "active_members": 0,
                     "expired_members": 0,
                     "expiring_members": 0,
                     "attendance_today": 0,
+                    "total_trainers": 0,
+                    "assigned_members": 0,
+                    "unassigned_members": 0,
                 },
-                status=status.HTTP_200_OK
+                status=status.HTTP_200_OK,
             )
 
-        # ----------------------------------------------------
-        # OWNER
-        # ----------------------------------------------------
-
+        # --------------------------------------------------------
+        # ROLE-AWARE MEMBER QUERY
+        # --------------------------------------------------------
         if profile.is_owner:
-
+            # OWNER + OWNER_TRAINER both have owner-level access.
             members = Member.objects.filter(
                 workspace=workspace,
-                is_deleted=False
+                is_deleted=False,
             )
 
-        # ----------------------------------------------------
-        # TRAINER
-        # ----------------------------------------------------
-
         elif profile.is_trainer:
-
+            # A trainer can only see their own assigned members.
             members = Member.objects.filter(
                 workspace=workspace,
                 trainer=request.user,
-                is_deleted=False
+                is_deleted=False,
             )
 
         else:
-
             return Response(
                 {
                     "success": False,
                     "message": (
                         "You do not have permission "
                         "to view dashboard statistics."
-                    )
+                    ),
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
-        # ----------------------------------------------------
-        # Update status
-        # ----------------------------------------------------
-
-        for member in members:
-
-            calculated_status = (
-                member.calculate_status()
-            )
+        # --------------------------------------------------------
+        # KEEP MEMBERSHIP STATUS FRESH
+        # --------------------------------------------------------
+        # calculate_status() also handles members whose dates are
+        # missing, so PENDING members remain PENDING.
+        for member in members.only(
+            "id",
+            "status",
+            "membership_start",
+            "membership_end",
+        ):
+            calculated_status = member.calculate_status()
 
             if member.status != calculated_status:
-
-                Member.objects.filter(
-                    pk=member.pk
-                ).update(
+                Member.objects.filter(pk=member.pk).update(
                     status=calculated_status
                 )
+                member.status = calculated_status
 
+        # --------------------------------------------------------
+        # MEMBER STATISTICS
+        # --------------------------------------------------------
         total_members = members.count()
+        active_members = members.filter(status="ACTIVE").count()
+        expired_members = members.filter(status="EXPIRED").count()
+        expiring_members = members.filter(status="EXPIRING").count()
 
-        active_members = members.filter(
-            status="ACTIVE"
+        # --------------------------------------------------------
+        # TRAINER / ASSIGNMENT STATISTICS
+        # --------------------------------------------------------
+        total_trainers = TrainerProfile.objects.filter(
+            workspace=workspace,
+            is_active=True,
         ).count()
 
-        expired_members = members.filter(
-            status="EXPIRED"
-        ).count()
+        if profile.is_owner:
+            workspace_members = Member.objects.filter(
+                workspace=workspace,
+                is_deleted=False,
+            )
 
-        expiring_members = members.filter(
-            status="EXPIRING"
-        ).count()
+            assigned_members = workspace_members.filter(
+                trainer__isnull=False,
+            ).count()
 
-        # Attendance not implemented yet.
+            unassigned_members = workspace_members.filter(
+                trainer__isnull=True,
+            ).count()
+        else:
+            # For a trainer, assigned_members means their own clients.
+            assigned_members = total_members
+            unassigned_members = 0
+
+        # --------------------------------------------------------
+        # ATTENDANCE
+        # --------------------------------------------------------
+        # Attendance model is not implemented yet.
         attendance_today = 0
+
+        # --------------------------------------------------------
+        # ROLE RESPONSE
+        # --------------------------------------------------------
+        if profile.is_owner and profile.is_trainer:
+            role = "OWNER_TRAINER"
+        elif profile.is_owner:
+            role = "OWNER"
+        else:
+            role = "TRAINER"
 
         return Response(
             {
+                "success": True,
+                "role": role,
+                "is_owner": profile.is_owner,
+                "is_trainer": profile.is_trainer,
+                "workspace_id": workspace.id,
+                "workspace_name": workspace.name,
                 "total_members": total_members,
                 "active_members": active_members,
                 "expired_members": expired_members,
                 "expiring_members": expiring_members,
                 "attendance_today": attendance_today,
+                "total_trainers": total_trainers,
+                "assigned_members": assigned_members,
+                "unassigned_members": unassigned_members,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
