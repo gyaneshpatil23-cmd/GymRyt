@@ -109,6 +109,8 @@ export default function TrainerQRScreen() {
       }
 
       const data = await response.json();
+      console.log("TRAINER QR DATA:", data);
+      console.log("TRAINER QR TOKEN:", data.token);
 
       if (!response.ok || !data.success) {
         throw new Error(
@@ -116,6 +118,9 @@ export default function TrainerQRScreen() {
             "Unable to generate trainer QR code."
         );
       }
+
+      const registrationUrl =
+      `gymryt://trainer-register?token=${encodeURIComponent(data.token)}`;
 
       setQrToken(data.token);
 

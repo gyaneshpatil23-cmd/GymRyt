@@ -23,6 +23,7 @@ from .models import (
     UserProfile,
     Workspace,
     TrainerProfile,
+    TrainerApplication,
 )
 
 from .serializers import (
@@ -3303,4 +3304,430 @@ class MemberRegisterView(APIView):
                 "role": "MEMBER",
             },
             status=status.HTTP_201_CREATED
+        )
+
+# ============================================================
+# TRAINER APPLICATION
+# ============================================================
+
+class TrainerApplicationCreateView(APIView):
+    """
+    Public endpoint used by a trainer after scanning
+    the trainer registration QR.
+
+    The trainer submits their registration details.
+    The application is stored as PENDING until the
+    gym owner approves or rejects it.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+
+        token = request.data.get("token")
+        name = request.data.get("name", "").strip()
+        email = request.data.get("email", "").strip()
+        phone = request.data.get("phone", "").strip()
+        username = request.data.get("username", "").strip()
+        password = request.data.get("password", "")
+
+        # ----------------------------------------------------
+        # REQUIRED FIELDS
+        # ----------------------------------------------------
+
+        if not token:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Trainer registration token is required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not name:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Name is required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not email:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Email is required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not phone:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Phone number is required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not username:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Username is required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not password:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Password is required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ----------------------------------------------------
+        # FIND TRAINER REGISTRATION QR
+        # ----------------------------------------------------
+
+        try:
+            registration_qr = RegistrationQR.objects.select_related(
+                "admin",
+                "workspace",
+            ).get(
+                token=token,
+                registration_type="TRAINER",
+                is_active=True,
+            )
+
+        except RegistrationQR.DoesNotExist:
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "Invalid or inactive trainer registration QR.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        admin = registration_qr.admin
+        workspace = registration_qr.workspace
+
+        # ----------------------------------------------------
+        # CHECK EXISTING USERNAME
+        # ----------------------------------------------------
+
+        if User.objects.filter(username=username).exists():
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "This username is already registered.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ----------------------------------------------------
+        # CHECK EXISTING TRAINER APPLICATION
+        # ----------------------------------------------------
+
+        if TrainerApplication.objects.filter(
+            registration_qr=registration_qr,
+            username=username,
+            status="PENDING",
+        ).exists():
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "A trainer application with this username is already pending.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ----------------------------------------------------
+        # CREATE APPLICATION
+        # ----------------------------------------------------
+
+        application = TrainerApplication.objects.create(
+            admin=admin,
+            workspace=workspace,
+            registration_qr=registration_qr,
+            name=name,
+            email=email,
+            phone=phone,
+            username=username,
+            password=make_password(password),
+            status="PENDING",
+        )
+
+        return Response(
+            {
+                "success": True,
+                "message": (
+                    "Trainer application submitted successfully. "
+                    "Please wait for owner approval."
+                ),
+                "application_id": application.id,
+                "status": application.status,
+                "workspace_id": workspace.id if workspace else None,
+                "workspace_name": (
+                    workspace.name if workspace else None
+                ),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class TrainerApplicationListView(APIView):
+    """
+    Owner-only endpoint.
+
+    Returns trainer applications belonging to the
+    logged-in owner's workspace.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        user = request.user
+
+        applications = TrainerApplication.objects.filter(
+            admin=user,
+        ).select_related(
+            "workspace",
+            "registration_qr",
+        ).order_by(
+            "-created_at"
+        )
+
+        data = []
+
+        for application in applications:
+
+            data.append(
+                {
+                    "id": application.id,
+                    "name": application.name,
+                    "email": application.email,
+                    "phone": application.phone,
+                    "username": application.username,
+                    "status": application.status,
+                    "workspace_id": (
+                        application.workspace.id
+                        if application.workspace
+                        else None
+                    ),
+                    "workspace_name": (
+                        application.workspace.name
+                        if application.workspace
+                        else None
+                    ),
+                    "created_at": application.created_at,
+                }
+            )
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class TrainerApplicationActionView(APIView):
+    """
+    Owner-only endpoint used to approve or reject
+    a trainer application.
+
+    POST body:
+
+        {
+            "action": "APPROVE"
+        }
+
+    or:
+
+        {
+            "action": "REJECT"
+        }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+
+        action = request.data.get("action", "").upper()
+
+        if action not in ["APPROVE", "REJECT"]:
+
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Invalid action. Use APPROVE or REJECT."
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ----------------------------------------------------
+        # FIND APPLICATION
+        # ----------------------------------------------------
+
+        try:
+
+            application = TrainerApplication.objects.select_related(
+                "admin",
+                "workspace",
+            ).get(
+                pk=pk,
+                admin=request.user,
+            )
+
+        except TrainerApplication.DoesNotExist:
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "Trainer application not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # ----------------------------------------------------
+        # PREVENT DOUBLE ACTION
+        # ----------------------------------------------------
+
+        if application.status != "PENDING":
+
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        f"This application has already been "
+                        f"{application.status.lower()}."
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ====================================================
+        # REJECT
+        # ====================================================
+
+        if action == "REJECT":
+
+            application.status = "REJECTED"
+            application.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Trainer application rejected.",
+                    "application_id": application.id,
+                    "status": "REJECTED",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        # ====================================================
+        # APPROVE
+        # ====================================================
+
+        with transaction.atomic():
+
+            # -----------------------------------------------
+            # CHECK USERNAME AGAIN
+            # -----------------------------------------------
+
+            if User.objects.filter(
+                username=application.username
+            ).exists():
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "This username is already being used "
+                            "by another account."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # -----------------------------------------------
+            # CREATE DJANGO USER
+            # -----------------------------------------------
+
+            user = User.objects.create(
+                username=application.username,
+                email=application.email,
+                first_name=application.name,
+                password=application.password,
+                is_active=True,
+            )
+
+            # TrainerApplication.password already contains a Django
+            # password hash. Do NOT call set_password() here because
+            # that would hash the hash and make the trainer unable to
+            # log in.
+            user.save(update_fields=[
+                "password",
+                "is_active",
+            ])
+
+            # -----------------------------------------------
+            # CREATE USER PROFILE
+            # -----------------------------------------------
+
+            profile, created = UserProfile.objects.get_or_create(
+                user=user,
+                defaults={
+                    "role": "TRAINER",
+                    "is_owner": False,
+                    "is_trainer": True,
+                },
+            )
+
+            if not created:
+
+                profile.role = "TRAINER"
+                profile.is_owner = False
+                profile.is_trainer = True
+                profile.save()
+
+            # -----------------------------------------------
+            # CREATE TRAINER PROFILE
+            # -----------------------------------------------
+
+            trainer_profile = TrainerProfile.objects.create(
+                user=user,
+                workspace=application.workspace,
+                is_active=True,
+            )
+
+            # -----------------------------------------------
+            # UPDATE APPLICATION
+            # -----------------------------------------------
+
+            application.status = "APPROVED"
+            application.approved_user = user
+            application.save()
+
+        return Response(
+            {
+                "success": True,
+                "message": "Trainer application approved successfully.",
+                "application_id": application.id,
+                "trainer_id": trainer_profile.id,
+                "user_id": user.id,
+                "username": user.username,
+                "status": "APPROVED",
+            },
+            status=status.HTTP_200_OK,
         )

@@ -14,6 +14,8 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Image,
+  RefreshControl,
 } from "react-native";
 
 import {
@@ -41,16 +43,14 @@ const MEMBERS_API =
 const REVENUE_API =
   `${BASE_URL}/revenue-stats/`;
 
+const ADMIN_PROFILE_PICTURE_API =
+  `${BASE_URL}/admin/profile-picture/`;
+
 // ======================================================
-// ADMIN DASHBOARD
+// OWNER DASHBOARD
 // ======================================================
 
-export default function AdminDashboard() {
-
-  // ====================================================
-  // THEME
-  // ====================================================
-
+export default function OwnerDashboard() {
   const {
     isDark,
     colors,
@@ -66,16 +66,13 @@ export default function AdminDashboard() {
   ).current;
 
   useEffect(() => {
-    Animated.spring(
-      themeAnimation,
-      {
-        toValue: isDark ? 1 : 0,
-        useNativeDriver: true,
-        friction: 7,
-        tension: 80,
-      }
-    ).start();
-  }, [isDark]);
+    Animated.spring(themeAnimation, {
+      toValue: isDark ? 1 : 0,
+      useNativeDriver: true,
+      friction: 7,
+      tension: 80,
+    }).start();
+  }, [isDark, themeAnimation]);
 
   // ====================================================
   // STATE
@@ -95,55 +92,63 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true);
 
+  const [refreshing, setRefreshing] = useState(false);
+
   const [adminUsername, setAdminUsername] =
-    useState("Admin");
+    useState("Owner");
+
+  const [adminProfilePicture, setAdminProfilePicture] =
+    useState(null);
+
+  const isMounted = useRef(true);
 
   // ====================================================
-  // GET CURRENT ADMIN SESSION
+  // CLEANUP
+  // ====================================================
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  // ====================================================
+  // SESSION
   // ====================================================
 
   const getAdminSession = async () => {
-    const token =
-      await AsyncStorage.getItem("adminToken");
+    try {
+      const token =
+        await AsyncStorage.getItem("adminToken");
 
-    const username =
-      await AsyncStorage.getItem("adminUsername");
+      const username =
+        await AsyncStorage.getItem("adminUsername");
 
-    const adminId =
-      await AsyncStorage.getItem("adminId");
+      const adminId =
+        await AsyncStorage.getItem("adminId");
 
-    console.log(
-      "=========================================="
-    );
+      const userRole =
+        await AsyncStorage.getItem("userRole");
 
-    console.log(
-      "CURRENT ADMIN SESSION"
-    );
+      return {
+        token,
+        username,
+        adminId,
+        userRole,
+      };
+    } catch (error) {
+      console.log(
+        "SESSION ERROR:",
+        error
+      );
 
-    console.log(
-      "ADMIN ID:",
-      adminId
-    );
-
-    console.log(
-      "ADMIN USERNAME:",
-      username
-    );
-
-    console.log(
-      "TOKEN EXISTS:",
-      !!token
-    );
-
-    console.log(
-      "=========================================="
-    );
-
-    return {
-      token,
-      username,
-      adminId,
-    };
+      return {
+        token: null,
+        username: null,
+        adminId: null,
+        userRole: null,
+      };
+    }
   };
 
   // ====================================================
@@ -151,16 +156,23 @@ export default function AdminDashboard() {
   // ====================================================
 
   const clearAdminSession = async () => {
-    await AsyncStorage.multiRemove([
-      "adminToken",
-      "adminUsername",
-      "adminId",
-      "userRole",
-    ]);
+    try {
+      await AsyncStorage.multiRemove([
+        "adminToken",
+        "adminUsername",
+        "adminId",
+        "userRole",
+      ]);
+    } catch (error) {
+      console.log(
+        "CLEAR SESSION ERROR:",
+        error
+      );
+    }
   };
 
   // ====================================================
-  // LOGOUT / SESSION EXPIRED
+  // SESSION EXPIRED
   // ====================================================
 
   const handleSessionExpired = async () => {
@@ -168,7 +180,7 @@ export default function AdminDashboard() {
 
     Alert.alert(
       "Session Expired",
-      "Please login again.",
+      "Your owner session has expired. Please login again.",
       [
         {
           text: "OK",
@@ -181,16 +193,63 @@ export default function AdminDashboard() {
   };
 
   // ====================================================
+  // PROFILE PICTURE
+  // ====================================================
+
+  const fetchAdminProfilePicture = async (
+    token
+  ) => {
+    try {
+      const response =
+        await fetch(
+          ADMIN_PROFILE_PICTURE_API,
+          {
+            method: "GET",
+            headers: {
+              Authorization:
+                `Token ${token}`,
+            },
+          }
+        );
+
+      if (response.status === 401) {
+        await handleSessionExpired();
+        return;
+      }
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data =
+        await response.json();
+
+      if (isMounted.current) {
+        setAdminProfilePicture(
+          data.profile_picture || null
+        );
+      }
+    } catch (error) {
+      console.log(
+        "PROFILE PICTURE ERROR:",
+        error
+      );
+    }
+  };
+
+  // ====================================================
   // FETCH DASHBOARD DATA
   // ====================================================
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (
+    isRefresh = false
+  ) => {
     try {
-      setLoading(true);
-
-      // ==================================================
-      // GET CURRENT ADMIN TOKEN
-      // ==================================================
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
       const session =
         await getAdminSession();
@@ -199,7 +258,7 @@ export default function AdminDashboard() {
         session.token;
 
       // ==================================================
-      // TOKEN NOT FOUND
+      // CHECK LOGIN
       // ==================================================
 
       if (!token) {
@@ -207,7 +266,7 @@ export default function AdminDashboard() {
 
         Alert.alert(
           "Authentication Error",
-          "Admin login session not found. Please login again.",
+          "Owner login session not found. Please login again.",
           [
             {
               text: "OK",
@@ -222,14 +281,25 @@ export default function AdminDashboard() {
       }
 
       // ==================================================
-      // SHOW ADMIN NAME
+      // USERNAME
       // ==================================================
 
-      if (session.username) {
+      if (
+        session.username &&
+        isMounted.current
+      ) {
         setAdminUsername(
           session.username
         );
       }
+
+      // ==================================================
+      // PROFILE PICTURE
+      // ==================================================
+
+      await fetchAdminProfilePicture(
+        token
+      );
 
       // ==================================================
       // AUTH HEADERS
@@ -239,14 +309,12 @@ export default function AdminDashboard() {
         "Content-Type":
           "application/json",
 
+        Accept:
+          "application/json",
+
         Authorization:
           `Token ${token}`,
       };
-
-      console.log(
-        "FETCHING DASHBOARD FOR ADMIN:",
-        session.username
-      );
 
       // ==================================================
       // DASHBOARD STATS
@@ -261,15 +329,6 @@ export default function AdminDashboard() {
           }
         );
 
-      console.log(
-        "DASHBOARD STATUS:",
-        statsResponse.status
-      );
-
-      // ==================================================
-      // UNAUTHORIZED
-      // ==================================================
-
       if (
         statsResponse.status === 401
       ) {
@@ -277,56 +336,38 @@ export default function AdminDashboard() {
         return;
       }
 
-      // ==================================================
-      // OTHER ERROR
-      // ==================================================
-
       if (!statsResponse.ok) {
-        const errorText =
-          await statsResponse.text();
-
-        console.log(
-          "DASHBOARD ERROR RESPONSE:",
-          errorText
-        );
-
         throw new Error(
           "Failed to fetch dashboard statistics"
         );
       }
 
-      // ==================================================
-      // DASHBOARD DATA
-      // ==================================================
-
       const statsData =
         await statsResponse.json();
 
       console.log(
-        "DASHBOARD STATS:",
+        "OWNER DASHBOARD STATS:",
         statsData
       );
 
-      // ==================================================
-      // SET STATS
-      // ==================================================
+      if (isMounted.current) {
+        setStats({
+          total_members:
+            statsData.total_members ?? 0,
 
-      setStats({
-        total_members:
-          statsData.total_members ?? 0,
+          active_members:
+            statsData.active_members ?? 0,
 
-        active_members:
-          statsData.active_members ?? 0,
+          expired_members:
+            statsData.expired_members ?? 0,
 
-        expired_members:
-          statsData.expired_members ?? 0,
+          expiring_members:
+            statsData.expiring_members ?? 0,
 
-        expiring_members:
-          statsData.expiring_members ?? 0,
-
-        attendance_today:
-          statsData.attendance_today ?? 0,
-      });
+          attendance_today:
+            statsData.attendance_today ?? 0,
+        });
+      }
 
       // ==================================================
       // REVENUE
@@ -341,15 +382,6 @@ export default function AdminDashboard() {
           }
         );
 
-      console.log(
-        "REVENUE STATUS:",
-        revenueResponse.status
-      );
-
-      // ==================================================
-      // REVENUE UNAUTHORIZED
-      // ==================================================
-
       if (
         revenueResponse.status === 401
       ) {
@@ -357,45 +389,27 @@ export default function AdminDashboard() {
         return;
       }
 
-      // ==================================================
-      // REVENUE ERROR
-      // ==================================================
-
       if (!revenueResponse.ok) {
-        const errorText =
-          await revenueResponse.text();
-
-        console.log(
-          "REVENUE ERROR RESPONSE:",
-          errorText
-        );
-
         throw new Error(
-          "Failed to fetch revenue data"
+          "Failed to fetch revenue"
         );
       }
-
-      // ==================================================
-      // REVENUE DATA
-      // ==================================================
 
       const revenueData =
         await revenueResponse.json();
 
       console.log(
-        "REVENUE DATA:",
+        "OWNER REVENUE:",
         revenueData
       );
 
-      // ==================================================
-      // SET REVENUE
-      // ==================================================
-
-      setRevenue(
-        Number(
-          revenueData.total_revenue ?? 0
-        )
-      );
+      if (isMounted.current) {
+        setRevenue(
+          Number(
+            revenueData.total_revenue ?? 0
+          )
+        );
+      }
 
       // ==================================================
       // MEMBERS
@@ -410,15 +424,6 @@ export default function AdminDashboard() {
           }
         );
 
-      console.log(
-        "MEMBERS STATUS:",
-        membersResponse.status
-      );
-
-      // ==================================================
-      // MEMBERS UNAUTHORIZED
-      // ==================================================
-
       if (
         membersResponse.status === 401
       ) {
@@ -426,39 +431,23 @@ export default function AdminDashboard() {
         return;
       }
 
-      // ==================================================
-      // MEMBERS ERROR
-      // ==================================================
-
       if (!membersResponse.ok) {
-        const errorText =
-          await membersResponse.text();
-
-        console.log(
-          "MEMBERS ERROR RESPONSE:",
-          errorText
-        );
-
         throw new Error(
           "Failed to fetch members"
         );
       }
 
-      // ==================================================
-      // MEMBERS DATA
-      // ==================================================
-
       const membersData =
         await membersResponse.json();
 
       console.log(
-        "MEMBERS FROM CURRENT ADMIN:",
+        "OWNER MEMBERS:",
         membersData
       );
 
-      // ==================================================
-      // DJANGO PAGINATION SAFETY
-      // ==================================================
+      if (!isMounted.current) {
+        return;
+      }
 
       if (
         Array.isArray(membersData)
@@ -479,28 +468,29 @@ export default function AdminDashboard() {
       }
 
     } catch (error) {
-
       console.log(
-        "=========================================="
-      );
-
-      console.log(
-        "DASHBOARD ERROR:",
+        "OWNER DASHBOARD ERROR:",
         error
-      );
-
-      console.log(
-        "=========================================="
       );
 
       Alert.alert(
         "Connection Error",
         "Could not load dashboard data.\n\nMake sure Django is running and your phone is connected to the same Wi-Fi."
       );
-
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
+  };
+
+  // ====================================================
+  // REFRESH
+  // ====================================================
+
+  const handleRefresh = () => {
+    fetchDashboardData(true);
   };
 
   // ====================================================
@@ -509,13 +499,7 @@ export default function AdminDashboard() {
 
   useFocusEffect(
     useCallback(() => {
-
-      console.log(
-        "DASHBOARD FOCUSED - REFRESHING"
-      );
-
-      fetchDashboardData();
-
+      fetchDashboardData(false);
     }, [])
   );
 
@@ -527,13 +511,34 @@ export default function AdminDashboard() {
     members.slice(0, 3);
 
   // ====================================================
+  // INITIALS
+  // ====================================================
+
+  const getInitials = (
+    name
+  ) => {
+    if (!name) {
+      return "?";
+    }
+
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map(
+        (word) => word[0]
+      )
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+  };
+
+  // ====================================================
   // MEMBER DETAILS
   // ====================================================
 
   const openMemberDetails = (
     member
   ) => {
-
     router.push({
       pathname:
         "/admin/memberdetails",
@@ -572,31 +577,7 @@ export default function AdminDashboard() {
   };
 
   // ====================================================
-  // INITIALS
-  // ====================================================
-
-  const getInitials = (
-    name
-  ) => {
-
-    if (!name) {
-      return "?";
-    }
-
-    return name
-      .split(" ")
-      .filter(Boolean)
-      .map(
-        (word) =>
-          word[0]
-      )
-      .join("")
-      .substring(0, 2)
-      .toUpperCase();
-  };
-
-  // ====================================================
-  // FORMAT REVENUE
+  // REVENUE FORMAT
   // ====================================================
 
   const formattedRevenue =
@@ -612,7 +593,6 @@ export default function AdminDashboard() {
   // ====================================================
 
   if (loading) {
-
     return (
       <View
         style={[
@@ -623,7 +603,6 @@ export default function AdminDashboard() {
           },
         ]}
       >
-
         <ActivityIndicator
           size="large"
           color={colors.primary}
@@ -638,9 +617,8 @@ export default function AdminDashboard() {
             },
           ]}
         >
-          Loading dashboard...
+          Loading owner dashboard...
         </Text>
-
       </View>
     );
   }
@@ -650,7 +628,6 @@ export default function AdminDashboard() {
   // ====================================================
 
   return (
-
     <View
       style={[
         styles.container,
@@ -660,11 +637,19 @@ export default function AdminDashboard() {
         },
       ]}
     >
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={
           styles.content
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={
+              colors.primary
+            }
+          />
         }
       >
 
@@ -672,152 +657,206 @@ export default function AdminDashboard() {
             HEADER
         ================================================== */}
 
-        <View style={styles.header}>
+        <View
+          style={styles.header}
+        >
 
           <View
             style={styles.headerLeft}
           >
 
-            <Text
-              style={[
-                styles.smallText,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              WELCOME BACK
-            </Text>
-
-            <Text
-              style={[
-                styles.title,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {adminUsername} 👋
-            </Text>
-
-            <Text
-              style={[
-                styles.subtitle,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Manage your gym with ease.
-            </Text>
-
-          </View>
-
-          <View
-            style={styles.headerRight}
-          >
-
-            {/* ==================================================
-                THEME SWITCH
-            ================================================== */}
+            {/* PROFILE */}
 
             <TouchableOpacity
-              style={[
-                styles.themeSwitch,
-                {
-                  backgroundColor:
-                    isDark
-                      ? "#111827"
-                      : "#E2E8F0",
-                },
-              ]}
-              onPress={toggleTheme}
               activeOpacity={0.8}
+              onPress={() =>
+                router.push(
+                  "/admin/profile"
+                )
+              }
             >
+              {adminProfilePicture ? (
+                <Image
+                  source={{
+                    uri:
+                      adminProfilePicture,
+                  }}
+                  style={
+                    styles.profileCircle
+                  }
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.profileCircle,
+                    {
+                      backgroundColor:
+                        colors.primary,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={
+                      styles.profileText
+                    }
+                  >
+                    {getInitials(
+                      adminUsername
+                    )}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
 
-              {/* MOON */}
+            {/* OWNER INFO */}
 
+            <View
+              style={
+                styles.adminNameContainer
+              }
+            >
               <Text
-                style={styles.themeIcon}
-              >
-                🌙
-              </Text>
-
-              {/* SUN */}
-
-              <Text
-                style={styles.themeIcon}
-              >
-                ☀️
-              </Text>
-
-              {/* SLIDING KNOB */}
-
-              <Animated.View
                 style={[
-                  styles.themeKnob,
+                  styles.smallText,
                   {
-                    backgroundColor:
-                      isDark
-                        ? "#1E293B"
-                        : "#FFFFFF",
-
-                    transform: [
-                      {
-                        translateX:
-                          themeAnimation.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [30, 0],
-                          }),
-                      },
-                    ],
+                    color:
+                      colors.mutedText,
                   },
                 ]}
               >
-
-                <Text
-                  style={styles.knobIcon}
-                >
-                  {isDark
-                    ? "🌙"
-                    : "☀️"}
-                </Text>
-
-              </Animated.View>
-
-            </TouchableOpacity>
-
-            {/* ==================================================
-                PROFILE
-            ================================================== */}
-
-            <View
-              style={[
-                styles.profileCircle,
-                {
-                  backgroundColor:
-                    colors.primary,
-                },
-              ]}
-            >
-
-              <Text
-                style={
-                  styles.profileText
-                }
-              >
-                {getInitials(
-                  adminUsername
-                )}
+                WELCOME BACK
               </Text>
 
+              <Text
+                style={[
+                  styles.title,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {adminUsername} 👋
+              </Text>
+
+              <Text
+                style={[
+                  styles.subtitle,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
+              >
+                Manage your gym with ease.
+              </Text>
             </View>
 
           </View>
 
+          {/* ==================================================
+              THEME SWITCH
+          ================================================== */}
+
+          <TouchableOpacity
+            style={[
+              styles.themeSwitch,
+              {
+                backgroundColor:
+                  isDark
+                    ? "#111827"
+                    : "#E2E8F0",
+              },
+            ]}
+            onPress={
+              toggleTheme
+            }
+            activeOpacity={0.8}
+          >
+            <Text
+              style={
+                styles.themeIcon
+              }
+            >
+              🌙
+            </Text>
+
+            <Text
+              style={
+                styles.themeIcon
+              }
+            >
+              ☀️
+            </Text>
+
+            <Animated.View
+              style={[
+                styles.themeKnob,
+                {
+                  backgroundColor:
+                    isDark
+                      ? "#1E293B"
+                      : "#FFFFFF",
+
+                  transform: [
+                    {
+                      translateX:
+                        themeAnimation.interpolate({
+                          inputRange: [
+                            0,
+                            1,
+                          ],
+                          outputRange: [
+                            30,
+                            0,
+                          ],
+                        }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Text
+                style={
+                  styles.knobIcon
+                }
+              >
+                {isDark
+                  ? "🌙"
+                  : "☀️"}
+              </Text>
+            </Animated.View>
+          </TouchableOpacity>
+
+        </View>
+
+        {/* ==================================================
+            ROLE BADGE
+        ================================================== */}
+
+        <View
+          style={[
+            styles.roleBadge,
+            {
+              backgroundColor:
+                colors.iconBackground,
+              borderColor:
+                colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.roleBadgeText,
+              {
+                color:
+                  colors.primaryLight,
+              },
+            ]}
+          >
+            GYM OWNER
+          </Text>
         </View>
 
         {/* ==================================================
@@ -837,7 +876,9 @@ export default function AdminDashboard() {
         </Text>
 
         <View
-          style={styles.statsGrid}
+          style={
+            styles.statsGrid
+          }
         >
 
           {/* ==================================================
@@ -861,7 +902,6 @@ export default function AdminDashboard() {
             }
             activeOpacity={0.8}
           >
-
             <View
               style={[
                 styles.iconBox,
@@ -871,13 +911,13 @@ export default function AdminDashboard() {
                 },
               ]}
             >
-
               <Text
-                style={styles.icon}
+                style={
+                  styles.icon
+                }
               >
                 👥
               </Text>
-
             </View>
 
             <Text
@@ -903,19 +943,6 @@ export default function AdminDashboard() {
             >
               Total Members
             </Text>
-
-            <Text
-              style={[
-                styles.growth,
-                {
-                  color:
-                    colors.success,
-                },
-              ]}
-            >
-              ↗ Total registered members
-            </Text>
-
           </TouchableOpacity>
 
           {/* ==================================================
@@ -939,7 +966,6 @@ export default function AdminDashboard() {
             }
             activeOpacity={0.8}
           >
-
             <View
               style={[
                 styles.iconBox,
@@ -949,13 +975,13 @@ export default function AdminDashboard() {
                 },
               ]}
             >
-
               <Text
-                style={styles.icon}
+                style={
+                  styles.icon
+                }
               >
                 ₹
               </Text>
-
             </View>
 
             <Text
@@ -981,25 +1007,12 @@ export default function AdminDashboard() {
                 },
               ]}
             >
-              Revenue & Records
+              Revenue
             </Text>
-
-            <Text
-              style={[
-                styles.revenueText,
-                {
-                  color:
-                    colors.revenue,
-                },
-              ]}
-            >
-              ↗ Total revenue
-            </Text>
-
           </TouchableOpacity>
 
           {/* ==================================================
-              EXPIRED
+              ACTIVE MEMBERS
           ================================================== */}
 
           <TouchableOpacity
@@ -1019,7 +1032,70 @@ export default function AdminDashboard() {
             }
             activeOpacity={0.8}
           >
+            <View
+              style={[
+                styles.iconBox,
+                {
+                  backgroundColor:
+                    colors.successBackground,
+                },
+              ]}
+            >
+              <Text
+                style={
+                  styles.icon
+                }
+              >
+                ✓
+              </Text>
+            </View>
 
+            <Text
+              style={[
+                styles.statNumber,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+            >
+              {stats.active_members}
+            </Text>
+
+            <Text
+              style={[
+                styles.statLabel,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              Active Members
+            </Text>
+          </TouchableOpacity>
+
+          {/* ==================================================
+              EXPIRING MEMBERS
+          ================================================== */}
+
+          <TouchableOpacity
+            style={[
+              styles.statCard,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+            onPress={() =>
+              router.push(
+                "/admin/members"
+              )
+            }
+            activeOpacity={0.8}
+          >
             <View
               style={[
                 styles.iconBox,
@@ -1029,13 +1105,91 @@ export default function AdminDashboard() {
                 },
               ]}
             >
-
               <Text
-                style={styles.icon}
+                style={
+                  styles.icon
+                }
+              >
+                ⏳
+              </Text>
+            </View>
+
+            <Text
+              style={[
+                styles.statNumber,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+            >
+              {stats.expiring_members}
+            </Text>
+
+            <Text
+              style={[
+                styles.statLabel,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              Expiring Soon
+            </Text>
+
+            <Text
+              style={[
+                styles.warningText,
+                {
+                  color:
+                    colors.warning,
+                },
+              ]}
+            >
+              {stats.expiring_members > 0
+                ? "Follow up required"
+                : "No memberships expiring"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* ==================================================
+              EXPIRED MEMBERS
+          ================================================== */}
+
+          <TouchableOpacity
+            style={[
+              styles.statCard,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+            onPress={() =>
+              router.push(
+                "/admin/members"
+              )
+            }
+            activeOpacity={0.8}
+          >
+            <View
+              style={[
+                styles.iconBox,
+                {
+                  backgroundColor:
+                    colors.dangerBackground,
+                },
+              ]}
+            >
+              <Text
+                style={
+                  styles.icon
+                }
               >
                 !
               </Text>
-
             </View>
 
             <Text
@@ -1064,22 +1218,21 @@ export default function AdminDashboard() {
 
             <Text
               style={[
-                styles.warningText,
+                styles.dangerText,
                 {
                   color:
-                    colors.warning,
+                    colors.danger,
                 },
               ]}
             >
               {stats.expired_members > 0
                 ? "Needs attention"
-                : "All memberships active"}
+                : "No expired members"}
             </Text>
-
           </TouchableOpacity>
 
           {/* ==================================================
-              ATTENDANCE
+              TODAY'S ATTENDANCE
           ================================================== */}
 
           <TouchableOpacity
@@ -1092,9 +1245,13 @@ export default function AdminDashboard() {
                   colors.border,
               },
             ]}
+            onPress={() =>
+              router.push(
+                "/admin/attendance"
+              )
+            }
             activeOpacity={0.8}
           >
-
             <View
               style={[
                 styles.iconBox,
@@ -1104,13 +1261,13 @@ export default function AdminDashboard() {
                 },
               ]}
             >
-
               <Text
-                style={styles.icon}
+                style={
+                  styles.icon
+                }
               >
                 🔥
               </Text>
-
             </View>
 
             <Text
@@ -1136,19 +1293,6 @@ export default function AdminDashboard() {
             >
               Today's Attendance
             </Text>
-
-            <Text
-              style={[
-                styles.growth,
-                {
-                  color:
-                    colors.success,
-                },
-              ]}
-            >
-              ● Present today
-            </Text>
-
           </TouchableOpacity>
 
         </View>
@@ -1169,178 +1313,78 @@ export default function AdminDashboard() {
           QUICK ACTIONS
         </Text>
 
-        {/* ==================================================
-            VIEW MEMBERS
-        ================================================== */}
-
-        <TouchableOpacity
-          style={[
-            styles.actionCard,
-            {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
-            },
-          ]}
+        <ActionCard
+          icon="👥"
+          title="Manage Members"
+          subtitle="View and manage your gym members"
           onPress={() =>
             router.push(
               "/admin/members"
             )
           }
-          activeOpacity={0.8}
-        >
+          colors={colors}
+        />
 
-          <View
-            style={[
-              styles.actionIcon,
-              {
-                backgroundColor:
-                  colors.primary,
-              },
-            ]}
-          >
-
-            <Text
-              style={
-                styles.actionIconText
-              }
-            >
-              👥
-            </Text>
-
-          </View>
-
-          <View
-            style={
-              styles.actionContent
-            }
-          >
-
-            <Text
-              style={[
-                styles.actionTitle,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              View All Members
-            </Text>
-
-            <Text
-              style={[
-                styles.actionSubtitle,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Manage your gym members
-            </Text>
-
-          </View>
-
-          <Text
-            style={[
-              styles.arrow,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            →
-          </Text>
-
-        </TouchableOpacity>
-
-        {/* ==================================================
-            RECORD PAYMENT
-        ================================================== */}
-
-        <TouchableOpacity
-          style={[
-            styles.actionCard,
-            {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
-            },
-          ]}
+        <ActionCard
+          icon="₹"
+          title="Record Payment"
+          subtitle="Record a new member payment"
           onPress={() =>
             router.push(
-              "/admin/members"
+              "/admin/recordpayment"
             )
           }
-          activeOpacity={0.8}
-        >
+          colors={colors}
+          payment
+        />
 
-          <View
-            style={[
-              styles.actionIcon,
-              styles.paymentActionIcon,
-            ]}
-          >
+        <ActionCard
+          icon="📊"
+          title="Revenue & Reports"
+          subtitle="View financial records and reports"
+          onPress={() =>
+            router.push(
+              "/admin/revenue"
+            )
+          }
+          colors={colors}
+        />
 
-            <Text
-              style={
-                styles.actionIconText
-              }
-            >
-              ₹
-            </Text>
+        <ActionCard
+          icon="🔥"
+          title="Attendance"
+          subtitle="Track today's gym attendance"
+          onPress={() =>
+            router.push(
+              "/admin/attendance"
+            )
+          }
+          colors={colors}
+        />
 
-          </View>
+        <ActionCard
+          icon="📱"
+          title="Registration QR"
+          subtitle="Let new members register"
+          onPress={() =>
+            router.push(
+              "/admin/adminqr"
+            )
+          }
+          colors={colors}
+        />
 
-          <View
-            style={
-              styles.actionContent
-            }
-          >
-
-            <Text
-              style={[
-                styles.actionTitle,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              Record Payment
-            </Text>
-
-            <Text
-              style={[
-                styles.actionSubtitle,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Select a member and record payment
-            </Text>
-
-          </View>
-
-          <Text
-            style={[
-              styles.arrow,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            →
-          </Text>
-
-        </TouchableOpacity>
+        <ActionCard
+          icon="🏋️"
+          title="Manage Trainers"
+          subtitle="Add and manage gym trainers"
+          onPress={() =>
+            router.push(
+              "/admin/trainers"
+            )
+          }
+          colors={colors}
+        />
 
         {/* ==================================================
             RECENT MEMBERS
@@ -1351,7 +1395,6 @@ export default function AdminDashboard() {
             styles.sectionHeader
           }
         >
-
           <Text
             style={[
               styles.sectionTitle,
@@ -1370,8 +1413,8 @@ export default function AdminDashboard() {
                 "/admin/members"
               )
             }
+            activeOpacity={0.7}
           >
-
             <Text
               style={[
                 styles.viewAll,
@@ -1383,23 +1426,19 @@ export default function AdminDashboard() {
             >
               View All
             </Text>
-
           </TouchableOpacity>
-
         </View>
 
         {/* ==================================================
-            MEMBER LIST
+            NO MEMBERS
         ================================================== */}
 
         {recentMembers.length === 0 ? (
-
           <View
             style={
               styles.emptyContainer
             }
           >
-
             <Text
               style={
                 styles.emptyIcon
@@ -1429,16 +1468,41 @@ export default function AdminDashboard() {
                 },
               ]}
             >
-              Add your first gym member.
+              Add your first gym member to get started.
             </Text>
 
+            <TouchableOpacity
+              style={[
+                styles.emptyButton,
+                {
+                  backgroundColor:
+                    colors.primary,
+                },
+              ]}
+              onPress={() =>
+                router.push(
+                  "/admin/adminqr"
+                )
+              }
+              activeOpacity={0.8}
+            >
+              <Text
+                style={
+                  styles.emptyButtonText
+                }
+              >
+                Register Member
+              </Text>
+            </TouchableOpacity>
           </View>
-
         ) : (
+
+          /* ==================================================
+              MEMBER LIST
+          ================================================== */
 
           recentMembers.map(
             (member) => (
-
               <TouchableOpacity
                 key={
                   member.id
@@ -1460,6 +1524,8 @@ export default function AdminDashboard() {
                 }
               >
 
+                {/* AVATAR */}
+
                 <View
                   style={[
                     styles.avatar,
@@ -1469,7 +1535,6 @@ export default function AdminDashboard() {
                     },
                   ]}
                 >
-
                   <Text
                     style={[
                       styles.avatarText,
@@ -1483,15 +1548,15 @@ export default function AdminDashboard() {
                       member.name
                     )}
                   </Text>
-
                 </View>
+
+                {/* MEMBER INFO */}
 
                 <View
                   style={
                     styles.memberInfo
                   }
                 >
-
                   <Text
                     style={[
                       styles.memberName,
@@ -1502,7 +1567,8 @@ export default function AdminDashboard() {
                     ]}
                     numberOfLines={1}
                   >
-                    {member.name}
+                    {member.name ||
+                      "Unnamed Member"}
                   </Text>
 
                   <Text
@@ -1521,14 +1587,12 @@ export default function AdminDashboard() {
                           member.membership_end
                         )} days remaining`}
                   </Text>
-
                 </View>
 
-                {/* ACTIVE */}
+                {/* STATUS */}
 
                 {member.status ===
                   "ACTIVE" && (
-
                   <View
                     style={[
                       styles.activeBadge,
@@ -1538,7 +1602,6 @@ export default function AdminDashboard() {
                       },
                     ]}
                   >
-
                     <Text
                       style={[
                         styles.activeBadgeText,
@@ -1550,16 +1613,11 @@ export default function AdminDashboard() {
                     >
                       ACTIVE
                     </Text>
-
                   </View>
-
                 )}
-
-                {/* EXPIRING */}
 
                 {member.status ===
                   "EXPIRING" && (
-
                   <View
                     style={[
                       styles.warningBadge,
@@ -1569,7 +1627,6 @@ export default function AdminDashboard() {
                       },
                     ]}
                   >
-
                     <Text
                       style={[
                         styles.warningBadgeText,
@@ -1581,16 +1638,11 @@ export default function AdminDashboard() {
                     >
                       EXPIRING
                     </Text>
-
                   </View>
-
                 )}
-
-                {/* EXPIRED */}
 
                 {member.status ===
                   "EXPIRED" && (
-
                   <View
                     style={[
                       styles.expiredBadge,
@@ -1600,7 +1652,6 @@ export default function AdminDashboard() {
                       },
                     ]}
                   >
-
                     <Text
                       style={[
                         styles.expiredBadgeText,
@@ -1612,16 +1663,12 @@ export default function AdminDashboard() {
                     >
                       EXPIRED
                     </Text>
-
                   </View>
-
                 )}
 
               </TouchableOpacity>
-
             )
           )
-
         )}
 
       </ScrollView>
@@ -1650,13 +1697,12 @@ export default function AdminDashboard() {
           }
           activeOpacity={0.7}
         >
-
           <Text
             style={
               styles.navIconActive
             }
           >
-            🛖
+            🏠
           </Text>
 
           <Text
@@ -1670,7 +1716,6 @@ export default function AdminDashboard() {
           >
             Home
           </Text>
-
         </TouchableOpacity>
 
         {/* MEMBERS */}
@@ -1686,7 +1731,6 @@ export default function AdminDashboard() {
           }
           activeOpacity={0.7}
         >
-
           <Text
             style={
               styles.navIcon
@@ -1706,10 +1750,9 @@ export default function AdminDashboard() {
           >
             Members
           </Text>
-
         </TouchableOpacity>
 
-        {/* ADD MEMBER */}
+        {/* ADD / REGISTRATION */}
 
         <TouchableOpacity
           style={[
@@ -1723,12 +1766,11 @@ export default function AdminDashboard() {
           ]}
           onPress={() =>
             router.push(
-              "/admin/addmembers"
+              "/admin/adminqr"
             )
           }
           activeOpacity={0.8}
         >
-
           <Text
             style={
               styles.addButtonText
@@ -1736,7 +1778,6 @@ export default function AdminDashboard() {
           >
             +
           </Text>
-
         </TouchableOpacity>
 
         {/* REPORTS */}
@@ -1752,7 +1793,6 @@ export default function AdminDashboard() {
           }
           activeOpacity={0.7}
         >
-
           <Text
             style={
               styles.navIcon
@@ -1772,24 +1812,27 @@ export default function AdminDashboard() {
           >
             Reports
           </Text>
-
         </TouchableOpacity>
 
-        {/* SETTINGS */}
+        {/* PROFILE */}
 
         <TouchableOpacity
           style={
             styles.navItem
           }
+          onPress={() =>
+            router.push(
+              "/admin/profile"
+            )
+          }
           activeOpacity={0.7}
         >
-
           <Text
             style={
               styles.navIcon
             }
           >
-            ⚙️
+            👤
           </Text>
 
           <Text
@@ -1801,14 +1844,109 @@ export default function AdminDashboard() {
               },
             ]}
           >
-            Settings
+            Profile
           </Text>
-
         </TouchableOpacity>
 
       </View>
-
     </View>
+  );
+}
+
+// ======================================================
+// ACTION CARD
+// ======================================================
+
+function ActionCard({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  colors,
+  payment = false,
+}) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.actionCard,
+        {
+          backgroundColor:
+            colors.card,
+          borderColor:
+            colors.border,
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      {/* ICON */}
+
+      <View
+        style={[
+          styles.actionIcon,
+          {
+            backgroundColor:
+              payment
+                ? "#15803D"
+                : colors.primary,
+          },
+        ]}
+      >
+        <Text
+          style={
+            styles.actionIconText
+          }
+        >
+          {icon}
+        </Text>
+      </View>
+
+      {/* CONTENT */}
+
+      <View
+        style={
+          styles.actionContent
+        }
+      >
+        <Text
+          style={[
+            styles.actionTitle,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+        >
+          {title}
+        </Text>
+
+        <Text
+          style={[
+            styles.actionSubtitle,
+            {
+              color:
+                colors.mutedText,
+            },
+          ]}
+        >
+          {subtitle}
+        </Text>
+      </View>
+
+      {/* ARROW */}
+
+      <Text
+        style={[
+          styles.arrow,
+          {
+            color:
+              colors.primaryLight,
+          },
+        ]}
+      >
+        →
+      </Text>
+    </TouchableOpacity>
   );
 }
 
@@ -1819,7 +1957,6 @@ export default function AdminDashboard() {
 function calculateDaysRemaining(
   endDate
 ) {
-
   if (!endDate) {
     return 0;
   }
@@ -1871,7 +2008,7 @@ const styles =
   StyleSheet.create({
 
     // ==================================================
-    // MAIN
+    // CONTAINER
     // ==================================================
 
     container: {
@@ -1905,98 +2042,21 @@ const styles =
 
     header: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 30,
+      justifyContent: "space-between",
+      marginBottom: 15,
     },
 
     headerLeft: {
       flex: 1,
-    },
-
-    headerRight: {
-      alignItems: "flex-end",
-      justifyContent: "center",
-      gap: 12,
-      marginLeft: 10,
-    },
-
-    smallText: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 2,
-      marginBottom: 6,
-    },
-
-    title: {
-      fontSize: 32,
-      fontWeight: "900",
-    },
-
-    subtitle: {
-      fontSize: 14,
-      marginTop: 5,
-    },
-
-    // ==================================================
-    // THEME SWITCH
-    // ==================================================
-
-    themeSwitch: {
-      width: 66,
-      height: 34,
-      borderRadius: 18,
-
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-
-      paddingHorizontal: 7,
-
-      position: "relative",
     },
-
-    themeIcon: {
-      fontSize: 13,
-    },
-
-    themeKnob: {
-      position: "absolute",
-
-      width: 28,
-      height: 28,
-
-      borderRadius: 14,
-
-      left: 4,
-
-      alignItems: "center",
-      justifyContent: "center",
-
-      elevation: 3,
-
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-
-      shadowOpacity: 0.2,
-      shadowRadius: 3,
-    },
-
-    knobIcon: {
-      fontSize: 13,
-    },
-
-    // ==================================================
-    // PROFILE
-    // ==================================================
 
     profileCircle: {
       width: 50,
       height: 50,
       borderRadius: 25,
-
       justifyContent: "center",
       alignItems: "center",
     },
@@ -2007,8 +2067,90 @@ const styles =
       fontWeight: "800",
     },
 
+    adminNameContainer: {
+      flex: 1,
+      marginLeft: 12,
+    },
+
+    smallText: {
+      fontSize: 11,
+      fontWeight: "800",
+      letterSpacing: 2,
+      marginBottom: 6,
+    },
+
+    title: {
+      fontSize: 28,
+      fontWeight: "900",
+    },
+
+    subtitle: {
+      fontSize: 14,
+      marginTop: 5,
+    },
+
     // ==================================================
-    // SECTIONS
+    // ROLE BADGE
+    // ==================================================
+
+    roleBadge: {
+      alignSelf: "flex-start",
+      paddingHorizontal: 11,
+      paddingVertical: 6,
+      borderRadius: 9,
+      borderWidth: 1,
+      marginBottom: 22,
+    },
+
+    roleBadgeText: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.3,
+    },
+
+    // ==================================================
+    // THEME SWITCH
+    // ==================================================
+
+    themeSwitch: {
+      width: 66,
+      height: 34,
+      borderRadius: 18,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 7,
+      position: "relative",
+      marginLeft: 10,
+    },
+
+    themeIcon: {
+      fontSize: 13,
+    },
+
+    themeKnob: {
+      position: "absolute",
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      left: 4,
+      alignItems: "center",
+      justifyContent: "center",
+      elevation: 3,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
+    },
+
+    knobIcon: {
+      fontSize: 13,
+    },
+
+    // ==================================================
+    // SECTION
     // ==================================================
 
     sectionTitle: {
@@ -2053,10 +2195,8 @@ const styles =
       width: 38,
       height: 38,
       borderRadius: 12,
-
       justifyContent: "center",
       alignItems: "center",
-
       marginBottom: 12,
     },
 
@@ -2071,7 +2211,7 @@ const styles =
     },
 
     revenueNumber: {
-      fontSize: 25,
+      fontSize: 24,
       fontWeight: "900",
       minHeight: 32,
     },
@@ -2081,19 +2221,13 @@ const styles =
       marginTop: 3,
     },
 
-    growth: {
-      fontSize: 11,
-      fontWeight: "700",
-      marginTop: 8,
-    },
-
-    revenueText: {
-      fontSize: 11,
-      fontWeight: "700",
-      marginTop: 8,
-    },
-
     warningText: {
+      fontSize: 11,
+      fontWeight: "700",
+      marginTop: 8,
+    },
+
+    dangerText: {
       fontSize: 11,
       fontWeight: "700",
       marginTop: 8,
@@ -2106,12 +2240,9 @@ const styles =
     actionCard: {
       flexDirection: "row",
       alignItems: "center",
-
       borderRadius: 18,
-
       padding: 15,
       marginBottom: 12,
-
       borderWidth: 1,
     },
 
@@ -2119,18 +2250,13 @@ const styles =
       width: 45,
       height: 45,
       borderRadius: 14,
-
       justifyContent: "center",
       alignItems: "center",
     },
 
-    paymentActionIcon: {
-      backgroundColor: "#15803D",
-    },
-
     actionIconText: {
       color: "#FFFFFF",
-      fontSize: 24,
+      fontSize: 22,
       fontWeight: "700",
     },
 
@@ -2160,12 +2286,9 @@ const styles =
     memberCard: {
       flexDirection: "row",
       alignItems: "center",
-
       borderRadius: 18,
-
       padding: 14,
       marginBottom: 10,
-
       borderWidth: 1,
     },
 
@@ -2173,7 +2296,6 @@ const styles =
       width: 45,
       height: 45,
       borderRadius: 23,
-
       justifyContent: "center",
       alignItems: "center",
     },
@@ -2200,7 +2322,7 @@ const styles =
     },
 
     // ==================================================
-    // BADGES
+    // STATUS BADGES
     // ==================================================
 
     activeBadge: {
@@ -2237,7 +2359,7 @@ const styles =
     },
 
     // ==================================================
-    // EMPTY
+    // EMPTY STATE
     // ==================================================
 
     emptyContainer: {
@@ -2258,6 +2380,20 @@ const styles =
     emptyText: {
       fontSize: 12,
       marginTop: 5,
+      textAlign: "center",
+    },
+
+    emptyButton: {
+      marginTop: 16,
+      paddingHorizontal: 18,
+      paddingVertical: 11,
+      borderRadius: 12,
+    },
+
+    emptyButtonText: {
+      color: "#FFFFFF",
+      fontSize: 12,
+      fontWeight: "800",
     },
 
     // ==================================================
@@ -2266,20 +2402,14 @@ const styles =
 
     bottomNav: {
       position: "absolute",
-
       bottom: 0,
       left: 0,
       right: 0,
-
       height: 78,
-
       borderTopWidth: 1,
-
       flexDirection: "row",
-
       alignItems: "center",
       justifyContent: "space-around",
-
       paddingHorizontal: 8,
     },
 
@@ -2313,12 +2443,9 @@ const styles =
       width: 56,
       height: 56,
       borderRadius: 28,
-
       justifyContent: "center",
       alignItems: "center",
-
       marginTop: -25,
-
       borderWidth: 5,
     },
 

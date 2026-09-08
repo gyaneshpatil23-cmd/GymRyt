@@ -182,7 +182,7 @@ export default function TrainersScreen() {
   // ========================================
 
   const openAddTrainer = () => {
-    router.push("/admin/addtrainer");
+    router.push("/admin/trainerqr");
   };
 
   // ========================================

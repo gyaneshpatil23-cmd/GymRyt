@@ -17,6 +17,14 @@ from .views import (
     AdminProfilePictureView,
     TrainerListView,
     TrainerCreateView,
+
+    # ========================================================
+    # TRAINER APPLICATIONS
+    # ========================================================
+
+    TrainerApplicationCreateView,
+    TrainerApplicationListView,
+    TrainerApplicationActionView,
 )
 
 
@@ -63,13 +71,39 @@ urlpatterns = [
 
 
     # ========================================================
-    # TRAINER REGISTRATION
+    # TRAINER REGISTRATION QR
     # ========================================================
 
     path(
         "trainer-registration-qr/",
         TrainerRegistrationQRView.as_view(),
         name="trainer-registration-qr"
+    ),
+
+
+    # ========================================================
+    # TRAINER APPLICATIONS
+    # ========================================================
+
+    # Trainer submits application after scanning QR
+    path(
+        "trainer-applications/",
+        TrainerApplicationCreateView.as_view(),
+        name="trainer-application-create"
+    ),
+
+    # Owner gets all trainer applications
+    path(
+        "trainer-applications/list/",
+        TrainerApplicationListView.as_view(),
+        name="trainer-application-list"
+    ),
+
+    # Owner approves or rejects application
+    path(
+        "trainer-applications/<int:pk>/action/",
+        TrainerApplicationActionView.as_view(),
+        name="trainer-application-action"
     ),
 
 
