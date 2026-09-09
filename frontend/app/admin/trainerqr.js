@@ -119,10 +119,13 @@ export default function TrainerQRScreen() {
         );
       }
 
-      const registrationUrl =
-      `gymryt://trainer-register?token=${encodeURIComponent(data.token)}`;
+      if (!data.qr_payload) {
+        throw new Error("Trainer QR payload was missing from the server response.");
+      }
 
-      setQrToken(data.token);
+      // The QR itself contains the canonical payload, not the database token
+      // and not a deep-link URL.
+      setQrToken(data.qr_payload);
 
     } catch (error) {
       console.error(

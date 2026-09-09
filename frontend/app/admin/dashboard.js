@@ -84,6 +84,7 @@ export default function OwnerDashboard() {
     expired_members: 0,
     expiring_members: 0,
     attendance_today: 0,
+    total_trainers: 0,
   });
 
   const [revenue, setRevenue] = useState(0);
@@ -366,6 +367,9 @@ export default function OwnerDashboard() {
 
           attendance_today:
             statsData.attendance_today ?? 0,
+
+          total_trainers:
+            statsData.total_trainers ?? 0,
         });
       }
 
@@ -1076,7 +1080,7 @@ export default function OwnerDashboard() {
           </TouchableOpacity>
 
           {/* ==================================================
-              EXPIRING MEMBERS
+              TOTAL TRAINERS
           ================================================== */}
 
           <TouchableOpacity
@@ -1091,7 +1095,7 @@ export default function OwnerDashboard() {
             ]}
             onPress={() =>
               router.push(
-                "/admin/members"
+                "/admin/trainers"
               )
             }
             activeOpacity={0.8}
@@ -1101,7 +1105,7 @@ export default function OwnerDashboard() {
                 styles.iconBox,
                 {
                   backgroundColor:
-                    colors.warningBackground,
+                    colors.iconBackground,
                 },
               ]}
             >
@@ -1110,7 +1114,7 @@ export default function OwnerDashboard() {
                   styles.icon
                 }
               >
-                ⏳
+                👨‍🏫
               </Text>
             </View>
 
@@ -1123,7 +1127,7 @@ export default function OwnerDashboard() {
                 },
               ]}
             >
-              {stats.expiring_members}
+              {stats.total_trainers}
             </Text>
 
             <Text
@@ -1135,21 +1139,7 @@ export default function OwnerDashboard() {
                 },
               ]}
             >
-              Expiring Soon
-            </Text>
-
-            <Text
-              style={[
-                styles.warningText,
-                {
-                  color:
-                    colors.warning,
-                },
-              ]}
-            >
-              {stats.expiring_members > 0
-                ? "Follow up required"
-                : "No memberships expiring"}
+              Total Trainers
             </Text>
           </TouchableOpacity>
 
@@ -1325,17 +1315,19 @@ export default function OwnerDashboard() {
           colors={colors}
         />
 
+        {/* RECORD PAYMENT */}
+
         <ActionCard
-          icon="₹"
-          title="Record Payment"
-          subtitle="Record a new member payment"
-          onPress={() =>
-            router.push(
-              "/admin/recordpayment"
-            )
-          }
-          colors={colors}
-          payment
+        icon="₹"
+        title="Record Payment"
+        subtitle="Select a member and record payment"
+        onPress={() =>
+          router.push(
+            "/admin/members"
+          )
+        }
+        colors={colors}
+        payment
         />
 
         <ActionCard
@@ -2184,7 +2176,7 @@ const styles =
     },
 
     statCard: {
-      width: "48%",
+      width: "31.5%",
       borderRadius: 20,
       padding: 16,
       marginBottom: 12,
@@ -2238,10 +2230,11 @@ const styles =
     // ==================================================
 
     actionCard: {
+      width: "100%",
       flexDirection: "row",
       alignItems: "center",
       borderRadius: 18,
-      padding: 15,
+      padding: 13,
       marginBottom: 12,
       borderWidth: 1,
     },
@@ -2277,6 +2270,13 @@ const styles =
 
     arrow: {
       fontSize: 22,
+    },
+
+    actionsGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      marginBottom: 12,
     },
 
     // ==================================================

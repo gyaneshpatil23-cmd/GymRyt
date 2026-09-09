@@ -31,7 +31,17 @@ export default function TrainerRegisterScreen() {
   // QR TOKEN
   // ============================================================
 
-  const { qrToken } = useLocalSearchParams();
+  const { qrToken: rawQrToken } = useLocalSearchParams();
+
+  /*
+   * Expo Router parameters can sometimes be returned as
+   * string | string[].
+   *
+   * Normalize it to a single string before sending it to Django.
+   */
+  const qrToken = Array.isArray(rawQrToken)
+    ? rawQrToken[0]
+    : rawQrToken;
 
   // ============================================================
   // FORM DATA
@@ -42,15 +52,13 @@ export default function TrainerRegisterScreen() {
   const [phone, setPhone] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   // ============================================================
   // PASSWORD VISIBILITY
   // ============================================================
 
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
@@ -89,10 +97,64 @@ export default function TrainerRegisterScreen() {
 
   const handleRegister = async () => {
     // ==========================================================
-    // QR TOKEN
+    // NORMALIZE QR TOKEN
     // ==========================================================
 
-    if (!qrToken) {
+    const scannedPayload =
+      typeof qrToken === "string"
+        ? qrToken.trim()
+        : "";
+
+    const trainerPrefix = "GYMRYT:TRAINER:";
+    const extractedToken = scannedPayload.startsWith(trainerPrefix)
+      ? scannedPayload.slice(trainerPrefix.length).trim()
+      : scannedPayload.startsWith("GYMRYT_TRAINER_")
+        ? scannedPayload
+        : "";
+
+    // Always send the canonical payload. Expo Router supplies decoded params,
+    // so the colon separators are not altered during scanner navigation.
+    const normalizedToken = extractedToken
+      ? `${trainerPrefix}${extractedToken}`
+      // A scanner only passes this through after identifying its signed
+      // TRAINER payload. Django verifies that signature before use.
+      : scannedPayload.split(":").length === 3
+        ? scannedPayload
+        : "";
+
+    console.log(
+      "===================================="
+    );
+
+    console.log(
+      "TRAINER QR PARAM:",
+      rawQrToken
+    );
+
+    console.log(
+      "TRAINER QR PARAM TYPE:",
+      typeof rawQrToken
+    );
+
+    console.log(
+      "TRAINER QR TOKEN SENT:",
+      normalizedToken
+    );
+
+    console.log(
+      "TRAINER API URL:",
+      API_URL
+    );
+
+    console.log(
+      "===================================="
+    );
+
+    // ==========================================================
+    // QR TOKEN VALIDATION
+    // ==========================================================
+
+    if (!normalizedToken) {
       Alert.alert(
         "Invalid Registration",
         "No trainer registration QR code was detected. Please scan the gym's trainer QR code again."
@@ -168,7 +230,10 @@ export default function TrainerRegisterScreen() {
     // USERNAME
     // ==========================================================
 
-    if (!username.trim()) {
+    const cleanedUsername =
+      username.trim();
+
+    if (!cleanedUsername) {
       Alert.alert(
         "Missing Information",
         "Please create a username."
@@ -228,32 +293,70 @@ export default function TrainerRegisterScreen() {
     try {
       setLoading(true);
 
-      const response = await fetch(API_URL, {
-        method: "POST",
+      const requestBody = {
+        qr_payload: normalizedToken,
 
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        name: fullName.trim(),
 
-        body: JSON.stringify({
-          // IMPORTANT:
-          // Trainer backend expects "token"
-          token: qrToken,
+        email: email
+          .trim()
+          .toLowerCase(),
 
-          name: fullName.trim(),
+        phone: cleanedPhone,
 
-          email: email
-            .trim()
-            .toLowerCase(),
+        username: cleanedUsername,
 
-          phone: cleanedPhone,
+        password: password,
 
-          username: username.trim(),
+        confirm_password: confirmPassword,
+      };
 
-          password: password,
-        }),
-      });
+      // ========================================================
+      // DEBUG
+      // ========================================================
+
+      console.log(
+        "TRAINER REGISTRATION REQUEST:"
+      );
+
+      console.log(
+        JSON.stringify(
+          {
+            ...requestBody,
+            password: "***HIDDEN***",
+            confirm_password: "***HIDDEN***",
+          },
+          null,
+          2
+        )
+      );
+
+      // ========================================================
+      // REQUEST
+      // ========================================================
+
+      const response = await fetch(
+        API_URL,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Accept:
+              "application/json",
+          },
+
+          body: JSON.stringify(
+            requestBody
+          ),
+        }
+      );
+
+      // ========================================================
+      // RESPONSE
+      // ========================================================
 
       let data = {};
 
@@ -282,7 +385,7 @@ export default function TrainerRegisterScreen() {
 
       if (
         response.ok &&
-        data.success
+        data?.success
       ) {
         Alert.alert(
           "Application Submitted 🎉",
@@ -290,6 +393,7 @@ export default function TrainerRegisterScreen() {
           [
             {
               text: "OK",
+
               onPress: () => {
                 router.replace("/");
               },
@@ -305,12 +409,17 @@ export default function TrainerRegisterScreen() {
       // ========================================================
 
       let errorMessage =
-        data.detail ||
-        data.message ||
+        data?.detail ||
+        data?.message ||
         "Could not submit your trainer application.";
+
+      // ========================================================
+      // HANDLE DJANGO REST FRAMEWORK VALIDATION ERRORS
+      // ========================================================
 
       if (
         typeof data === "object" &&
+        data !== null &&
         !data.detail &&
         !data.message
       ) {
@@ -318,27 +427,48 @@ export default function TrainerRegisterScreen() {
 
         Object.keys(data).forEach(
           (key) => {
-            const value = data[key];
+            const value =
+              data[key];
 
-            if (Array.isArray(value)) {
+            if (
+              Array.isArray(value)
+            ) {
               messages.push(
-                `${key}: ${value.join(", ")}`
+                `${key}: ${value.join(
+                  ", "
+                )}`
               );
             } else if (
-              typeof value === "string"
+              typeof value ===
+              "string"
             ) {
               messages.push(
                 `${key}: ${value}`
+              );
+            } else if (
+              value !== null &&
+              value !== undefined
+            ) {
+              messages.push(
+                `${key}: ${JSON.stringify(
+                  value
+                )}`
               );
             }
           }
         );
 
-        if (messages.length > 0) {
+        if (
+          messages.length > 0
+        ) {
           errorMessage =
             messages.join("\n");
         }
       }
+
+      // ========================================================
+      // DISPLAY ERROR
+      // ========================================================
 
       Alert.alert(
         "Application Failed",
@@ -346,6 +476,10 @@ export default function TrainerRegisterScreen() {
       );
 
     } catch (error) {
+      // ========================================================
+      // NETWORK ERROR
+      // ========================================================
+
       console.log(
         "TRAINER REGISTRATION ERROR:",
         error
@@ -371,11 +505,15 @@ export default function TrainerRegisterScreen() {
       style={styles.background}
       resizeMode="cover"
     >
-
-      <View style={styles.backgroundOverlay}>
-
+      <View
+        style={
+          styles.backgroundOverlay
+        }
+      >
         <KeyboardAvoidingView
-          style={styles.keyboardContainer}
+          style={
+            styles.keyboardContainer
+          }
           behavior={
             Platform.OS === "ios"
               ? "padding"
@@ -387,47 +525,56 @@ export default function TrainerRegisterScreen() {
               : 20
           }
         >
-
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={
               styles.scrollContainer
             }
             keyboardShouldPersistTaps="always"
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={
+              false
+            }
             keyboardDismissMode="none"
           >
-
-            <View style={styles.content}>
-
+            <View
+              style={styles.content}
+            >
               {/* ==================================================
                   HEADER
               ================================================== */}
 
-              <View style={styles.header}>
-
-                <Text style={styles.title}>
+              <View
+                style={styles.header}
+              >
+                <Text
+                  style={styles.title}
+                >
                   JOIN GYMRYT
                 </Text>
 
-                <Text style={styles.subtitle}>
+                <Text
+                  style={styles.subtitle}
+                >
                   Create your trainer account
                 </Text>
-
               </View>
 
               {/* ==================================================
                   REGISTRATION CARD
               ================================================== */}
 
-              <View style={styles.card}>
-
+              <View
+                style={styles.card}
+              >
                 {/* ==================================================
                     QR CONNECTION
                 ================================================== */}
 
-                <View style={styles.qrConnectedBox}>
-
+                <View
+                  style={
+                    styles.qrConnectedBox
+                  }
+                >
                   <View
                     style={
                       styles.qrIconCircle
@@ -447,7 +594,6 @@ export default function TrainerRegisterScreen() {
                       styles.qrConnectedTextContainer
                     }
                   >
-
                     <Text
                       style={
                         styles.qrConnectedTitle
@@ -464,9 +610,7 @@ export default function TrainerRegisterScreen() {
                       Your trainer application is
                       linked to this gym
                     </Text>
-
                   </View>
-
                 </View>
 
                 {/* ==================================================
@@ -478,7 +622,6 @@ export default function TrainerRegisterScreen() {
                     styles.inputContainer
                   }
                 >
-
                   <Text
                     style={[
                       styles.floatingLabel,
@@ -515,7 +658,6 @@ export default function TrainerRegisterScreen() {
                     }
                     selectionColor="#9DBEFF"
                   />
-
                 </View>
 
                 {/* ==================================================
@@ -527,7 +669,6 @@ export default function TrainerRegisterScreen() {
                     styles.inputContainer
                   }
                 >
-
                   <Text
                     style={[
                       styles.floatingLabel,
@@ -565,7 +706,6 @@ export default function TrainerRegisterScreen() {
                     }
                     selectionColor="#9DBEFF"
                   />
-
                 </View>
 
                 {/* ==================================================
@@ -577,7 +717,6 @@ export default function TrainerRegisterScreen() {
                     styles.inputContainer
                   }
                 >
-
                   <Text
                     style={[
                       styles.floatingLabel,
@@ -595,7 +734,9 @@ export default function TrainerRegisterScreen() {
                         styles.inputFocused,
                     ]}
                     value={phone}
-                    onChangeText={(text) => {
+                    onChangeText={(
+                      text
+                    ) => {
                       const numbersOnly =
                         text.replace(
                           /\D/g,
@@ -628,7 +769,6 @@ export default function TrainerRegisterScreen() {
                     }
                     selectionColor="#9DBEFF"
                   />
-
                 </View>
 
                 {/* ==================================================
@@ -640,7 +780,6 @@ export default function TrainerRegisterScreen() {
                     styles.inputContainer
                   }
                 >
-
                   <Text
                     style={[
                       styles.floatingLabel,
@@ -677,7 +816,6 @@ export default function TrainerRegisterScreen() {
                     }
                     selectionColor="#9DBEFF"
                   />
-
                 </View>
 
                 {/* ==================================================
@@ -689,7 +827,6 @@ export default function TrainerRegisterScreen() {
                     styles.inputContainer
                   }
                 >
-
                   <Text
                     style={[
                       styles.floatingLabel,
@@ -705,7 +842,6 @@ export default function TrainerRegisterScreen() {
                       styles.passwordWrapper
                     }
                   >
-
                     <TextInput
                       style={[
                         styles.input,
@@ -751,7 +887,6 @@ export default function TrainerRegisterScreen() {
                       disabled={loading}
                       activeOpacity={0.7}
                     >
-
                       <Text
                         style={
                           styles.showText
@@ -761,11 +896,8 @@ export default function TrainerRegisterScreen() {
                           ? "HIDE"
                           : "SHOW"}
                       </Text>
-
                     </TouchableOpacity>
-
                   </View>
-
                 </View>
 
                 {/* ==================================================
@@ -777,7 +909,6 @@ export default function TrainerRegisterScreen() {
                     styles.inputContainer
                   }
                 >
-
                   <Text
                     style={[
                       styles.floatingLabel,
@@ -793,7 +924,6 @@ export default function TrainerRegisterScreen() {
                       styles.passwordWrapper
                     }
                   >
-
                     <TextInput
                       style={[
                         styles.input,
@@ -844,7 +974,6 @@ export default function TrainerRegisterScreen() {
                       disabled={loading}
                       activeOpacity={0.7}
                     >
-
                       <Text
                         style={
                           styles.showText
@@ -854,11 +983,8 @@ export default function TrainerRegisterScreen() {
                           ? "HIDE"
                           : "SHOW"}
                       </Text>
-
                     </TouchableOpacity>
-
                   </View>
-
                 </View>
 
                 {/* ==================================================
@@ -877,16 +1003,12 @@ export default function TrainerRegisterScreen() {
                   disabled={loading}
                   activeOpacity={0.8}
                 >
-
                   {loading ? (
-
                     <ActivityIndicator
                       size="small"
                       color="#FFFFFF"
                     />
-
                   ) : (
-
                     <Text
                       style={
                         styles.registerButtonText
@@ -894,9 +1016,7 @@ export default function TrainerRegisterScreen() {
                     >
                       SUBMIT TRAINER APPLICATION
                     </Text>
-
                   )}
-
                 </TouchableOpacity>
 
                 {/* ==================================================
@@ -913,14 +1033,12 @@ export default function TrainerRegisterScreen() {
                   disabled={loading}
                   activeOpacity={0.7}
                 >
-
                   <Text
                     style={
                       styles.backToLoginText
                     }
                   >
                     Already have an account?{" "}
-
                     <Text
                       style={
                         styles.loginLink
@@ -928,11 +1046,8 @@ export default function TrainerRegisterScreen() {
                     >
                       LOGIN
                     </Text>
-
                   </Text>
-
                 </TouchableOpacity>
-
               </View>
 
               {/* ==================================================
@@ -944,7 +1059,6 @@ export default function TrainerRegisterScreen() {
                   styles.pendingBox
                 }
               >
-
                 <Text
                   style={
                     styles.pendingIcon
@@ -962,25 +1076,21 @@ export default function TrainerRegisterScreen() {
                   pending until the gym owner
                   approves your trainer account.
                 </Text>
-
               </View>
 
               {/* ==================================================
                   FOOTER
               ================================================== */}
 
-              <Text style={styles.footer}>
+              <Text
+                style={styles.footer}
+              >
                 GYMRYT • TRAIN • TRACK • TRANSFORM
               </Text>
-
             </View>
-
           </ScrollView>
-
         </KeyboardAvoidingView>
-
       </View>
-
     </ImageBackground>
   );
 }
@@ -990,7 +1100,6 @@ export default function TrainerRegisterScreen() {
 // ============================================================
 
 const styles = StyleSheet.create({
-
   background: {
     flex: 1,
     backgroundColor: "#050816",
@@ -1063,7 +1172,7 @@ const styles = StyleSheet.create({
       height: 5,
     },
 
-    shadowOpacity: 0.20,
+    shadowOpacity: 0.2,
 
     shadowRadius: 15,
 
@@ -1147,6 +1256,7 @@ const styles = StyleSheet.create({
 
   inputContainer: {
     position: "relative",
+
     marginBottom: 20,
   },
 
@@ -1276,7 +1386,7 @@ const styles = StyleSheet.create({
       height: 6,
     },
 
-    shadowOpacity: 0.30,
+    shadowOpacity: 0.3,
 
     shadowRadius: 10,
 
@@ -1390,5 +1500,4 @@ const styles = StyleSheet.create({
 
     marginBottom: 2,
   },
-
 });
