@@ -1024,7 +1024,8 @@ class MemberListCreateView(APIView):
 
         serializer = MemberSerializer(
             members,
-            many=True
+            many=True,
+            context={"request": request},
         )
 
         return Response(
@@ -1243,7 +1244,8 @@ class MemberDetailView(APIView):
             )
 
         serializer = MemberSerializer(
-            member
+            member,
+            context={"request": request},
         )
 
         return Response(
@@ -2384,6 +2386,16 @@ class TrainerApplicationCreateView(APIView):
         username = str(request.data.get("username", "")).strip()
         password = request.data.get("password", "")
         confirm_password = request.data.get("confirm_password", "")
+        specialization = str(request.data.get("specialization", "")).strip()
+        experience_years = request.data.get("experience_years", 0)
+
+        try:
+            experience_years = max(0, int(experience_years or 0))
+        except (TypeError, ValueError):
+            return Response(
+                {"success": False, "message": "Experience must be a valid number of years."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if payload_error == "wrong_type":
             return Response(
@@ -2561,29 +2573,6 @@ class TrainerApplicationCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        image = request.FILES.get("profile_picture")
-
-        if image:
-            if image.content_type not in {
-                "image/jpeg", "image/png", "image/webp"
-            }:
-                return Response(
-                    {
-                        "success": False,
-                        "message": "Only JPG, PNG and WEBP images are allowed.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            if image.size > 5 * 1024 * 1024:
-                return Response(
-                    {
-                        "success": False,
-                        "message": "Profile picture must be smaller than 5 MB.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
         try:
             data = {
                 "admin": qr.admin,
@@ -2594,11 +2583,10 @@ class TrainerApplicationCreateView(APIView):
                 "phone": phone,
                 "username": username,
                 "password": make_password(password),
+                "specialization": specialization or None,
+                "experience_years": experience_years,
                 "status": "PENDING",
             }
-
-            if image:
-                data["profile_picture"] = image
 
             application = TrainerApplication.objects.create(**data)
 
@@ -2673,18 +2661,11 @@ class TrainerApplicationListView(APIView):
                     "username": application.username,
                     "specialization": application.specialization,
                     "experience_years": application.experience_years,
-                    "bio": application.bio,
                     "status": application.status,
-                    "rejection_reason": application.rejection_reason,
                     "workspace_id": application.workspace_id,
                     "workspace_name": application.workspace.name,
-                    "profile_picture": (
-                        request.build_absolute_uri(application.profile_picture.url)
-                        if application.profile_picture else None
-                    ),
                     "created_at": application.created_at,
                     "updated_at": application.updated_at,
-                    "reviewed_at": application.reviewed_at,
                 }
             )
 
@@ -2738,62 +2719,67 @@ class TrainerApplicationActionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            application = TrainerApplication.objects.select_related(
-                "admin", "workspace"
-            ).get(
-                pk=pk,
-                admin=request.user,
-                workspace=workspace,
-            )
-        except TrainerApplication.DoesNotExist:
-            return Response(
-                {
-                    "success": False,
-                    "message": "Trainer application not found.",
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        if application.status != "PENDING":
-            return Response(
-                {
-                    "success": False,
-                    "message": (
-                        f"This application has already been "
-                        f"{application.status.lower()}."
-                    ),
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if action == "REJECT":
-            application.status = "REJECTED"
-            application.rejection_reason = str(
-                request.data.get("rejection_reason", "")
-            ).strip()
-            application.reviewed_at = timezone.now()
-            application.save(
-                update_fields=[
-                    "status",
-                    "rejection_reason",
-                    "reviewed_at",
-                    "updated_at",
-                ]
-            )
-
-            return Response(
-                {
-                    "success": True,
-                    "message": "Trainer application rejected.",
-                    "application_id": application.id,
-                    "status": "REJECTED",
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        # APPROVE
         with transaction.atomic():
+            # Lock the row while checking its status and creating the account.
+            # This makes simultaneous owner taps safe: only one request can
+            # transition this application out of PENDING.
+            try:
+                application = TrainerApplication.objects.select_for_update().select_related(
+                    "admin", "workspace"
+                ).get(
+                    pk=pk,
+                    admin=request.user,
+                    workspace=workspace,
+                )
+            except TrainerApplication.DoesNotExist:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Trainer application not found.",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            if application.status != "PENDING":
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            f"This application has already been "
+                            f"{application.status.lower()}."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if action == "REJECT":
+                application.status = "REJECTED"
+                application.rejection_reason = str(
+                    request.data.get("rejection_reason", "")
+                ).strip()
+                application.reviewed_at = timezone.now()
+                application.save(
+                    update_fields=[
+                        "status",
+                        "rejection_reason",
+                        "reviewed_at",
+                        "updated_at",
+                    ]
+                )
+
+                return Response(
+                    {
+                        "success": True,
+                        "message": "Trainer application rejected.",
+                        "application_id": application.id,
+                        "status": "REJECTED",
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            # APPROVE. TrainerApplicationCreateView stores a Django hash, and
+            # ensure_hashed_application_password also supports historical rows
+            # that may contain plaintext without hashing an existing hash again.
             if User.objects.filter(
                 username__iexact=application.username
             ).exists():
@@ -2809,10 +2795,12 @@ class TrainerApplicationActionView(APIView):
                 application.password
             )
 
+            name_parts = application.name.split(maxsplit=1)
             user = User.objects.create(
                 username=application.username,
                 email=application.email or "",
-                first_name=application.name,
+                first_name=name_parts[0] if name_parts else "",
+                last_name=name_parts[1] if len(name_parts) > 1 else "",
                 password=user_password,
                 is_active=True,
                 is_staff=False,
@@ -2840,7 +2828,6 @@ class TrainerApplicationActionView(APIView):
                 specialization=application.specialization,
                 experience_years=application.experience_years,
                 bio=application.bio,
-                profile_picture=application.profile_picture,
                 is_active=True,
             )
 
@@ -3065,6 +3052,43 @@ class AdminProfilePictureView(APIView):
 # ============================================================
 # OWNER - TRAINER LIST
 # ============================================================
+
+class TrainerProfileView(APIView):
+    """Authenticated trainer's own profile; never accepts workspace ownership fields."""
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_profile(self, request):
+        profile = get_or_create_profile(request.user)
+        if not profile.is_trainer:
+            return None
+        return TrainerProfile.objects.select_related("user", "workspace").filter(
+            user=request.user,
+            is_active=True,
+            workspace__is_active=True,
+        ).first()
+
+    def get(self, request):
+        trainer_profile = self.get_profile(request)
+        if not trainer_profile:
+            return Response({"success": False, "message": "Trainer profile not found or inactive."}, status=status.HTTP_403_FORBIDDEN)
+        return Response({"success": True, "trainer": TrainerSerializer(trainer_profile, context={"request": request}).data})
+
+    def patch(self, request):
+        trainer_profile = self.get_profile(request)
+        if not trainer_profile:
+            return Response({"success": False, "message": "Trainer profile not found or inactive."}, status=status.HTTP_403_FORBIDDEN)
+
+        image = request.FILES.get("profile_picture")
+        if not image:
+            return Response({"success": False, "message": "A profile picture is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if image.content_type not in {"image/jpeg", "image/png", "image/webp"} or image.size > 5 * 1024 * 1024:
+            return Response({"success": False, "message": "Use a JPG, PNG, or WEBP image smaller than 5 MB."}, status=status.HTTP_400_BAD_REQUEST)
+
+        trainer_profile.profile_picture = image
+        trainer_profile.save(update_fields=["profile_picture", "updated_at"])
+        return Response({"success": True, "trainer": TrainerSerializer(trainer_profile, context={"request": request}).data})
 
 class TrainerListView(APIView):
 

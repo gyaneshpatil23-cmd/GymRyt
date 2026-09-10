@@ -63,7 +63,7 @@ export default function TrainerDashboard() {
               },
             ]}
             onPress={() =>
-              router.push("/admin/profile")
+              router.push("/trainer/profile")
             }
           >
             <Text
@@ -126,6 +126,7 @@ export default function TrainerDashboard() {
         <Action
           title="My Members"
           subtitle="View members assigned to you"
+          onPress={() => router.push("/trainer/members")}
           colors={colors}
         />
 
@@ -179,7 +180,7 @@ export default function TrainerDashboard() {
         <Nav
           label="PROFILE"
           onPress={() =>
-            router.push("/admin/profile")
+            router.push("/trainer/profile")
           }
           colors={colors}
         />
@@ -227,6 +228,7 @@ function Stat({
 function Action({
   title,
   subtitle,
+  onPress,
   colors,
 }) {
   return (
@@ -238,6 +240,7 @@ function Action({
           borderColor: colors.border,
         },
       ]}
+      onPress={onPress}
     >
       <View style={{ flex: 1 }}>
         <Text

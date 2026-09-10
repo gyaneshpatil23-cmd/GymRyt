@@ -15,6 +15,7 @@ import {
   Alert,
   Animated,
   Image,
+  Modal,
   RefreshControl,
 } from "react-native";
 
@@ -45,6 +46,9 @@ const REVENUE_API =
 
 const ADMIN_PROFILE_PICTURE_API =
   `${BASE_URL}/admin/profile-picture/`;
+
+const TRAINER_APPLICATIONS_API =
+  `${BASE_URL}/trainer-applications/list/`;
 
 // ======================================================
 // OWNER DASHBOARD
@@ -90,6 +94,21 @@ export default function OwnerDashboard() {
   const [revenue, setRevenue] = useState(0);
 
   const [members, setMembers] = useState([]);
+
+  const [trainerApplications, setTrainerApplications] =
+    useState([]);
+
+  const [applicationsLoading, setApplicationsLoading] =
+    useState(false);
+
+  const [processingApplicationId, setProcessingApplicationId] =
+    useState(null);
+
+  const [selectedTrainerApplication, setSelectedTrainerApplication] =
+    useState(null);
+
+  const [trainerDetailsVisible, setTrainerDetailsVisible] =
+    useState(false);
 
   const [loading, setLoading] = useState(true);
 
@@ -235,6 +254,59 @@ export default function OwnerDashboard() {
         "PROFILE PICTURE ERROR:",
         error
       );
+    }
+  };
+
+  // ====================================================
+  // PENDING TRAINER APPLICATIONS
+  // ====================================================
+
+  const fetchTrainerApplications = async (token) => {
+    try {
+      setApplicationsLoading(true);
+
+      const response = await fetch(
+        TRAINER_APPLICATIONS_API,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Token ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 401) {
+        await handleSessionExpired();
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.success) {
+        throw new Error(
+          data?.message || "Could not load trainer applications."
+        );
+      }
+
+      if (isMounted.current) {
+        setTrainerApplications(
+          Array.isArray(data.applications)
+            ? data.applications.filter(
+                (application) => application.status === "PENDING"
+              )
+            : []
+        );
+      }
+    } catch (error) {
+      console.log("TRAINER APPLICATIONS ERROR:", error);
+      if (isMounted.current) {
+        setTrainerApplications([]);
+      }
+    } finally {
+      if (isMounted.current) {
+        setApplicationsLoading(false);
+      }
     }
   };
 
@@ -471,6 +543,8 @@ export default function OwnerDashboard() {
         setMembers([]);
       }
 
+      await fetchTrainerApplications(token);
+
     } catch (error) {
       console.log(
         "OWNER DASHBOARD ERROR:",
@@ -495,6 +569,120 @@ export default function OwnerDashboard() {
 
   const handleRefresh = () => {
     fetchDashboardData(true);
+  };
+
+  const processTrainerApplication = async (
+    application,
+    action
+  ) => {
+    if (processingApplicationId) {
+      return;
+    }
+
+    try {
+      setProcessingApplicationId(application.id);
+
+      const session = await getAdminSession();
+      if (!session.token) {
+        await handleSessionExpired();
+        return;
+      }
+
+      const response = await fetch(
+        `${BASE_URL}/trainer-applications/${application.id}/action/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Token ${session.token}`,
+          },
+          body: JSON.stringify({ action }),
+        }
+      );
+
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (_error) {
+        // The status-specific fallback below remains useful for malformed errors.
+      }
+
+      if (response.status === 401) {
+        await handleSessionExpired();
+        return;
+      }
+
+      if (!response.ok || !data?.success) {
+        throw new Error(
+          data?.message || "Could not process trainer application."
+        );
+      }
+
+      // Remove immediately, then refresh to remain consistent with the server.
+      setTrainerApplications((current) =>
+        current.filter((item) => item.id !== application.id)
+      );
+
+      Alert.alert(
+        action === "APPROVE"
+          ? "Trainer Approved"
+          : "Application Rejected",
+        action === "APPROVE"
+          ? "The trainer has been approved and added successfully."
+          : "The trainer application has been rejected."
+      );
+
+      await fetchDashboardData(true);
+    } catch (error) {
+      Alert.alert(
+        "Unable to Process Application",
+        error.message || "Please try again."
+      );
+    } finally {
+      if (isMounted.current) {
+        setProcessingApplicationId(null);
+      }
+    }
+  };
+
+  const confirmTrainerAction = (application, action) => {
+    const isApproval = action === "APPROVE";
+    Alert.alert(
+      isApproval ? "Approve Trainer" : "Reject Application",
+      isApproval
+        ? `Approve ${application.name} as a trainer?`
+        : `Reject the trainer application for ${application.name}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: isApproval ? "Approve" : "Reject",
+          style: isApproval ? "default" : "destructive",
+          onPress: () => processTrainerApplication(application, action),
+        },
+      ]
+    );
+  };
+
+  const openTrainerDetails = (application) => {
+    setSelectedTrainerApplication(application);
+    setTrainerDetailsVisible(true);
+  };
+
+  const closeTrainerDetails = () => {
+    setTrainerDetailsVisible(false);
+    setSelectedTrainerApplication(null);
+  };
+
+  const formatTrainerApplicationDate = (value) => {
+    if (!value) {
+      return "Not provided";
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? "Not provided"
+      : date.toLocaleString();
   };
 
   // ====================================================
@@ -1379,6 +1567,153 @@ export default function OwnerDashboard() {
         />
 
         {/* ==================================================
+            PENDING TRAINER APPLICATIONS
+        ================================================== */}
+
+        <View style={styles.sectionHeader}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: colors.mutedText },
+            ]}
+          >
+            PENDING TRAINER APPLICATIONS
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => fetchDashboardData(true)}
+            disabled={applicationsLoading || !!processingApplicationId}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.viewAll,
+                { color: colors.primaryLight },
+              ]}
+            >
+              Refresh
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {applicationsLoading ? (
+          <View style={styles.applicationLoading}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.applicationLoadingText, { color: colors.mutedText }]}>
+              Loading trainer applications...
+            </Text>
+          </View>
+        ) : trainerApplications.length === 0 ? (
+          <Text style={[styles.applicationEmptyText, { color: colors.mutedText }]}>
+            No pending trainer applications.
+          </Text>
+        ) : (
+          trainerApplications.map((application) => {
+            const isProcessing = processingApplicationId === application.id;
+
+            return (
+              <View
+                key={application.id}
+                style={[
+                  styles.applicationCard,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View style={styles.applicationHeader}>
+                  {application.profile_picture ? (
+                    <Image
+                      source={{ uri: application.profile_picture }}
+                      style={styles.applicationAvatar}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.applicationAvatar,
+                        { backgroundColor: colors.iconBackground },
+                      ]}
+                    >
+                      <Text style={[styles.avatarText, { color: colors.primaryLight }]}>
+                        {getInitials(application.name)}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={styles.applicationInfo}>
+                    <Text style={[styles.memberName, { color: colors.text }]}>
+                      {application.name}
+                    </Text>
+                    <Text style={[styles.applicationDetail, { color: colors.mutedText }]}>
+                      {application.email || "No email provided"}
+                    </Text>
+                    <Text style={[styles.applicationDetail, { color: colors.mutedText }]}>
+                      {application.phone} · @{application.username}
+                    </Text>
+                  </View>
+
+                  <View style={[styles.pendingBadge, { backgroundColor: colors.warningBackground }]}>
+                    <Text style={[styles.pendingBadgeText, { color: colors.warning }]}>
+                      PENDING
+                    </Text>
+                  </View>
+                </View>
+
+                {!!application.specialization && (
+                  <Text style={[styles.applicationDetail, { color: colors.secondaryText }]}>
+                    Specialization: {application.specialization}
+                  </Text>
+                )}
+                {Number(application.experience_years) > 0 && (
+                  <Text style={[styles.applicationDetail, { color: colors.secondaryText }]}>
+                    Experience: {application.experience_years} years
+                  </Text>
+                )}
+                {!!application.bio && (
+                  <Text style={[styles.applicationDetail, { color: colors.secondaryText }]}>
+                    {application.bio}
+                  </Text>
+                )}
+
+                <View style={styles.applicationActions}>
+                  <TouchableOpacity
+                    style={[styles.applicationButton, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
+                    onPress={() => openTrainerDetails(application)}
+                    disabled={!!processingApplicationId}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.applicationButtonText, { color: colors.primaryLight }]}>VIEW DETAILS</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.applicationButton, { backgroundColor: colors.primary }]}
+                    onPress={() => confirmTrainerAction(application, "APPROVE")}
+                    disabled={!!processingApplicationId}
+                    activeOpacity={0.8}
+                  >
+                    {isProcessing ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.applicationButtonText}>APPROVE</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.applicationButton, { backgroundColor: colors.danger }]}
+                    onPress={() => confirmTrainerAction(application, "REJECT")}
+                    disabled={!!processingApplicationId}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.applicationButtonText}>REJECT</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })
+        )}
+
+        {/* ==================================================
             RECENT MEMBERS
         ================================================== */}
 
@@ -1665,6 +2000,47 @@ export default function OwnerDashboard() {
 
       </ScrollView>
 
+      <Modal
+        visible={trainerDetailsVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={closeTrainerDetails}
+      >
+        <View style={styles.trainerDetailsOverlay}>
+          <View style={[styles.trainerDetailsModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.trainerDetailsHeader}>
+              <View>
+                <Text style={[styles.trainerDetailsEyebrow, { color: colors.primaryLight }]}>TRAINER APPLICATION</Text>
+                <Text style={[styles.trainerDetailsTitle, { color: colors.text }]}>Application Details</Text>
+              </View>
+              <TouchableOpacity onPress={closeTrainerDetails} style={[styles.trainerDetailsCloseIcon, { backgroundColor: colors.iconBackground }]}>
+                <Text style={[styles.trainerDetailsCloseIconText, { color: colors.text }]}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            {selectedTrainerApplication && (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.trainerDetailsContent}>
+                <TrainerApplicationDetail label="NAME" value={selectedTrainerApplication.name} colors={colors} />
+                <TrainerApplicationDetail label="USERNAME" value={selectedTrainerApplication.username} colors={colors} />
+                <TrainerApplicationDetail label="EMAIL" value={selectedTrainerApplication.email} colors={colors} />
+                <TrainerApplicationDetail label="PHONE NUMBER" value={selectedTrainerApplication.phone} colors={colors} />
+                <TrainerApplicationDetail label="SPECIALIZATION" value={selectedTrainerApplication.specialization} colors={colors} />
+                <TrainerApplicationDetail label="EXPERIENCE" value={selectedTrainerApplication.experience_years === null || selectedTrainerApplication.experience_years === undefined ? null : `${selectedTrainerApplication.experience_years} years`} colors={colors} />
+                <TrainerApplicationDetail label="APPLICATION ID" value={selectedTrainerApplication.id} colors={colors} />
+                <TrainerApplicationDetail label="STATUS" value={selectedTrainerApplication.status} colors={colors} />
+                <TrainerApplicationDetail label="GYM / WORKSPACE" value={selectedTrainerApplication.workspace_name} colors={colors} />
+                <TrainerApplicationDetail label="SUBMITTED" value={formatTrainerApplicationDate(selectedTrainerApplication.created_at)} colors={colors} />
+                <TrainerApplicationDetail label="UPDATED" value={formatTrainerApplicationDate(selectedTrainerApplication.updated_at)} colors={colors} />
+              </ScrollView>
+            )}
+
+            <TouchableOpacity style={[styles.trainerDetailsCloseButton, { backgroundColor: colors.primary }]} onPress={closeTrainerDetails} activeOpacity={0.8}>
+              <Text style={styles.trainerDetailsCloseButtonText}>CLOSE</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* ==================================================
           BOTTOM NAVIGATION
       ================================================== */}
@@ -1939,6 +2315,24 @@ function ActionCard({
         →
       </Text>
     </TouchableOpacity>
+  );
+}
+
+function TrainerApplicationDetail({
+  label,
+  value,
+  colors,
+}) {
+  const displayValue =
+    value === null || value === undefined || value === ""
+      ? "Not provided"
+      : String(value);
+
+  return (
+    <View style={[styles.trainerDetailsRow, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.trainerDetailsLabel, { color: colors.secondaryText }]}>{label}</Text>
+      <Text style={[styles.trainerDetailsValue, { color: colors.text }]}>{displayValue}</Text>
+    </View>
   );
 }
 
@@ -2277,6 +2671,208 @@ const styles =
       flexWrap: "wrap",
       justifyContent: "space-between",
       marginBottom: 12,
+    },
+
+    // ==================================================
+    // TRAINER APPLICATIONS
+    // ==================================================
+
+    applicationLoading: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 16,
+    },
+
+    applicationLoadingText: {
+      marginLeft: 10,
+      fontSize: 12,
+    },
+
+    applicationEmptyText: {
+      fontSize: 12,
+      paddingBottom: 8,
+    },
+
+    applicationCard: {
+      borderWidth: 1,
+      borderRadius: 16,
+      padding: 14,
+      marginBottom: 10,
+    },
+
+    applicationHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 10,
+    },
+
+    applicationAvatar: {
+      width: 45,
+      height: 45,
+      borderRadius: 23,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+
+    applicationInfo: {
+      flex: 1,
+      marginLeft: 12,
+      marginRight: 8,
+    },
+
+    applicationDetail: {
+      fontSize: 12,
+      lineHeight: 18,
+      marginTop: 2,
+    },
+
+    pendingBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      borderRadius: 8,
+    },
+
+    pendingBadgeText: {
+      fontSize: 9,
+      fontWeight: "800",
+    },
+
+    applicationActions: {
+      flexDirection: "row",
+      marginTop: 12,
+      gap: 10,
+    },
+
+    applicationButton: {
+      flex: 1,
+      minHeight: 40,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    applicationButtonText: {
+      color: "#FFFFFF",
+      fontSize: 11,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+    },
+
+    trainerDetailsOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0, 0, 0, 0.58)",
+      justifyContent: "flex-end",
+    },
+
+    trainerDetailsModal: {
+      maxHeight: "88%",
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      borderWidth: 1,
+      padding: 20,
+    },
+
+    trainerDetailsHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 18,
+    },
+
+    trainerDetailsEyebrow: {
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1.6,
+    },
+
+    trainerDetailsTitle: {
+      fontSize: 22,
+      fontWeight: "900",
+      marginTop: 4,
+    },
+
+    trainerDetailsCloseIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    trainerDetailsCloseIconText: {
+      fontSize: 27,
+      lineHeight: 28,
+      fontWeight: "300",
+    },
+
+    trainerDetailsContent: {
+      paddingBottom: 12,
+    },
+
+    trainerDetailsProfile: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 14,
+    },
+
+    trainerDetailsImage: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    trainerDetailsImageText: {
+      fontSize: 19,
+      fontWeight: "900",
+    },
+
+    trainerDetailsProfileText: {
+      flex: 1,
+      marginLeft: 13,
+    },
+
+    trainerDetailsName: {
+      fontSize: 18,
+      fontWeight: "900",
+    },
+
+    trainerDetailsUsername: {
+      fontSize: 12,
+      marginTop: 4,
+    },
+
+    trainerDetailsRow: {
+      paddingVertical: 11,
+      borderBottomWidth: 1,
+    },
+
+    trainerDetailsLabel: {
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1.1,
+      marginBottom: 4,
+    },
+
+    trainerDetailsValue: {
+      fontSize: 14,
+      lineHeight: 20,
+    },
+
+    trainerDetailsCloseButton: {
+      height: 48,
+      borderRadius: 13,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 12,
+    },
+
+    trainerDetailsCloseButtonText: {
+      color: "#FFFFFF",
+      fontSize: 12,
+      fontWeight: "900",
+      letterSpacing: 1,
     },
 
     // ==================================================

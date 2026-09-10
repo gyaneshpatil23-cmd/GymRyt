@@ -17,6 +17,7 @@ from .views import (
     AdminProfilePictureView,
     TrainerListView,
     TrainerCreateView,
+    TrainerProfileView,
 
     # ========================================================
     # TRAINER APPLICATIONS
@@ -172,6 +173,12 @@ urlpatterns = [
         "trainers/create/",
         TrainerCreateView.as_view(),
         name="trainer-create"
+    ),
+
+    path(
+        "trainer/profile/",
+        TrainerProfileView.as_view(),
+        name="trainer-profile"
     ),
 
 

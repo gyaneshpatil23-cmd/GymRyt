@@ -64,16 +64,14 @@ class TrainerSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
 
-    phone = serializers.CharField(
-        source="user.profile.phone",
-        read_only=True,
-        allow_null=True,
-    )
+    phone = serializers.CharField(read_only=True, allow_null=True)
 
     workspace_name = serializers.CharField(
         source="workspace.name",
         read_only=True,
     )
+
+    profile_picture = serializers.SerializerMethodField()
 
     class Meta:
         model = TrainerProfile
@@ -87,6 +85,10 @@ class TrainerSerializer(serializers.ModelSerializer):
             "phone",
             "workspace",
             "workspace_name",
+            "specialization",
+            "experience_years",
+            "bio",
+            "profile_picture",
             "created_at",
             "is_active",
         ]
@@ -114,6 +116,12 @@ class TrainerSerializer(serializers.ModelSerializer):
             if full_name
             else obj.user.username
         )
+
+    def get_profile_picture(self, obj):
+        if not obj.profile_picture:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.profile_picture.url) if request else obj.profile_picture.url
 
 
 # ============================================================
@@ -378,26 +386,13 @@ class TrainerApplicationSerializer(
     serializers.ModelSerializer
 ):
 
+    # Applications retain a hash only until approval. It is accepted on write
+    # for compatibility with this serializer but must never be serialized.
+    password = serializers.CharField(write_only=True)
+
     workspace_name = serializers.CharField(
         source="workspace.name",
         read_only=True,
-    )
-
-    admin_username = serializers.CharField(
-        source="admin.username",
-        read_only=True,
-    )
-
-    registration_qr_token = serializers.CharField(
-        source="registration_qr.token",
-        read_only=True,
-        allow_null=True,
-    )
-
-    approved_username = serializers.CharField(
-        source="approved_user.username",
-        read_only=True,
-        allow_null=True,
     )
 
     class Meta:
@@ -407,14 +402,8 @@ class TrainerApplicationSerializer(
             "id",
 
             # Owner / workspace
-            "admin",
-            "admin_username",
             "workspace",
             "workspace_name",
-
-            # QR
-            "registration_qr",
-            "registration_qr_token",
 
             # Trainer information
             "name",
@@ -422,43 +411,27 @@ class TrainerApplicationSerializer(
             "phone",
             "username",
             "password",
-            "profile_picture",
+            "specialization",
+            "experience_years",
 
             # Application status
             "status",
-            "rejection_reason",
-
-            # Result
-            "approved_user",
-            "approved_username",
 
             # Timestamps
             "created_at",
             "updated_at",
-            "reviewed_at",
         ]
 
         read_only_fields = [
             "id",
 
-            "admin",
-            "admin_username",
-
             "workspace",
             "workspace_name",
 
-            "registration_qr_token",
-
             "status",
-
-            "rejection_reason",
-
-            "approved_user",
-            "approved_username",
 
             "created_at",
             "updated_at",
-            "reviewed_at",
         ]
 
         extra_kwargs = {
@@ -473,15 +446,6 @@ class TrainerApplicationSerializer(
                 "allow_null": True,
             },
 
-            "profile_picture": {
-                "required": False,
-                "allow_null": True,
-            },
-
-            "registration_qr": {
-                "required": False,
-                "allow_null": True,
-            },
         }
 
     # --------------------------------------------------------
@@ -652,29 +616,5 @@ class TrainerApplicationSerializer(
         data = super().to_representation(
             instance
         )
-
-        if instance.profile_picture:
-
-            request = self.context.get(
-                "request"
-            )
-
-            if request:
-
-                data["profile_picture"] = (
-                    request.build_absolute_uri(
-                        instance.profile_picture.url
-                    )
-                )
-
-            else:
-
-                data["profile_picture"] = (
-                    instance.profile_picture.url
-                )
-
-        else:
-
-            data["profile_picture"] = None
 
         return data

@@ -53,6 +53,8 @@ export default function TrainerRegisterScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [specialization, setSpecialization] = useState("");
+  const [experienceYears, setExperienceYears] = useState("");
 
   // ============================================================
   // PASSWORD VISIBILITY
@@ -309,6 +311,10 @@ export default function TrainerRegisterScreen() {
         password: password,
 
         confirm_password: confirmPassword,
+
+        specialization: specialization.trim(),
+
+        experience_years: experienceYears.trim() || "0",
       };
 
       // ========================================================
@@ -767,6 +773,32 @@ export default function TrainerRegisterScreen() {
                         false
                       )
                     }
+                    selectionColor="#9DBEFF"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.floatingLabel}>Specialization</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={specialization}
+                    onChangeText={setSpecialization}
+                    autoCapitalize="words"
+                    editable={!loading}
+                    returnKeyType="next"
+                    selectionColor="#9DBEFF"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.floatingLabel}>Experience (Years)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={experienceYears}
+                    onChangeText={(value) => setExperienceYears(value.replace(/[^0-9]/g, ""))}
+                    keyboardType="number-pad"
+                    editable={!loading}
+                    returnKeyType="next"
                     selectionColor="#9DBEFF"
                   />
                 </View>
