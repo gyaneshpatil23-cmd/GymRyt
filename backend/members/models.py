@@ -3,7 +3,12 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 
+# ============================================================
+# USER PROFILE
+# ============================================================
+
 class UserProfile(models.Model):
+
     ROLE_CHOICES = [
         ("OWNER", "Gym Owner"),
         ("OWNER_TRAINER", "Owner + Trainer"),
@@ -11,7 +16,9 @@ class UserProfile(models.Model):
         ("MEMBER", "Member"),
     ]
 
-    id = models.BigAutoField(primary_key=True)
+    id = models.BigAutoField(
+        primary_key=True
+    )
 
     user = models.OneToOneField(
         User,
@@ -25,9 +32,13 @@ class UserProfile(models.Model):
         default="OWNER",
     )
 
-    is_owner = models.BooleanField(default=False)
+    is_owner = models.BooleanField(
+        default=False
+    )
 
-    is_trainer = models.BooleanField(default=False)
+    is_trainer = models.BooleanField(
+        default=False
+    )
 
     profile_picture = models.ImageField(
         upload_to="admin_profiles/",
@@ -35,64 +46,119 @@ class UserProfile(models.Model):
         null=True,
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     def save(self, *args, **kwargs):
+
         if self.role == "OWNER":
             self.is_owner = True
             self.is_trainer = False
+
         elif self.role == "OWNER_TRAINER":
             self.is_owner = True
             self.is_trainer = True
+
         elif self.role == "TRAINER":
             self.is_owner = False
             self.is_trainer = True
+
         elif self.role == "MEMBER":
             self.is_owner = False
             self.is_trainer = False
+
         else:
+
             if self.is_owner and self.is_trainer:
                 self.role = "OWNER_TRAINER"
+
             elif self.is_owner:
                 self.role = "OWNER"
+
             elif self.is_trainer:
                 self.role = "TRAINER"
+
             else:
                 self.role = "MEMBER"
 
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user.username} ({self.role})"
+        return (
+            f"{self.user.username} "
+            f"({self.role})"
+        )
 
+
+# ============================================================
+# GET USER ROLE
+# ============================================================
 
 def get_user_role(user):
+
     try:
-        profile = getattr(user, "profile", None)
-        if profile and profile.role:
-            return profile.role
-        if profile and profile.is_owner and profile.is_trainer:
-            return "OWNER_TRAINER"
-        if profile and profile.is_owner:
-            return "OWNER"
-        if profile and profile.is_trainer:
-            return "TRAINER"
+
+        profile = getattr(
+            user,
+            "profile",
+            None
+        )
+
+        if profile:
+
+            if profile.role:
+                return profile.role
+
+            if (
+                profile.is_owner
+                and profile.is_trainer
+            ):
+                return "OWNER_TRAINER"
+
+            if profile.is_owner:
+                return "OWNER"
+
+            if profile.is_trainer:
+                return "TRAINER"
+
     except Exception:
         pass
+
+    # Existing Django staff users are treated as owners.
     if user.is_staff:
         return "OWNER"
+
     return "MEMBER"
 
 
-User.add_to_class("role", property(get_user_role))
+# ============================================================
+# ADD ROLE PROPERTY TO DJANGO USER
+# ============================================================
 
+User.add_to_class(
+    "role",
+    property(get_user_role)
+)
+
+
+# ============================================================
+# WORKSPACE / GYM
+# ============================================================
 
 class Workspace(models.Model):
-    id = models.BigAutoField(primary_key=True)
 
-    name = models.CharField(max_length=150)
+    id = models.BigAutoField(
+        primary_key=True
+    )
+
+    name = models.CharField(
+        max_length=150
+    )
 
     owner = models.ForeignKey(
         User,
@@ -102,23 +168,37 @@ class Workspace(models.Model):
         related_name="owned_workspaces",
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(
+        default=True
+    )
 
     def __str__(self):
         return self.name
 
 
-class TrainerProfile(models.Model):
-    id = models.BigAutoField(primary_key=True)
+# ============================================================
+# TRAINER PROFILE
+# ============================================================
 
-    user = models.ForeignKey(
+class TrainerProfile(models.Model):
+
+    id = models.BigAutoField(
+        primary_key=True
+    )
+
+    # One Django account = one trainer profile
+    user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
-        related_name="trainer_profiles",
+        related_name="trainer_profile",
     )
 
     workspace = models.ForeignKey(
@@ -127,31 +207,92 @@ class TrainerProfile(models.Model):
         related_name="trainers",
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    phone = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+    )
 
-    is_active = models.BooleanField(default=True)
+    specialization = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+    )
+
+    experience_years = models.PositiveIntegerField(
+        default=0
+    )
+
+    bio = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    profile_picture = models.ImageField(
+        upload_to="trainer_profiles/",
+        blank=True,
+        null=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    is_active = models.BooleanField(
+        default=True
+    )
 
     class Meta:
+
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "workspace"],
+                fields=[
+                    "user",
+                    "workspace",
+                ],
                 name="unique_trainer_workspace",
             )
         ]
 
-    def __str__(self):
-        return f"{self.user.username} - {self.workspace.name}"
+        indexes = [
+            models.Index(
+                fields=[
+                    "workspace",
+                    "is_active",
+                ]
+            ),
+        ]
 
+    def __str__(self):
+
+        return (
+            f"{self.user.get_full_name() or self.user.username}"
+            f" - {self.workspace.name}"
+        )
+
+
+# ============================================================
+# MEMBER
+# ============================================================
 
 class Member(models.Model):
-    id = models.BigAutoField(primary_key=True)
 
+    id = models.BigAutoField(
+        primary_key=True
+    )
+
+    # Owner who created/manages the member
     admin = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="gym_members",
     )
 
+    # Gym / workspace
     workspace = models.ForeignKey(
         Workspace,
         on_delete=models.CASCADE,
@@ -160,12 +301,19 @@ class Member(models.Model):
         related_name="members",
     )
 
+    # --------------------------------------------------------
+    # TRAINER ASSIGNMENT
+    # --------------------------------------------------------
+
     trainer = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="assigned_members",
+        limit_choices_to={
+            "profile__is_trainer": True
+        },
     )
 
     STATUS_CHOICES = [
@@ -175,9 +323,13 @@ class Member(models.Model):
         ("EXPIRED", "Expired"),
     ]
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(
+        max_length=100
+    )
 
-    phone = models.CharField(max_length=15)
+    phone = models.CharField(
+        max_length=15
+    )
 
     email = models.EmailField(
         blank=True,
@@ -188,6 +340,18 @@ class Member(models.Model):
         max_length=50,
         unique=True,
     )
+
+    # --------------------------------------------------------
+    # MEMBER LOGIN
+    # --------------------------------------------------------
+    #
+    # Keeping this field because your existing application
+    # already uses it.
+    #
+    # IMPORTANT:
+    # Ideally this should eventually be migrated to Django's
+    # User authentication system.
+    # --------------------------------------------------------
 
     password = models.CharField(
         max_length=255,
@@ -216,23 +380,56 @@ class Member(models.Model):
     )
 
     id_verified = models.BooleanField(
-        default=False,
+        default=False
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True,
+        auto_now_add=True
     )
 
     updated_at = models.DateTimeField(
-        auto_now=True,
+        auto_now=True
     )
 
     is_deleted = models.BooleanField(
-        default=False,
+        default=False
     )
 
+    class Meta:
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "workspace",
+                    "status",
+                ]
+            ),
+
+            models.Index(
+                fields=[
+                    "trainer",
+                    "status",
+                ]
+            ),
+
+            models.Index(
+                fields=[
+                    "admin",
+                    "status",
+                ]
+            ),
+        ]
+
+    # --------------------------------------------------------
+    # MEMBERSHIP STATUS
+    # --------------------------------------------------------
+
     def calculate_status(self):
-        if not self.membership_start or not self.membership_end:
+
+        if (
+            not self.membership_start
+            or not self.membership_end
+        ):
             return "PENDING"
 
         today = timezone.localdate()
@@ -247,23 +444,37 @@ class Member(models.Model):
         elif days_remaining <= 7:
             return "EXPIRING"
 
-        else:
-            return "ACTIVE"
+        return "ACTIVE"
+
+    # --------------------------------------------------------
+    # SAVE
+    # --------------------------------------------------------
 
     def save(self, *args, **kwargs):
+
         self.status = self.calculate_status()
 
-        super().save(*args, **kwargs)
+        super().save(
+            *args,
+            **kwargs
+        )
 
     def __str__(self):
+
         return self.name
 
     @property
     def role(self):
+
         return "MEMBER"
 
 
+# ============================================================
+# PAYMENT
+# ============================================================
+
 class Payment(models.Model):
+
     PAYMENT_STATUS_CHOICES = [
         ("PAID", "Paid"),
         ("PENDING", "Pending"),
@@ -277,7 +488,9 @@ class Payment(models.Model):
         ("BANK", "Bank Transfer"),
     ]
 
-    id = models.BigAutoField(primary_key=True)
+    id = models.BigAutoField(
+        primary_key=True
+    )
 
     member = models.ForeignKey(
         Member,
@@ -307,7 +520,7 @@ class Payment(models.Model):
     )
 
     plan = models.CharField(
-        max_length=100,
+        max_length=100
     )
 
     method = models.CharField(
@@ -316,7 +529,7 @@ class Payment(models.Model):
     )
 
     date = models.DateTimeField(
-        default=timezone.now,
+        default=timezone.now
     )
 
     remark = models.TextField(
@@ -331,21 +544,39 @@ class Payment(models.Model):
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True,
+        auto_now_add=True
     )
 
     def save(self, *args, **kwargs):
-        if self.admin_id is None and self.member_id:
+
+        if (
+            self.admin_id is None
+            and self.member_id
+        ):
             self.admin = self.member.admin
 
-        if self.workspace_id is None and self.member_id:
+        if (
+            self.workspace_id is None
+            and self.member_id
+        ):
             self.workspace = self.member.workspace
 
-        super().save(*args, **kwargs)
+        super().save(
+            *args,
+            **kwargs
+        )
 
     def __str__(self):
-        return f"{self.member.name} - ₹{self.amount}"
 
+        return (
+            f"{self.member.name} "
+            f"- ₹{self.amount}"
+        )
+
+
+# ============================================================
+# REGISTRATION QR
+# ============================================================
 
 class RegistrationQR(models.Model):
 
@@ -354,7 +585,9 @@ class RegistrationQR(models.Model):
         ("TRAINER", "Trainer"),
     ]
 
-    id = models.BigAutoField(primary_key=True)
+    id = models.BigAutoField(
+        primary_key=True
+    )
 
     admin = models.ForeignKey(
         User,
@@ -382,14 +615,15 @@ class RegistrationQR(models.Model):
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True,
+        auto_now_add=True
     )
 
     is_active = models.BooleanField(
-        default=True,
+        default=True
     )
 
     class Meta:
+
         constraints = [
             models.UniqueConstraint(
                 fields=[
@@ -401,10 +635,24 @@ class RegistrationQR(models.Model):
             )
         ]
 
+        indexes = [
+            models.Index(
+                fields=[
+                    "workspace",
+                    "registration_type",
+                    "is_active",
+                ]
+            ),
+        ]
+
     def __str__(self):
-        qr_type = self.get_registration_type_display()
+
+        qr_type = (
+            self.get_registration_type_display()
+        )
 
         if self.workspace:
+
             return (
                 f"{self.workspace.name} - "
                 f"{qr_type} Registration QR"
@@ -413,4 +661,169 @@ class RegistrationQR(models.Model):
         return (
             f"{self.admin.username} - "
             f"{qr_type} Registration QR"
+        )
+
+
+# ============================================================
+# TRAINER APPLICATION
+# ============================================================
+
+class TrainerApplication(models.Model):
+
+    STATUS_CHOICES = [
+        ("PENDING", "Pending"),
+        ("APPROVED", "Approved"),
+        ("REJECTED", "Rejected"),
+    ]
+
+    id = models.BigAutoField(
+        primary_key=True
+    )
+
+    # --------------------------------------------------------
+    # OWNER / GYM
+    # --------------------------------------------------------
+
+    admin = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="trainer_applications",
+    )
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name="trainer_applications",
+    )
+
+    # --------------------------------------------------------
+    # QR USED FOR REGISTRATION
+    # --------------------------------------------------------
+
+    registration_qr = models.ForeignKey(
+        RegistrationQR,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="trainer_applications",
+    )
+
+    # --------------------------------------------------------
+    # TRAINER INFORMATION
+    # --------------------------------------------------------
+
+    name = models.CharField(
+        max_length=100
+    )
+
+    email = models.EmailField(
+        blank=True,
+        null=True,
+    )
+
+    phone = models.CharField(
+        max_length=15
+    )
+
+    username = models.CharField(
+        max_length=50
+    )
+
+    password = models.CharField(
+    max_length=255,
+    )
+    
+    profile_picture = models.ImageField(
+        upload_to="trainer_applications/",
+        blank=True,
+        null=True,
+    )
+
+    specialization = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+    )
+
+    experience_years = models.PositiveIntegerField(
+        default=0
+    )
+
+    bio = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    # --------------------------------------------------------
+    # APPLICATION STATUS
+    # --------------------------------------------------------
+
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default="PENDING",
+    )
+
+    rejection_reason = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    # --------------------------------------------------------
+    # RESULTING TRAINER USER
+    # --------------------------------------------------------
+
+    approved_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_trainer_applications",
+    )
+
+    # --------------------------------------------------------
+    # TIMESTAMPS
+    # --------------------------------------------------------
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+
+        ordering = [
+            "-created_at"
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "workspace",
+                    "status",
+                ]
+            ),
+
+            models.Index(
+                fields=[
+                    "admin",
+                    "status",
+                ]
+            ),
+        ]
+
+    def __str__(self):
+
+        return (
+            f"{self.name} - "
+            f"{self.workspace.name} - "
+            f"{self.status}"
         )

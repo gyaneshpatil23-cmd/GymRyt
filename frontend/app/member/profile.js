@@ -204,7 +204,7 @@ export default function MemberProfile() {
       // ======================================================
 
       router.push({
-        pathname: "/member/crop",
+        pathname: "/crop",
         params: {
           uri: asset.uri,
         },

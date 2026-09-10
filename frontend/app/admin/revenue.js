@@ -1,5 +1,6 @@
 import React, {
   useCallback,
+  useMemo,
   useState,
 } from "react";
 
@@ -12,6 +13,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from "react-native";
 
 import {
@@ -31,367 +33,368 @@ const API_URL =
   "http://192.168.1.49:8000/api/members";
 
 // ============================================================
+// MONTH NAMES
+// ============================================================
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+// ============================================================
 // REVENUE SCREEN
 // ============================================================
 
 export default function Revenue() {
   const { colors } = useTheme();
 
-  const [payments, setPayments] =
-    useState([]);
+  // ==========================================================
+  // STATE
+  // ==========================================================
 
-  const [revenue, setRevenue] =
-    useState({
-      total_revenue: 0,
-      monthly_revenue: 0,
-      yearly_revenue: 0,
-      payment_count: 0,
-      average_payment: 0,
-    });
+  const [payments, setPayments] = useState([]);
 
-  const [refreshing, setRefreshing] =
+  const [revenue, setRevenue] = useState({
+    total_revenue: 0,
+    monthly_revenue: 0,
+    yearly_revenue: 0,
+    payment_count: 0,
+    average_payment: 0,
+  });
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+
+  // Recent payments
+  const [showAllPayments, setShowAllPayments] =
     useState(false);
 
-  const [loading, setLoading] =
-    useState(true);
+  // Revenue history
+  const [showRevenueHistory, setShowRevenueHistory] =
+    useState(false);
+
+  const [selectedYear, setSelectedYear] =
+    useState(null);
+
+  const [selectedMonth, setSelectedMonth] =
+    useState(null);
+
+  // Monthly payment search
+  const [paymentSearch, setPaymentSearch] =
+    useState("");
 
   // ==========================================================
   // CLEAR ADMIN SESSION
   // ==========================================================
 
-  const clearAdminSession =
-    async () => {
-      await AsyncStorage.multiRemove([
-        "adminToken",
-        "adminUsername",
-        "adminId",
-        "userRole",
-      ]);
-    };
+  const clearAdminSession = async () => {
+    await AsyncStorage.multiRemove([
+      "adminToken",
+      "adminUsername",
+      "adminId",
+      "userRole",
+    ]);
+  };
 
   // ==========================================================
   // SESSION EXPIRED
   // ==========================================================
 
-  const handleSessionExpired =
-    async () => {
-      await clearAdminSession();
+  const handleSessionExpired = async () => {
+    await clearAdminSession();
 
-      Alert.alert(
-        "Session Expired",
-        "Please login again.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              router.replace("/");
-            },
+    Alert.alert(
+      "Session Expired",
+      "Please login again.",
+      [
+        {
+          text: "OK",
+          onPress: () => {
+            router.replace("/");
           },
-        ]
-      );
-    };
+        },
+      ]
+    );
+  };
 
   // ==========================================================
   // LOAD REVENUE DATA
   // ==========================================================
 
-  const loadRevenue =
-    async () => {
-      try {
-        setLoading(true);
+  const loadRevenue = async () => {
+    try {
+      setLoading(true);
 
-        // ------------------------------------------------------
-        // GET ADMIN TOKEN
-        // ------------------------------------------------------
+      // ------------------------------------------------------
+      // GET ADMIN TOKEN
+      // ------------------------------------------------------
 
-        const token =
-          await AsyncStorage.getItem(
-            "adminToken"
-          );
-
-        const username =
-          await AsyncStorage.getItem(
-            "adminUsername"
-          );
-
-        const adminId =
-          await AsyncStorage.getItem(
-            "adminId"
-          );
-
-        console.log(
-          "================================"
+      const token =
+        await AsyncStorage.getItem(
+          "adminToken"
         );
 
-        console.log(
-          "REVENUE ADMIN SESSION"
-        );
-
-        console.log(
-          "ADMIN:",
-          username
-        );
-
-        console.log(
-          "ADMIN ID:",
-          adminId
-        );
-
-        console.log(
-          "TOKEN EXISTS:",
-          !!token
-        );
-
-        console.log(
-          "================================"
-        );
-
-        // ------------------------------------------------------
-        // SESSION CHECK
-        // ------------------------------------------------------
-
-        if (!token) {
-          await clearAdminSession();
-
-          Alert.alert(
-            "Authentication Error",
-            "Admin login session not found. Please login again.",
-            [
-              {
-                text: "OK",
-                onPress: () => {
-                  router.replace("/");
-                },
-              },
-            ]
-          );
-
-          return;
-        }
-
-        // ------------------------------------------------------
-        // AUTH HEADERS
-        // ------------------------------------------------------
-
-        const authHeaders = {
-          "Content-Type":
-            "application/json",
-
-          Accept:
-            "application/json",
-
-          Authorization:
-            `Token ${token}`,
-        };
-
-        // ======================================================
-        // GET REVENUE STATISTICS
-        // ======================================================
-
-        const revenueResponse =
-          await fetch(
-            `${API_URL}/revenue-stats/`,
-            {
-              method: "GET",
-              headers: authHeaders,
-            }
-          );
-
-        console.log(
-          "REVENUE STATUS:",
-          revenueResponse.status
-        );
-
-        // ------------------------------------------------------
-        // UNAUTHORIZED
-        // ------------------------------------------------------
-
-        if (
-          revenueResponse.status ===
-          401
-        ) {
-          await handleSessionExpired();
-          return;
-        }
-
-        // ------------------------------------------------------
-        // OTHER ERROR
-        // ------------------------------------------------------
-
-        if (
-          !revenueResponse.ok
-        ) {
-          const errorText =
-            await revenueResponse.text();
-
-          console.log(
-            "REVENUE ERROR:",
-            errorText
-          );
-
-          throw new Error(
-            `Revenue API Error: ${revenueResponse.status}`
-          );
-        }
-
-        // ------------------------------------------------------
-        // REVENUE DATA
-        // ------------------------------------------------------
-
-        const revenueData =
-          await revenueResponse.json();
-
-        console.log(
-          "REVENUE API:",
-          revenueData
-        );
-
-        // ------------------------------------------------------
-        // SET REVENUE
-        // ------------------------------------------------------
-
-        setRevenue({
-          total_revenue:
-            Number(
-              revenueData.total_revenue ??
-                0
-            ),
-
-          monthly_revenue:
-            Number(
-              revenueData.monthly_revenue ??
-                0
-            ),
-
-          yearly_revenue:
-            Number(
-              revenueData.yearly_revenue ??
-                0
-            ),
-
-          payment_count:
-            Number(
-              revenueData.payment_count ??
-                0
-            ),
-
-          average_payment:
-            Number(
-              revenueData.average_payment ??
-                0
-            ),
-        });
-
-        // ======================================================
-        // GET PAYMENT RECORDS
-        // ======================================================
-
-        const paymentsResponse =
-          await fetch(
-            `${API_URL}/payments/`,
-            {
-              method: "GET",
-              headers: authHeaders,
-            }
-          );
-
-        console.log(
-          "PAYMENTS STATUS:",
-          paymentsResponse.status
-        );
-
-        // ------------------------------------------------------
-        // PAYMENT UNAUTHORIZED
-        // ------------------------------------------------------
-
-        if (
-          paymentsResponse.status ===
-          401
-        ) {
-          await handleSessionExpired();
-          return;
-        }
-
-        // ------------------------------------------------------
-        // PAYMENT ERROR
-        // ------------------------------------------------------
-
-        if (
-          !paymentsResponse.ok
-        ) {
-          const errorText =
-            await paymentsResponse.text();
-
-          console.log(
-            "PAYMENTS ERROR:",
-            errorText
-          );
-
-          throw new Error(
-            `Payments API Error: ${paymentsResponse.status}`
-          );
-        }
-
-        // ------------------------------------------------------
-        // PAYMENT DATA
-        // ------------------------------------------------------
-
-        const paymentsData =
-          await paymentsResponse.json();
-
-        console.log(
-          "PAYMENTS API:",
-          paymentsData
-        );
-
-        // ------------------------------------------------------
-        // HANDLE PAGINATED RESPONSE
-        // ------------------------------------------------------
-
-        if (
-          Array.isArray(
-            paymentsData
-          )
-        ) {
-          setPayments(
-            paymentsData
-          );
-        } else if (
-          paymentsData &&
-          Array.isArray(
-            paymentsData.results
-          )
-        ) {
-          setPayments(
-            paymentsData.results
-          );
-        } else {
-          setPayments([]);
-        }
-      } catch (error) {
-        console.log(
-          "================================"
-        );
-
-        console.log(
-          "LOAD REVENUE ERROR:",
-          error
-        );
-
-        console.log(
-          "================================"
-        );
-
-        setPayments([]);
+      if (!token) {
+        await clearAdminSession();
 
         Alert.alert(
-          "Connection Error",
-          "Could not load revenue data.\n\nMake sure Django is running and your phone is connected to the same Wi-Fi."
+          "Authentication Error",
+          "Admin login session not found. Please login again.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                router.replace("/");
+              },
+            },
+          ]
         );
-      } finally {
-        setLoading(false);
+
+        return;
       }
-    };
+
+      // ------------------------------------------------------
+      // AUTH HEADERS
+      // ------------------------------------------------------
+
+      const authHeaders = {
+        "Content-Type":
+          "application/json",
+
+        Accept:
+          "application/json",
+
+        Authorization:
+          `Token ${token}`,
+      };
+
+      // ======================================================
+      // GET REVENUE STATISTICS
+      // ======================================================
+
+      const revenueResponse =
+        await fetch(
+          `${API_URL}/revenue-stats/`,
+          {
+            method: "GET",
+            headers: authHeaders,
+          }
+        );
+
+      console.log(
+        "REVENUE STATUS:",
+        revenueResponse.status
+      );
+
+      // ------------------------------------------------------
+      // UNAUTHORIZED
+      // ------------------------------------------------------
+
+      if (
+        revenueResponse.status ===
+        401
+      ) {
+        await handleSessionExpired();
+        return;
+      }
+
+      // ------------------------------------------------------
+      // ERROR
+      // ------------------------------------------------------
+
+      if (!revenueResponse.ok) {
+        const errorText =
+          await revenueResponse.text();
+
+        console.log(
+          "REVENUE ERROR:",
+          errorText
+        );
+
+        throw new Error(
+          `Revenue API Error: ${revenueResponse.status}`
+        );
+      }
+
+      // ------------------------------------------------------
+      // REVENUE DATA
+      // ------------------------------------------------------
+
+      const revenueData =
+        await revenueResponse.json();
+
+      console.log(
+        "REVENUE API:",
+        revenueData
+      );
+
+      // ------------------------------------------------------
+      // SET REVENUE
+      // ------------------------------------------------------
+
+      setRevenue({
+        total_revenue:
+          Number(
+            revenueData.total_revenue ??
+              0
+          ),
+
+        monthly_revenue:
+          Number(
+            revenueData.monthly_revenue ??
+              0
+          ),
+
+        yearly_revenue:
+          Number(
+            revenueData.yearly_revenue ??
+              0
+          ),
+
+        payment_count:
+          Number(
+            revenueData.payment_count ??
+              0
+          ),
+
+        average_payment:
+          Number(
+            revenueData.average_payment ??
+              0
+          ),
+      });
+
+      // ======================================================
+      // GET PAYMENT RECORDS
+      // ======================================================
+
+      const paymentsResponse =
+        await fetch(
+          `${API_URL}/payments/`,
+          {
+            method: "GET",
+            headers: authHeaders,
+          }
+        );
+
+      console.log(
+        "PAYMENTS STATUS:",
+        paymentsResponse.status
+      );
+
+      // ------------------------------------------------------
+      // PAYMENT UNAUTHORIZED
+      // ------------------------------------------------------
+
+      if (
+        paymentsResponse.status ===
+        401
+      ) {
+        await handleSessionExpired();
+        return;
+      }
+
+      // ------------------------------------------------------
+      // PAYMENT ERROR
+      // ------------------------------------------------------
+
+      if (!paymentsResponse.ok) {
+        const errorText =
+          await paymentsResponse.text();
+
+        console.log(
+          "PAYMENTS ERROR:",
+          errorText
+        );
+
+        throw new Error(
+          `Payments API Error: ${paymentsResponse.status}`
+        );
+      }
+
+      // ------------------------------------------------------
+      // PAYMENT DATA
+      // ------------------------------------------------------
+
+      const paymentsData =
+        await paymentsResponse.json();
+
+      console.log(
+        "PAYMENTS API:",
+        paymentsData
+      );
+
+      // ------------------------------------------------------
+      // HANDLE PAGINATED RESPONSE
+      // ------------------------------------------------------
+
+      if (
+        Array.isArray(
+          paymentsData
+        )
+      ) {
+        setPayments(
+          paymentsData
+        );
+      } else if (
+        paymentsData &&
+        Array.isArray(
+          paymentsData.results
+        )
+      ) {
+        setPayments(
+          paymentsData.results
+        );
+      } else {
+        setPayments([]);
+      }
+
+      // ------------------------------------------------------
+      // RESET UI
+      // ------------------------------------------------------
+
+      setShowAllPayments(false);
+
+      setSelectedYear(null);
+
+      setSelectedMonth(null);
+
+      setPaymentSearch("");
+    } catch (error) {
+      console.log(
+        "================================"
+      );
+
+      console.log(
+        "LOAD REVENUE ERROR:",
+        error
+      );
+
+      console.log(
+        "================================"
+      );
+
+      setPayments([]);
+
+      Alert.alert(
+        "Connection Error",
+        "Could not load revenue data.\n\nMake sure Django is running and your phone is connected to the same Wi-Fi."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ==========================================================
   // REFRESH WHEN SCREEN OPENS
@@ -407,213 +410,599 @@ export default function Revenue() {
   // PULL TO REFRESH
   // ==========================================================
 
-  const handleRefresh =
-    async () => {
-      setRefreshing(true);
+  const handleRefresh = async () => {
+    setRefreshing(true);
 
-      await loadRevenue();
+    await loadRevenue();
 
-      setRefreshing(false);
-    };
+    setRefreshing(false);
+  };
 
   // ==========================================================
   // MONEY FORMAT
   // ==========================================================
 
-  const formatMoney =
-    (amount) => {
-      return Number(
-        amount || 0
-      ).toLocaleString(
-        "en-IN"
-      );
-    };
+  const formatMoney = (amount) => {
+    return Number(
+      amount || 0
+    ).toLocaleString(
+      "en-IN"
+    );
+  };
 
   // ==========================================================
-  // DATE
+  // GET PAYMENT DATE
   // ==========================================================
 
-  const formatDate =
-    (payment) => {
-      if (!payment?.date) {
-        return "-";
+  const getPaymentDate = (payment) => {
+    const rawDate =
+      payment?.date ||
+      payment?.payment_date ||
+      payment?.created_at ||
+      payment?.created ||
+      null;
+
+    if (!rawDate) {
+      return null;
+    }
+
+    const date =
+      new Date(rawDate);
+
+    if (
+      isNaN(
+        date.getTime()
+      )
+    ) {
+      return null;
+    }
+
+    return date;
+  };
+
+  // ==========================================================
+  // FORMAT DATE
+  // ==========================================================
+
+  const formatDate = (payment) => {
+    const date =
+      getPaymentDate(payment);
+
+    if (!date) {
+      return "-";
+    }
+
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
       }
-
-      const date =
-        new Date(payment.date);
-
-      if (
-        isNaN(
-          date.getTime()
-        )
-      ) {
-        return "-";
-      }
-
-      return date.toLocaleDateString(
-        "en-IN",
-        {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }
-      );
-    };
+    );
+  };
 
   // ==========================================================
   // INITIALS
   // ==========================================================
 
-  const getInitials =
-    (name) => {
-      if (!name) {
-        return "MB";
-      }
+  const getInitials = (name) => {
+    if (!name) {
+      return "MB";
+    }
 
-      return name
-        .split(" ")
-        .filter(Boolean)
-        .map(
-          (word) =>
-            word[0]
-        )
-        .join("")
-        .substring(0, 2)
-        .toUpperCase();
-    };
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map(
+        (word) =>
+          word[0]
+      )
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+  };
 
   // ==========================================================
   // PLAN LABEL
   // ==========================================================
 
-  const getPlanLabel =
-    (plan) => {
-      if (!plan) {
-        return "Membership";
-      }
+  const getPlanLabel = (plan) => {
+    if (!plan) {
+      return "Membership";
+    }
 
-      const formatted =
-        plan
-          .toString()
-          .charAt(0)
-          .toUpperCase() +
-        plan
-          .toString()
-          .slice(1)
-          .toLowerCase();
+    const formatted =
+      plan
+        .toString()
+        .charAt(0)
+        .toUpperCase() +
+      plan
+        .toString()
+        .slice(1)
+        .toLowerCase();
 
-      return `${formatted} Membership`;
-    };
+    return `${formatted} Membership`;
+  };
 
   // ==========================================================
   // PAYMENT METHOD
   // ==========================================================
 
-  const getMethodLabel =
-    (method) => {
-      if (!method) {
-        return "UNKNOWN";
-      }
+  const getMethodLabel = (method) => {
+    if (!method) {
+      return "UNKNOWN";
+    }
 
-      if (method === "BANK") {
-        return "BANK";
-      }
+    if (method === "BANK") {
+      return "BANK";
+    }
 
-      return method;
-    };
+    return method;
+  };
 
   // ==========================================================
-  // EMPTY STATE
+  // YEAR-WISE REVENUE DATA
   // ==========================================================
 
-  const renderEmptyState =
-    () => {
+  const yearData = useMemo(() => {
+    const grouped = {};
+
+    payments.forEach((payment) => {
+      const date =
+        getPaymentDate(payment);
+
+      const amount =
+        Number(
+          payment?.amount || 0
+        );
+
+      const status =
+        String(
+          payment?.status ||
+            "PAID"
+        ).toUpperCase();
+
+      // Only valid paid payments
+      if (
+        !date ||
+        amount <= 0 ||
+        status !== "PAID"
+      ) {
+        return;
+      }
+
+      const year =
+        date.getFullYear();
+
+      const month =
+        date.getMonth();
+
+      // ------------------------------------------------------
+      // CREATE YEAR
+      // ------------------------------------------------------
+
+      if (!grouped[year]) {
+        grouped[year] = {
+          year,
+          total: 0,
+          count: 0,
+          months: {},
+        };
+      }
+
+      // ------------------------------------------------------
+      // YEAR TOTAL
+      // ------------------------------------------------------
+
+      grouped[year].total +=
+        amount;
+
+      grouped[year].count +=
+        1;
+
+      // ------------------------------------------------------
+      // CREATE MONTH
+      // ------------------------------------------------------
+
+      if (
+        !grouped[year].months[
+          month
+        ]
+      ) {
+        grouped[year].months[
+          month
+        ] = {
+          month,
+          total: 0,
+          count: 0,
+          payments: [],
+        };
+      }
+
+      // ------------------------------------------------------
+      // MONTH TOTAL
+      // ------------------------------------------------------
+
+      grouped[year]
+        .months[month]
+        .total += amount;
+
+      grouped[year]
+        .months[month]
+        .count += 1;
+
+      grouped[year]
+        .months[month]
+        .payments.push(
+          payment
+        );
+    });
+
+    return Object.values(
+      grouped
+    ).sort(
+      (a, b) =>
+        b.year - a.year
+    );
+  }, [payments]);
+
+  // ==========================================================
+  // SELECTED YEAR DATA
+  // ==========================================================
+
+  const selectedYearData =
+    useMemo(() => {
       return (
+        yearData.find(
+          (item) =>
+            item.year ===
+            selectedYear
+        ) || null
+      );
+    }, [
+      yearData,
+      selectedYear,
+    ]);
+
+  // ==========================================================
+  // SELECTED MONTH DATA
+  // ==========================================================
+
+  const selectedMonthData =
+    useMemo(() => {
+      if (
+        !selectedYearData ||
+        selectedMonth === null
+      ) {
+        return null;
+      }
+
+      return (
+        selectedYearData
+          .months[
+          selectedMonth
+        ] || null
+      );
+    }, [
+      selectedYearData,
+      selectedMonth,
+    ]);
+
+  // ==========================================================
+  // MONTHLY PAYMENTS + SEARCH
+  // ==========================================================
+
+  const monthlyPayments =
+    useMemo(() => {
+      if (!selectedMonthData) {
+        return [];
+      }
+
+      const search =
+        paymentSearch
+          .trim()
+          .toLowerCase();
+
+      const sortedPayments =
+        [
+          ...selectedMonthData.payments,
+        ].sort(
+          (a, b) =>
+            (
+              getPaymentDate(
+                b
+              )?.getTime() || 0
+            ) -
+            (
+              getPaymentDate(
+                a
+              )?.getTime() || 0
+            )
+        );
+
+      if (!search) {
+        return sortedPayments;
+      }
+
+      return sortedPayments.filter(
+        (payment) => {
+          const searchableText = [
+            payment?.member_name,
+            payment?.member_username,
+            payment?.username,
+            payment?.member,
+            payment?.name,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+          return searchableText.includes(
+            search
+          );
+        }
+      );
+    }, [
+      selectedMonthData,
+      paymentSearch,
+    ]);
+
+  // ==========================================================
+  // PAYMENT CARD
+  // ==========================================================
+
+  const renderPayment = (
+    payment,
+    monthly = false
+  ) => {
+    const name =
+      payment?.member_name ||
+      payment?.name ||
+      payment?.member_username ||
+      payment?.username ||
+      "Unknown Member";
+
+    return (
+      <View
+        key={payment.id}
+        style={[
+          monthly
+            ? styles.monthPaymentCard
+            : styles.paymentCard,
+          {
+            backgroundColor:
+              monthly
+                ? colors.background
+                : colors.card,
+
+            borderColor:
+              colors.border,
+          },
+        ]}
+      >
+        {/* AVATAR */}
+
         <View
           style={[
-            styles.emptyCard,
+            styles.paymentAvatar,
             {
               backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
+                colors.iconBackground,
             },
           ]}
         >
-          <View
+          <Text
             style={[
-              styles.emptyIcon,
+              styles.paymentAvatarText,
               {
-                backgroundColor:
-                  colors.iconBackground,
+                color:
+                  colors.primaryLight,
               },
             ]}
           >
-            <Text
-              style={[
-                styles.emptyIconText,
-                {
-                  color:
-                    colors.primaryLight,
-                },
-              ]}
-            >
-              ₹
-            </Text>
-          </View>
+            {getInitials(name)}
+          </Text>
+        </View>
 
+        {/* INFORMATION */}
+
+        <View
+          style={
+            styles.paymentInfo
+          }
+        >
           <Text
             style={[
-              styles.emptyTitle,
+              styles.memberName,
               {
                 color:
                   colors.text,
               },
             ]}
+            numberOfLines={1}
           >
-            No Revenue Yet
+            {name}
           </Text>
 
           <Text
             style={[
-              styles.emptySubtitle,
+              styles.paymentPlan,
               {
                 color:
                   colors.secondaryText,
               },
             ]}
           >
-            Payment records will
-            appear here after
-            members make payments.
+            {getPlanLabel(
+              payment?.plan
+            )}
+
+            {" • "}
+
+            {getMethodLabel(
+              payment?.method
+            )}
           </Text>
 
-          <TouchableOpacity
+          <Text
             style={[
-              styles.emptyButton,
+              styles.paymentDate,
               {
-                backgroundColor:
-                  colors.primary,
+                color:
+                  colors.mutedText,
               },
             ]}
-            onPress={() =>
-              router.push(
-                "/admin/members"
-              )
-            }
-            activeOpacity={0.8}
           >
-            <Text
-              style={
-                styles.emptyButtonText
-              }
-            >
-              VIEW MEMBERS →
-            </Text>
-          </TouchableOpacity>
+            {formatDate(payment)}
+          </Text>
         </View>
-      );
-    };
+
+        {/* AMOUNT */}
+
+        <View
+          style={
+            styles.paymentAmountContainer
+          }
+        >
+          <Text
+            style={[
+              styles.paymentAmount,
+              {
+                color:
+                  colors.success,
+              },
+            ]}
+          >
+            +₹
+            {formatMoney(
+              payment?.amount
+            )}
+          </Text>
+
+          {/* PAID BADGE */}
+
+          {!monthly && (
+            <View
+              style={[
+                styles.paidBadge,
+                {
+                  backgroundColor:
+                    colors.successBackground,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.paidText,
+                  {
+                    color:
+                      colors.success,
+                  },
+                ]}
+              >
+                {payment?.status ||
+                  "PAID"}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  // ==========================================================
+  // EMPTY STATE
+  // ==========================================================
+
+  const renderEmptyState = () => {
+    return (
+      <View
+        style={[
+          styles.emptyCard,
+          {
+            backgroundColor:
+              colors.card,
+
+            borderColor:
+              colors.border,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.emptyIcon,
+            {
+              backgroundColor:
+                colors.iconBackground,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.emptyIconText,
+              {
+                color:
+                  colors.primaryLight,
+              },
+            ]}
+          >
+            ₹
+          </Text>
+        </View>
+
+        <Text
+          style={[
+            styles.emptyTitle,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+        >
+          No Revenue Yet
+        </Text>
+
+        <Text
+          style={[
+            styles.emptySubtitle,
+            {
+              color:
+                colors.secondaryText,
+            },
+          ]}
+        >
+          Payment records will
+          appear here after
+          members make payments.
+        </Text>
+
+        <TouchableOpacity
+          style={[
+            styles.emptyButton,
+            {
+              backgroundColor:
+                colors.primary,
+            },
+          ]}
+          onPress={() =>
+            router.push(
+              "/admin/members"
+            )
+          }
+          activeOpacity={0.8}
+        >
+          <Text
+            style={
+              styles.emptyButtonText
+            }
+          >
+            VIEW MEMBERS →
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   // ==========================================================
   // LOADING
@@ -653,7 +1042,7 @@ export default function Revenue() {
   }
 
   // ==========================================================
-  // UI
+  // MAIN UI
   // ==========================================================
 
   return (
@@ -687,7 +1076,6 @@ export default function Revenue() {
           />
         }
       >
-
         {/* ==================================================
             HEADER
         ================================================== */}
@@ -703,6 +1091,7 @@ export default function Revenue() {
               {
                 backgroundColor:
                   colors.card,
+
                 borderColor:
                   colors.border,
               },
@@ -767,18 +1156,33 @@ export default function Revenue() {
           REVENUE OVERVIEW
         </Text>
 
-        {/* TOTAL REVENUE */}
+        {/* ==================================================
+            TOTAL REVENUE CARD
+        ================================================== */}
 
-        <View
+        <TouchableOpacity
           style={[
             styles.totalRevenueCard,
             {
               backgroundColor:
                 colors.card,
+
               borderColor:
                 colors.border,
             },
           ]}
+          onPress={() => {
+            setShowRevenueHistory(
+              (value) => !value
+            );
+
+            setSelectedYear(null);
+
+            setSelectedMonth(null);
+
+            setPaymentSearch("");
+          }}
+          activeOpacity={0.85}
         >
           <View
             style={
@@ -863,24 +1267,637 @@ export default function Revenue() {
                 },
               ]}
             >
-              based on paid payments
+              {showRevenueHistory
+                ? "tap to close history"
+                : "tap to view revenue history"}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* ==================================================
-            MONTH + YEAR
+            REVENUE HISTORY
+        ================================================== */}
+
+        {showRevenueHistory && (
+          <View
+            style={[
+              styles.historyCard,
+              {
+                backgroundColor:
+                  colors.card,
+
+                borderColor:
+                  colors.border,
+              },
+            ]}
+          >
+            {/* ==================================================
+                YEAR SELECTION
+            ================================================== */}
+
+            {!selectedYear && (
+              <>
+                <View
+                  style={
+                    styles.historyHeader
+                  }
+                >
+                  <View>
+                    <Text
+                      style={[
+                        styles.historyEyebrow,
+                        {
+                          color:
+                            colors.primaryLight,
+                        },
+                      ]}
+                    >
+                      REVENUE HISTORY
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.historyTitle,
+                        {
+                          color:
+                            colors.text,
+                        },
+                      ]}
+                    >
+                      Select a Year
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.historyHint,
+                      {
+                        color:
+                          colors.mutedText,
+                      },
+                    ]}
+                  >
+                    {yearData.length}{" "}
+                    {yearData.length ===
+                    1
+                      ? "Year"
+                      : "Years"}
+                  </Text>
+                </View>
+
+                {yearData.length ===
+                0 ? (
+                  <Text
+                    style={[
+                      styles.noHistoryText,
+                      {
+                        color:
+                          colors.secondaryText,
+                      },
+                    ]}
+                  >
+                    No paid payment
+                    history available.
+                  </Text>
+                ) : (
+                  yearData.map(
+                    (item) => (
+                      <TouchableOpacity
+                        key={
+                          item.year
+                        }
+                        style={[
+                          styles.yearRow,
+                          {
+                            backgroundColor:
+                              colors.background,
+
+                            borderColor:
+                              colors.border,
+                          },
+                        ]}
+                        onPress={() => {
+                          setSelectedYear(
+                            item.year
+                          );
+
+                          setSelectedMonth(
+                            null
+                          );
+
+                          setPaymentSearch(
+                            ""
+                          );
+                        }}
+                        activeOpacity={
+                          0.8
+                        }
+                      >
+                        <View>
+                          <Text
+                            style={[
+                              styles.yearText,
+                              {
+                                color:
+                                  colors.text,
+                              },
+                            ]}
+                          >
+                            {item.year}
+                          </Text>
+
+                          <Text
+                            style={[
+                              styles.yearSubtext,
+                              {
+                                color:
+                                  colors.mutedText,
+                              },
+                            ]}
+                          >
+                            {item.count}{" "}
+                            {item.count ===
+                            1
+                              ? "payment"
+                              : "payments"}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={
+                            styles.yearRight
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.yearAmount,
+                              {
+                                color:
+                                  colors.success,
+                              },
+                            ]}
+                          >
+                            ₹
+                            {formatMoney(
+                              item.total
+                            )}
+                          </Text>
+
+                          <Text
+                            style={[
+                              styles.historyArrow,
+                              {
+                                color:
+                                  colors.primaryLight,
+                              },
+                            ]}
+                          >
+                            →
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )
+                  )
+                )}
+              </>
+            )}
+
+            {/* ==================================================
+                MONTH SELECTION
+            ================================================== */}
+
+            {selectedYear &&
+              !selectedMonthData && (
+                <>
+                  <TouchableOpacity
+                    style={
+                      styles.historyBack
+                    }
+                    onPress={() => {
+                      setSelectedYear(
+                        null
+                      );
+
+                      setSelectedMonth(
+                        null
+                      );
+
+                      setPaymentSearch(
+                        ""
+                      );
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.historyBackText,
+                        {
+                          color:
+                            colors.primaryLight,
+                        },
+                      ]}
+                    >
+                      ‹ ALL YEARS
+                    </Text>
+                  </TouchableOpacity>
+
+                  <View
+                    style={
+                      styles.historyHeader
+                    }
+                  >
+                    <View>
+                      <Text
+                        style={[
+                          styles.historyEyebrow,
+                          {
+                            color:
+                              colors.primaryLight,
+                          },
+                        ]}
+                      >
+                        {selectedYear}{" "}
+                        REVENUE
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.historyTitle,
+                          {
+                            color:
+                              colors.text,
+                          },
+                        ]}
+                      >
+                        Select a Month
+                      </Text>
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.yearAmount,
+                        {
+                          color:
+                            colors.success,
+                        },
+                      ]}
+                    >
+                      ₹
+                      {formatMoney(
+                        selectedYearData?.total ||
+                          0
+                      )}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.monthGrid
+                    }
+                  >
+                    {MONTHS.map(
+                      (
+                        monthName,
+                        index
+                      ) => {
+                        const monthData =
+                          selectedYearData
+                            ?.months[
+                            index
+                          ];
+
+                        return (
+                          <TouchableOpacity
+                            key={
+                              monthName
+                            }
+                            disabled={
+                              !monthData
+                            }
+                            style={[
+                              styles.monthTile,
+                              {
+                                backgroundColor:
+                                  monthData
+                                    ? colors.background
+                                    : colors.iconBackground,
+
+                                borderColor:
+                                  colors.border,
+
+                                opacity:
+                                  monthData
+                                    ? 1
+                                    : 0.45,
+                              },
+                            ]}
+                            onPress={() => {
+                              setSelectedMonth(
+                                index
+                              );
+
+                              setPaymentSearch(
+                                ""
+                              );
+                            }}
+                            activeOpacity={
+                              0.8
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.monthName,
+                                {
+                                  color:
+                                    colors.text,
+                                },
+                              ]}
+                            >
+                              {monthName
+                                .substring(
+                                  0,
+                                  3
+                                )
+                                .toUpperCase()}
+                            </Text>
+
+                            <Text
+                              style={[
+                                styles.monthAmount,
+                                {
+                                  color:
+                                    monthData
+                                      ? colors.success
+                                      : colors.mutedText,
+                                },
+                              ]}
+                            >
+                              ₹
+                              {formatMoney(
+                                monthData?.total ||
+                                  0
+                              )}
+                            </Text>
+
+                            <Text
+                              style={[
+                                styles.monthCount,
+                                {
+                                  color:
+                                    colors.mutedText,
+                                },
+                              ]}
+                            >
+                              {monthData?.count ||
+                                0}{" "}
+                              paid
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      }
+                    )}
+                  </View>
+                </>
+              )}
+
+            {/* ==================================================
+                MONTHLY PAYMENT RECORDS
+            ================================================== */}
+
+            {selectedYear &&
+              selectedMonthData && (
+                <>
+                  {/* BACK TO MONTHS */}
+
+                  <TouchableOpacity
+                    style={
+                      styles.historyBack
+                    }
+                    onPress={() => {
+                      setSelectedMonth(
+                        null
+                      );
+
+                      setPaymentSearch(
+                        ""
+                      );
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.historyBackText,
+                        {
+                          color:
+                            colors.primaryLight,
+                        },
+                      ]}
+                    >
+                      ‹ {selectedYear}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* MONTH HEADER */}
+
+                  <View
+                    style={
+                      styles.historyHeader
+                    }
+                  >
+                    <View>
+                      <Text
+                        style={[
+                          styles.historyEyebrow,
+                          {
+                            color:
+                              colors.primaryLight,
+                          },
+                        ]}
+                      >
+                        MONTHLY REVENUE
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.historyTitle,
+                          {
+                            color:
+                              colors.text,
+                          },
+                        ]}
+                      >
+                        {
+                          MONTHS[
+                            selectedMonth
+                          ]
+                        }{" "}
+                        {selectedYear}
+                      </Text>
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.yearAmount,
+                        {
+                          color:
+                            colors.success,
+                        },
+                      ]}
+                    >
+                      ₹
+                      {formatMoney(
+                        selectedMonthData.total
+                      )}
+                    </Text>
+                  </View>
+
+                  {/* ==================================================
+                      SEARCH BAR
+                  ================================================== */}
+
+                  <View
+                    style={[
+                      styles.searchContainer,
+                      {
+                        backgroundColor:
+                          colors.background,
+
+                        borderColor:
+                          colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.searchIcon,
+                        {
+                          color:
+                            colors.mutedText,
+                        },
+                      ]}
+                    >
+                      ⌕
+                    </Text>
+
+                    <TextInput
+                      value={
+                        paymentSearch
+                      }
+                      onChangeText={
+                        setPaymentSearch
+                      }
+                      placeholder="Search member or username"
+                      placeholderTextColor={
+                        colors.mutedText
+                      }
+                      style={[
+                        styles.searchInput,
+                        {
+                          color:
+                            colors.text,
+                        },
+                      ]}
+                      autoCapitalize="none"
+                      autoCorrect={
+                        false
+                      }
+                    />
+
+                    {paymentSearch.length >
+                      0 && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          setPaymentSearch(
+                            ""
+                          )
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.clearSearch,
+                            {
+                              color:
+                                colors.mutedText,
+                            },
+                          ]}
+                        >
+                          ×
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* RESULT COUNT */}
+
+                  <Text
+                    style={[
+                      styles.monthResultText,
+                      {
+                        color:
+                          colors.mutedText,
+                      },
+                    ]}
+                  >
+                    {
+                      monthlyPayments.length
+                    }{" "}
+                    {monthlyPayments.length ===
+                    1
+                      ? "payment"
+                      : "payments"}
+
+                    {paymentSearch.trim()
+                      ? " found"
+                      : ""}
+                  </Text>
+
+                  {/* MONTH PAYMENTS */}
+
+                  {monthlyPayments.length ===
+                  0 ? (
+                    <Text
+                      style={[
+                        styles.noHistoryText,
+                        {
+                          color:
+                            colors.secondaryText,
+                        },
+                      ]}
+                    >
+                      {paymentSearch.trim()
+                        ? "No payment found for this member."
+                        : "No payment records for this month."}
+                    </Text>
+                  ) : (
+                    monthlyPayments.map(
+                      (payment) =>
+                        renderPayment(
+                          payment,
+                          true
+                        )
+                    )
+                  )}
+                </>
+              )}
+          </View>
+        )}
+
+        {/* ==================================================
+            THIS MONTH + THIS YEAR
         ================================================== */}
 
         <View
-          style={styles.statsRow}
+          style={
+            styles.statsRow
+          }
         >
+          {/* THIS MONTH */}
+
           <View
             style={[
               styles.smallStatCard,
               {
                 backgroundColor:
                   colors.card,
+
                 borderColor:
                   colors.border,
               },
@@ -934,12 +1951,15 @@ export default function Revenue() {
             </Text>
           </View>
 
+          {/* THIS YEAR */}
+
           <View
             style={[
               styles.smallStatCard,
               {
                 backgroundColor:
                   colors.card,
+
                 borderColor:
                   colors.border,
               },
@@ -987,115 +2007,6 @@ export default function Revenue() {
         </View>
 
         {/* ==================================================
-            PAYMENT COUNT + AVERAGE
-        ================================================== */}
-
-        <View
-          style={styles.statsRow}
-        >
-          <View
-            style={[
-              styles.smallStatCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.smallStatLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              PAYMENTS
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {revenue.payment_count}
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatSubtext,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Total transactions
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.smallStatCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.smallStatLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              AVERAGE
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ₹
-              {formatMoney(
-                Math.round(
-                  revenue.average_payment
-                )
-              )}
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatSubtext,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Per payment
-            </Text>
-          </View>
-        </View>
-
-        {/* ==================================================
             PAYMENT RECORDS
         ================================================== */}
 
@@ -1132,204 +2043,82 @@ export default function Revenue() {
           </Text>
         </View>
 
-        {/* RECORDS */}
+        {/* ==================================================
+            PAYMENT LIST
+        ================================================== */}
 
-        {payments.length === 0 ? (
+        {payments.length ===
+        0 ? (
           renderEmptyState()
         ) : (
-          payments.map(
-            (payment) => (
-              <TouchableOpacity
-                key={
-                  payment.id
-                }
-                style={[
-                  styles.paymentCard,
-                  {
-                    backgroundColor:
-                      colors.card,
-                    borderColor:
-                      colors.border,
-                  },
-                ]}
-                activeOpacity={0.8}
-              >
-
-                {/* AVATAR */}
-
-                <View
-                  style={[
-                    styles.paymentAvatar,
-                    {
-                      backgroundColor:
-                        colors.iconBackground,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.paymentAvatarText,
-                      {
-                        color:
-                          colors.primaryLight,
-                      },
-                    ]}
-                  >
-                    {getInitials(
-                      payment.member_name
-                    )}
-                  </Text>
-                </View>
-
-                {/* INFORMATION */}
-
-                <View
-                  style={
-                    styles.paymentInfo
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.memberName,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {payment.member_name ||
-                      "Unknown Member"}
-                  </Text>
-
-                  <Text
-                    style={[
-                      styles.paymentPlan,
-                      {
-                        color:
-                          colors.secondaryText,
-                      },
-                    ]}
-                  >
-                    {getPlanLabel(
-                      payment.plan
-                    )}
-
-                    {" • "}
-
-                    {getMethodLabel(
-                      payment.method
-                    )}
-                  </Text>
-
-                  <Text
-                    style={[
-                      styles.paymentDate,
-                      {
-                        color:
-                          colors.mutedText,
-                      },
-                    ]}
-                  >
-                    {formatDate(
-                      payment
-                    )}
-                  </Text>
-                </View>
-
-                {/* AMOUNT */}
-
-                <View
-                  style={
-                    styles.paymentAmountContainer
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.paymentAmount,
-                      {
-                        color:
-                          colors.success,
-                      },
-                    ]}
-                  >
-                    +₹
-                    {formatMoney(
-                      payment.amount
-                    )}
-                  </Text>
-
-                  <View
-                    style={[
-                      styles.paidBadge,
-                      {
-                        backgroundColor:
-                          colors.successBackground,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.paidText,
-                        {
-                          color:
-                            colors.success,
-                        },
-                      ]}
-                    >
-                      {payment.status ||
-                        "PAID"}
-                    </Text>
-                  </View>
-                </View>
-
-              </TouchableOpacity>
+          payments
+            .slice(
+              0,
+              showAllPayments
+                ? payments.length
+                : 3
             )
-          )
+            .map(
+              (payment) =>
+                renderPayment(
+                  payment
+                )
+            )
         )}
 
         {/* ==================================================
-            VIEW ALL RECORDS
+            SEE MORE / SHOW RECENT
         ================================================== */}
 
-        {payments.length > 0 && (
-          <View
+        {payments.length >
+          3 && (
+          <TouchableOpacity
             style={[
-              styles.viewMoreButton,
+              styles.seeMoreButton,
               {
                 backgroundColor:
                   colors.card,
+
                 borderColor:
                   colors.primary,
               },
             ]}
+            onPress={() =>
+              setShowAllPayments(
+                (value) =>
+                  !value
+              )
+            }
+            activeOpacity={0.8}
           >
             <Text
               style={[
-                styles.viewMoreText,
+                styles.seeMoreText,
                 {
                   color:
                     colors.primaryLight,
                 },
               ]}
             >
-              SHOWING ALL{" "}
-              {payments.length}{" "}
-              RECORDS
+              {showAllPayments
+                ? "SHOW ONLY RECENT 3"
+                : "SEE MORE"}
             </Text>
 
             <Text
               style={[
-                styles.viewMoreArrow,
+                styles.seeMoreArrow,
                 {
                   color:
-                    colors.success,
+                    colors.primaryLight,
                 },
               ]}
             >
-              ✓
+              {showAllPayments
+                ? "↑"
+                : "→"}
             </Text>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* ==================================================
@@ -1356,352 +2145,547 @@ export default function Revenue() {
             BACK TO DASHBOARD
           </Text>
         </TouchableOpacity>
-
       </ScrollView>
     </View>
   );
 }
 
 // ============================================================
-// STATIC STYLES
+// STYLES
 // ============================================================
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+const styles =
+  StyleSheet.create({
+    // ========================================================
+    // CONTAINER
+    // ========================================================
 
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 55,
-    paddingBottom: 40,
-  },
+    container: {
+      flex: 1,
+    },
 
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 55,
+      paddingBottom: 40,
+    },
 
-  loadingText: {
-    marginTop: 12,
-    fontSize: 12,
-  },
+    // ========================================================
+    // LOADING
+    // ========================================================
 
-  // ==========================================================
-  // HEADER
-  // ==========================================================
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 15,
-    marginBottom: 30,
-  },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 12,
+    },
 
-  backButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 14,
-    borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+    // ========================================================
+    // HEADER
+    // ========================================================
 
-  backText: {
-    fontSize: 34,
-    marginTop: -4,
-  },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 15,
+      marginBottom: 30,
+    },
 
-  smallTitle: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 2,
-  },
+    backButton: {
+      width: 45,
+      height: 45,
+      borderRadius: 14,
+      borderWidth: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
 
-  title: {
-    fontSize: 27,
-    fontWeight: "900",
-    marginTop: 3,
-  },
+    backText: {
+      fontSize: 34,
+      marginTop: -4,
+    },
 
-  // ==========================================================
-  // SECTION
-  // ==========================================================
+    smallTitle: {
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 2,
+    },
 
-  sectionTitle: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.7,
-    marginBottom: 13,
-  },
+    title: {
+      fontSize: 27,
+      fontWeight: "900",
+      marginTop: 3,
+    },
 
-  // ==========================================================
-  // TOTAL REVENUE
-  // ==========================================================
+    // ========================================================
+    // SECTION
+    // ========================================================
 
-  totalRevenueCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 20,
-    marginBottom: 12,
-  },
+    sectionTitle: {
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1.7,
+      marginBottom: 13,
+    },
 
-  revenueTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
+    // ========================================================
+    // TOTAL REVENUE
+    // ========================================================
 
-  revenueLabel: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-  },
+    totalRevenueCard: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 20,
+      marginBottom: 12,
+    },
 
-  totalRevenue: {
-    fontSize: 36,
-    fontWeight: "900",
-    marginTop: 7,
-  },
+    revenueTop: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
 
-  revenueIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    revenueLabel: {
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1.5,
+    },
 
-  revenueIconText: {
-    fontSize: 25,
-    fontWeight: "900",
-  },
+    totalRevenue: {
+      fontSize: 36,
+      fontWeight: "900",
+      marginTop: 7,
+    },
 
-  revenueBottom: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-  },
+    revenueIcon: {
+      width: 52,
+      height: 52,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  revenueGrowth: {
-    fontSize: 11,
-    fontWeight: "900",
-  },
+    revenueIconText: {
+      fontSize: 25,
+      fontWeight: "900",
+    },
 
-  revenuePeriod: {
-    fontSize: 10,
-    marginLeft: 7,
-  },
+    revenueBottom: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 12,
+    },
 
-  // ==========================================================
-  // STATS
-  // ==========================================================
+    revenueGrowth: {
+      fontSize: 11,
+      fontWeight: "900",
+    },
 
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
+    revenuePeriod: {
+      fontSize: 10,
+      marginLeft: 7,
+    },
 
-  smallStatCard: {
-    width: "48.5%",
-    borderRadius: 17,
-    borderWidth: 1,
-    padding: 16,
-  },
+    // ========================================================
+    // HISTORY
+    // ========================================================
 
-  smallStatLabel: {
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-  },
+    historyCard: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 16,
+      marginBottom: 14,
+    },
 
-  smallStatValue: {
-    fontSize: 21,
-    fontWeight: "900",
-    marginTop: 8,
-  },
+    historyHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14,
+    },
 
-  smallStatSubtext: {
-    fontSize: 9,
-    marginTop: 5,
-  },
+    historyEyebrow: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.4,
+    },
 
-  // ==========================================================
-  // RECORD HEADER
-  // ==========================================================
+    historyTitle: {
+      fontSize: 19,
+      fontWeight: "900",
+      marginTop: 4,
+    },
 
-  recordsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 25,
-  },
+    historyHint: {
+      fontSize: 9,
+      fontWeight: "800",
+    },
 
-  recordCount: {
-    fontSize: 10,
-    fontWeight: "800",
-    marginBottom: 13,
-  },
+    historyBack: {
+      alignSelf: "flex-start",
+      marginBottom: 12,
+    },
 
-  // ==========================================================
-  // PAYMENT CARD
-  // ==========================================================
+    historyBackText: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
 
-  paymentCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 17,
-    borderWidth: 1,
-    padding: 13,
-    marginBottom: 10,
-  },
+    // ========================================================
+    // YEAR ROW
+    // ========================================================
 
-  paymentAvatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    yearRow: {
+      minHeight: 70,
+      borderRadius: 15,
+      borderWidth: 1,
+      paddingHorizontal: 15,
+      paddingVertical: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 9,
+    },
 
-  paymentAvatarText: {
-    fontSize: 12,
-    fontWeight: "900",
-  },
+    yearText: {
+      fontSize: 17,
+      fontWeight: "900",
+    },
 
-  paymentInfo: {
-    flex: 1,
-    marginLeft: 12,
-    marginRight: 8,
-  },
+    yearSubtext: {
+      fontSize: 9,
+      marginTop: 4,
+    },
 
-  memberName: {
-    fontSize: 13,
-    fontWeight: "900",
-  },
+    yearRight: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
 
-  paymentPlan: {
-    fontSize: 9,
-    marginTop: 4,
-  },
+    yearAmount: {
+      fontSize: 13,
+      fontWeight: "900",
+    },
 
-  paymentDate: {
-    fontSize: 9,
-    marginTop: 4,
-  },
+    historyArrow: {
+      fontSize: 18,
+      fontWeight: "900",
+      marginLeft: 10,
+    },
 
-  paymentAmountContainer: {
-    alignItems: "flex-end",
-  },
+    // ========================================================
+    // MONTH GRID
+    // ========================================================
 
-  paymentAmount: {
-    fontSize: 13,
-    fontWeight: "900",
-  },
+    monthGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    },
 
-  paidBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginTop: 5,
-  },
+    monthTile: {
+      width: "48.5%",
+      minHeight: 86,
+      borderRadius: 14,
+      borderWidth: 1,
+      padding: 12,
+      marginBottom: 9,
+    },
 
-  paidText: {
-    fontSize: 7,
-    fontWeight: "900",
-  },
+    monthName: {
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
 
-  // ==========================================================
-  // EMPTY
-  // ==========================================================
+    monthAmount: {
+      fontSize: 15,
+      fontWeight: "900",
+      marginTop: 8,
+    },
 
-  emptyCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 25,
-    alignItems: "center",
-    marginBottom: 15,
-  },
+    monthCount: {
+      fontSize: 8,
+      marginTop: 3,
+    },
 
-  emptyIcon: {
-    width: 55,
-    height: 55,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
+    // ========================================================
+    // SEARCH
+    // ========================================================
 
-  emptyIconText: {
-    fontSize: 25,
-    fontWeight: "900",
-  },
+    searchContainer: {
+      height: 46,
+      borderRadius: 13,
+      borderWidth: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 12,
+      marginBottom: 8,
+    },
 
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: "900",
-  },
+    searchIcon: {
+      fontSize: 20,
+      marginRight: 7,
+    },
 
-  emptySubtitle: {
-    fontSize: 11,
-    textAlign: "center",
-    lineHeight: 18,
-    marginTop: 7,
-    marginBottom: 18,
-  },
+    searchInput: {
+      flex: 1,
+      fontSize: 11,
+      paddingVertical: 0,
+    },
 
-  emptyButton: {
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
+    clearSearch: {
+      fontSize: 23,
+      lineHeight: 24,
+      paddingLeft: 8,
+    },
 
-  emptyButtonText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
+    monthResultText: {
+      fontSize: 9,
+      marginBottom: 10,
+    },
 
-  // ==========================================================
-  // VIEW MORE
-  // ==========================================================
+    // ========================================================
+    // MONTH PAYMENT CARD
+    // ========================================================
 
-  viewMoreButton: {
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-  },
+    monthPaymentCard: {
+      minHeight: 68,
+      borderRadius: 14,
+      borderWidth: 1,
+      padding: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 8,
+    },
 
-  viewMoreText: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
+    // ========================================================
+    // STATS
+    // ========================================================
 
-  viewMoreArrow: {
-    fontSize: 15,
-    marginLeft: 10,
-  },
+    statsRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 12,
+    },
 
-  // ==========================================================
-  // BACK
-  // ==========================================================
+    smallStatCard: {
+      width: "48.5%",
+      borderRadius: 17,
+      borderWidth: 1,
+      padding: 16,
+    },
 
-  backBottom: {
-    alignItems: "center",
-    paddingVertical: 22,
-  },
+    smallStatLabel: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.2,
+    },
 
-  backBottomText: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
-  },
-});
+    smallStatValue: {
+      fontSize: 21,
+      fontWeight: "900",
+      marginTop: 8,
+    },
+
+    smallStatSubtext: {
+      fontSize: 9,
+      marginTop: 5,
+    },
+
+    // ========================================================
+    // PAYMENT RECORD HEADER
+    // ========================================================
+
+    recordsHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 25,
+    },
+
+    recordCount: {
+      fontSize: 10,
+      fontWeight: "800",
+      marginBottom: 13,
+    },
+
+    // ========================================================
+    // PAYMENT CARD
+    // ========================================================
+
+    paymentCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: 17,
+      borderWidth: 1,
+      padding: 13,
+      marginBottom: 10,
+    },
+
+    paymentAvatar: {
+      width: 45,
+      height: 45,
+      borderRadius: 23,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    paymentAvatarText: {
+      fontSize: 12,
+      fontWeight: "900",
+    },
+
+    paymentInfo: {
+      flex: 1,
+      marginLeft: 12,
+      marginRight: 8,
+    },
+
+    memberName: {
+      fontSize: 13,
+      fontWeight: "900",
+    },
+
+    paymentPlan: {
+      fontSize: 9,
+      marginTop: 4,
+    },
+
+    paymentDate: {
+      fontSize: 9,
+      marginTop: 4,
+    },
+
+    paymentAmountContainer: {
+      alignItems: "flex-end",
+    },
+
+    paymentAmount: {
+      fontSize: 13,
+      fontWeight: "900",
+    },
+
+    paidBadge: {
+      paddingHorizontal: 7,
+      paddingVertical: 4,
+      borderRadius: 6,
+      marginTop: 5,
+    },
+
+    paidText: {
+      fontSize: 7,
+      fontWeight: "900",
+    },
+
+    // ========================================================
+    // SEE MORE
+    // ========================================================
+
+    seeMoreButton: {
+      height: 52,
+      borderRadius: 14,
+      borderWidth: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 8,
+      marginBottom: 8,
+    },
+
+    seeMoreText: {
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+
+    seeMoreArrow: {
+      fontSize: 17,
+      fontWeight: "900",
+      marginLeft: 10,
+    },
+
+    // ========================================================
+    // EMPTY STATE
+    // ========================================================
+
+    emptyCard: {
+      borderRadius: 18,
+      borderWidth: 1,
+      padding: 25,
+      alignItems: "center",
+      marginBottom: 15,
+    },
+
+    emptyIcon: {
+      width: 55,
+      height: 55,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 14,
+    },
+
+    emptyIconText: {
+      fontSize: 25,
+      fontWeight: "900",
+    },
+
+    emptyTitle: {
+      fontSize: 17,
+      fontWeight: "900",
+    },
+
+    emptySubtitle: {
+      fontSize: 11,
+      textAlign: "center",
+      lineHeight: 18,
+      marginTop: 7,
+      marginBottom: 18,
+    },
+
+    emptyButton: {
+      borderRadius: 12,
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+    },
+
+    emptyButtonText: {
+      color: "#FFFFFF",
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+
+    // ========================================================
+    // NO HISTORY
+    // ========================================================
+
+    noHistoryText: {
+      fontSize: 11,
+      textAlign: "center",
+      paddingVertical: 15,
+      lineHeight: 18,
+    },
+
+    // ========================================================
+    // BACK TO DASHBOARD
+    // ========================================================
+
+    backBottom: {
+      alignItems: "center",
+      paddingVertical: 22,
+    },
+
+    backBottomText: {
+      fontSize: 10,
+      fontWeight: "800",
+      letterSpacing: 1,
+    },
+  });

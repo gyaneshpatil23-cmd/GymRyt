@@ -1452,7 +1452,7 @@ export default function LoginScreen() {
                     }
                     onPress={() =>
                       router.push(
-                        "/member/scanner"
+                        "/scanner"
                       )
                     }
                     disabled={loading}

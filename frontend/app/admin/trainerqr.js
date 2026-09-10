@@ -109,6 +109,8 @@ export default function TrainerQRScreen() {
       }
 
       const data = await response.json();
+      console.log("TRAINER QR DATA:", data);
+      console.log("TRAINER QR TOKEN:", data.token);
 
       if (!response.ok || !data.success) {
         throw new Error(
@@ -117,7 +119,13 @@ export default function TrainerQRScreen() {
         );
       }
 
-      setQrToken(data.token);
+      if (!data.qr_payload) {
+        throw new Error("Trainer QR payload was missing from the server response.");
+      }
+
+      // The QR itself contains the canonical payload, not the database token
+      // and not a deep-link URL.
+      setQrToken(data.qr_payload);
 
     } catch (error) {
       console.error(

@@ -567,7 +567,7 @@ export default function AdminProfile() {
 
         router.push({
           pathname:
-            "/member/crop",
+            "/crop",
 
           params: {
             uri:

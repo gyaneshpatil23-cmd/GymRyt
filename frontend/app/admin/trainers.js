@@ -8,6 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
 
 import { router } from "expo-router";
@@ -182,7 +183,7 @@ export default function TrainersScreen() {
   // ========================================
 
   const openAddTrainer = () => {
-    router.push("/admin/addtrainer");
+    router.push("/admin/trainerqr");
   };
 
   // ========================================
@@ -205,25 +206,29 @@ export default function TrainersScreen() {
       >
         {/* AVATAR */}
 
-        <View
-          style={[
-            styles.avatar,
-            {
-              backgroundColor: colors.iconBackground,
-            },
-          ]}
-        >
-          <Text
+        {item.profile_picture ? (
+          <Image source={{ uri: item.profile_picture }} style={styles.avatar} />
+        ) : (
+          <View
             style={[
-              styles.avatarText,
+              styles.avatar,
               {
-                color: colors.primaryLight,
+                backgroundColor: colors.iconBackground,
               },
             ]}
           >
-            {getInitials(item.name)}
-          </Text>
-        </View>
+            <Text
+              style={[
+                styles.avatarText,
+                {
+                  color: colors.primaryLight,
+                },
+              ]}
+            >
+              {getInitials(item.name)}
+            </Text>
+          </View>
+        )}
 
         {/* TRAINER INFORMATION */}
 
