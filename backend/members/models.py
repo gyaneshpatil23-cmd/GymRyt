@@ -827,3 +827,97 @@ class TrainerApplication(models.Model):
             f"{self.workspace.name} - "
             f"{self.status}"
         )
+
+# ============================================================
+# WORKOUT PLAN
+# ============================================================
+
+class WorkoutPlan(models.Model):
+    """
+    A workout plan designed by a trainer and assigned to one member.
+    Exercises are stored as structured JSON so the trainer can create
+    flexible workout routines without requiring a separate exercise table.
+    """
+
+    id = models.BigAutoField(primary_key=True)
+
+    trainer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="created_workout_plans",
+    )
+
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name="workout_plans",
+    )
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name="workout_plans",
+    )
+
+    title = models.CharField(
+        max_length=150
+    )
+
+    description = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    days_per_week = models.PositiveIntegerField(
+        default=3
+    )
+
+    schedule = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+    )
+
+    exercises = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
+    notes = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    is_active = models.BooleanField(
+        default=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+        indexes = [
+            models.Index(
+                fields=["workspace", "is_active"]
+            ),
+            models.Index(
+                fields=["trainer", "is_active"]
+            ),
+            models.Index(
+                fields=["member", "is_active"]
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.title} - "
+            f"{self.member.name} - "
+            f"{self.trainer.username}"
+        )

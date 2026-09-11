@@ -1,479 +1,263 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
+import React, { useCallback, useState } from "react";
 import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Animated,
-  Image,
-  Pressable,
   RefreshControl,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
+  Image,
+  Platform,
 } from "react-native";
-
+import { router, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-import {
-  router,
-  useFocusEffect,
-} from "expo-router";
-
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 
-// ======================================================
-// MEMBER DASHBOARD
-// ======================================================
+/* =========================================================
+   API CONFIGURATION
+========================================================= */
 
-export default function MemberDashboard() {
-  // ====================================================
-  // THEME
-  // ====================================================
+const BASE_URL = "http://192.168.1.49:8000/api/members";
 
-  const {
-    isDark,
-    colors,
-    toggleTheme,
-  } = useTheme();
+const DASHBOARD_API = `${BASE_URL}/dashboard-stats/`;
+const MEMBERS_API = `${BASE_URL}/`;
+const PROFILE_API = `${BASE_URL}/trainer/profile/`;
 
-  // ====================================================
-  // THEME ANIMATION
-  // ====================================================
+/* =========================================================
+   HELPER FUNCTIONS
+========================================================= */
 
-  const themeAnimation = useRef(
-    new Animated.Value(isDark ? 1 : 0)
-  ).current;
+const getInitials = (name) => {
+  if (!name) return "T";
 
-  useEffect(() => {
-    Animated.spring(themeAnimation, {
-      toValue: isDark ? 1 : 0,
-      useNativeDriver: true,
-      friction: 7,
-      tension: 80,
-    }).start();
-  }, [isDark]);
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
 
-  // ====================================================
-  // MEMBER STATE
-  // ====================================================
+const getDaysRemaining = (date) => {
+  if (!date) return 0;
 
-  const [member, setMember] = useState({
-    id: "",
-    name: "",
-    username: "",
-    email: "",
-    phone: "",
-    status: "ACTIVE",
-    membershipStart: "",
-    membershipEnd: "",
-    workspaceName: "",
-    profilePicture: "",
+  const today = new Date();
+  const endDate = new Date(date);
+
+  today.setHours(0, 0, 0, 0);
+  endDate.setHours(0, 0, 0, 0);
+
+  const difference = endDate - today;
+
+  return Math.max(Math.ceil(difference / 86400000), 0);
+};
+
+const getStatus = (member) => {
+  if (member.status) {
+    return member.status.toUpperCase();
+  }
+
+  const days = getDaysRemaining(member.membership_end);
+
+  if (days <= 0) return "EXPIRED";
+  if (days <= 7) return "EXPIRING";
+
+  return "ACTIVE";
+};
+
+/* =========================================================
+   MAIN COMPONENT
+========================================================= */
+
+export default function TrainerDashboard() {
+  const { colors } = useTheme();
+
+  const [stats, setStats] = useState({
+    total_members: 0,
+    active_members: 0,
+    expiring_members: 0,
+    expired_members: 0,
   });
+
+  const [members, setMembers] = useState([]);
+  const [trainer, setTrainer] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ====================================================
-  // LOAD MEMBER SESSION
-  // ====================================================
+  /* =======================================================
+     SESSION EXPIRATION
+  ======================================================= */
 
-  const loadMemberSession = useCallback(
-    async () => {
-      try {
-        const values =
-          await AsyncStorage.multiGet([
-            "memberId",
-            "memberName",
-            "memberUsername",
-            "memberEmail",
-            "memberPhone",
-            "memberStatus",
-            "memberMembershipStart",
-            "memberMembershipEnd",
-            "memberWorkspaceName",
-            "memberProfilePicture",
-          ]);
+  const expireSession = async () => {
+    await AsyncStorage.multiRemove([
+      "adminToken",
+      "adminUsername",
+      "adminId",
+      "userRole",
+      "workspaceId",
+      "workspaceName",
+    ]);
 
-        const session = {};
+    Alert.alert(
+      "Session Expired",
+      "Please login again.",
+      [
+        {
+          text: "OK",
+          onPress: () => router.replace("/"),
+        },
+      ]
+    );
+  };
 
-        values.forEach(
-          ([key, value]) => {
-            session[key] = value;
-          }
-        );
+  /* =======================================================
+     LOAD DASHBOARD
+  ======================================================= */
 
-        const memberId =
-          session.memberId;
-
-        const username =
-          session.memberUsername;
-
-        // ==================================================
-        // NO MEMBER SESSION
-        // ==================================================
-
-        if (
-          !memberId &&
-          !username
-        ) {
-          Alert.alert(
-            "Session Not Found",
-            "Please login again.",
-            [
-              {
-                text: "OK",
-                onPress: () =>
-                  router.replace("/"),
-              },
-            ]
-          );
-
-          return;
-        }
-
-        // ==================================================
-        // SET MEMBER
-        // ==================================================
-
-        setMember({
-          id: memberId || "",
-
-          name:
-            session.memberName ||
-            "Member",
-
-          username:
-            session.memberUsername ||
-            "",
-
-          email:
-            session.memberEmail ||
-            "",
-
-          phone:
-            session.memberPhone ||
-            "",
-
-          status:
-            session.memberStatus ||
-            "ACTIVE",
-
-          membershipStart:
-            session.memberMembershipStart ||
-            "",
-
-          membershipEnd:
-            session.memberMembershipEnd ||
-            "",
-
-          workspaceName:
-            session.memberWorkspaceName ||
-            "My Gym",
-
-          profilePicture:
-            session.memberProfilePicture ||
-            "",
-        });
-      } catch (error) {
-        console.log(
-          "MEMBER SESSION ERROR:",
-          error
-        );
-
-        Alert.alert(
-          "Error",
-          "Could not load your account information."
-        );
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+  const loadDashboard = async (initialLoad = true) => {
+    try {
+      if (initialLoad) {
+        setLoading(true);
       }
-    },
-    []
-  );
 
-  // ====================================================
-  // LOAD WHEN SCREEN OPENS
-  // ====================================================
+      const token = await AsyncStorage.getItem("adminToken");
+
+      if (!token) {
+        return expireSession();
+      }
+
+      const headers = {
+        Accept: "application/json",
+        Authorization: `Token ${token}`,
+      };
+
+      const [statsResponse, membersResponse, profileResponse] =
+        await Promise.all([
+          fetch(DASHBOARD_API, {
+            headers,
+          }),
+
+          fetch(MEMBERS_API, {
+            headers,
+          }),
+
+          fetch(PROFILE_API, {
+            headers,
+          }),
+        ]);
+
+      /* ===================================================
+         AUTHORIZATION CHECK
+      =================================================== */
+
+      if (
+        statsResponse.status === 401 ||
+        membersResponse.status === 401 ||
+        profileResponse.status === 401
+      ) {
+        return expireSession();
+      }
+
+      /* ===================================================
+         STATS
+      =================================================== */
+
+      if (!statsResponse.ok) {
+        throw new Error("Unable to load dashboard statistics.");
+      }
+
+      const statsData = await statsResponse.json();
+
+      setStats({
+        total_members: Number(statsData.total_members || 0),
+        active_members: Number(statsData.active_members || 0),
+        expiring_members: Number(statsData.expiring_members || 0),
+        expired_members: Number(statsData.expired_members || 0),
+      });
+
+      /* ===================================================
+         MEMBERS
+      =================================================== */
+
+      if (!membersResponse.ok) {
+        throw new Error("Unable to load assigned members.");
+      }
+
+      const memberData = await membersResponse.json();
+
+      const memberList = Array.isArray(memberData)
+        ? memberData
+        : memberData.results || memberData.members || [];
+
+      setMembers(memberList);
+
+      /* ===================================================
+         TRAINER PROFILE
+      =================================================== */
+
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+
+        setTrainer(
+          profileData.trainer ||
+            profileData.profile ||
+            null
+        );
+      }
+    } catch (error) {
+      console.log("TRAINER DASHBOARD ERROR:", error);
+
+      Alert.alert(
+        "Connection Error",
+        "Could not load your trainer dashboard. Make sure Django is running."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  /* =======================================================
+     REFRESH WHEN SCREEN OPENS
+  ======================================================= */
 
   useFocusEffect(
     useCallback(() => {
-      loadMemberSession();
-    }, [loadMemberSession])
+      loadDashboard(true);
+    }, [])
   );
 
-  // ====================================================
-  // REFRESH
-  // ====================================================
+  /* =======================================================
+     OPEN MEMBER DETAILS
+  ======================================================= */
 
-  const handleRefresh =
-    async () => {
-      setRefreshing(true);
-      await loadMemberSession();
-    };
+  const openMember = (member) => {
+    router.push({
+      pathname: "/admin/memberdetails",
 
-  // ====================================================
-  // GET MEMBER INITIALS
-  // ====================================================
+      params: {
+        id: String(member.id || ""),
+        name: member.name || "",
+        phone: member.phone || "",
+        email: member.email || "",
+        username: member.username || "",
+        membership_start: member.membership_start || "",
+        membership_end: member.membership_end || "",
+        status: member.status || "",
+        id_verified: member.id_verified ? "true" : "false",
+        trainer_name: member.trainer_name || "",
+      },
+    });
+  };
 
-  const getMemberInitials =
-    useCallback(() => {
-      const name =
-        member.name?.trim();
-
-      if (!name) {
-        return "M";
-      }
-
-      const parts =
-        name
-          .split(/\s+/)
-          .filter(Boolean);
-
-      if (parts.length === 1) {
-        return parts[0]
-          .charAt(0)
-          .toUpperCase();
-      }
-
-      return (
-        parts[0]
-          .charAt(0)
-          .toUpperCase() +
-        parts[
-          parts.length - 1
-        ]
-          .charAt(0)
-          .toUpperCase()
-      );
-    }, [member.name]);
-
-  // ====================================================
-  // DATE FORMATTER
-  // ====================================================
-
-  const formatDate =
-    (dateString) => {
-      if (!dateString) {
-        return "--";
-      }
-
-      try {
-        const date =
-          new Date(
-            dateString
-          );
-
-        if (
-          Number.isNaN(
-            date.getTime()
-          )
-        ) {
-          return dateString;
-        }
-
-        const day =
-          String(
-            date.getDate()
-          ).padStart(2, "0");
-
-        const monthNames = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
-
-        const month =
-          monthNames[
-            date.getMonth()
-          ];
-
-        const year =
-          date.getFullYear();
-
-        return `${day}-${month}-${year}`;
-      } catch {
-        return dateString;
-      }
-    };
-
-  // ====================================================
-  // DAYS REMAINING
-  // ====================================================
-
-  const daysRemaining =
-    useMemo(() => {
-      if (
-        !member.membershipEnd
-      ) {
-        return 0;
-      }
-
-      try {
-        const today =
-          new Date();
-
-        const expiry =
-          new Date(
-            member.membershipEnd
-          );
-
-        today.setHours(
-          0,
-          0,
-          0,
-          0
-        );
-
-        expiry.setHours(
-          0,
-          0,
-          0,
-          0
-        );
-
-        const difference =
-          expiry.getTime() -
-          today.getTime();
-
-        return Math.max(
-          0,
-          Math.ceil(
-            difference /
-              (1000 *
-                60 *
-                60 *
-                24)
-          )
-        );
-      } catch {
-        return 0;
-      }
-    }, [
-      member.membershipEnd,
-    ]);
-
-  // ====================================================
-  // MEMBERSHIP PROGRESS
-  // ====================================================
-
-  const membershipProgress =
-    useMemo(() => {
-      if (
-        !member.membershipStart ||
-        !member.membershipEnd
-      ) {
-        return 0;
-      }
-
-      try {
-        const start =
-          new Date(
-            member.membershipStart
-          );
-
-        const end =
-          new Date(
-            member.membershipEnd
-          );
-
-        const today =
-          new Date();
-
-        const total =
-          end.getTime() -
-          start.getTime();
-
-        const elapsed =
-          today.getTime() -
-          start.getTime();
-
-        if (total <= 0) {
-          return 0;
-        }
-
-        const progress =
-          1 -
-          elapsed / total;
-
-        return Math.min(
-          1,
-          Math.max(
-            0,
-            progress
-          )
-        );
-      } catch {
-        return 0;
-      }
-    }, [
-      member.membershipStart,
-      member.membershipEnd,
-    ]);
-
-  // ====================================================
-  // STATUS CONFIG
-  // ====================================================
-
-  const statusConfig =
-    useMemo(() => {
-      switch (
-        String(
-          member.status
-        ).toUpperCase()
-      ) {
-        case "EXPIRED":
-          return {
-            text: "EXPIRED",
-            color:
-              colors.danger,
-            background:
-              colors.dangerBackground,
-          };
-
-        case "EXPIRING":
-          return {
-            text: "EXPIRING",
-            color:
-              colors.warning,
-            background:
-              colors.warningBackground,
-          };
-
-        default:
-          return {
-            text: "ACTIVE",
-            color:
-              colors.success,
-            background:
-              colors.successBackground,
-          };
-      }
-    }, [
-      member.status,
-      colors,
-    ]);
-
-  // ====================================================
-  // LOADING
-  // ====================================================
+  /* =======================================================
+     LOADING SCREEN
+  ======================================================= */
 
   if (loading) {
     return (
@@ -481,1635 +265,1254 @@ export default function MemberDashboard() {
         style={[
           styles.loadingContainer,
           {
-            backgroundColor:
-              colors.background,
+            backgroundColor: colors.background,
           },
         ]}
       >
-        <StatusBar
-          barStyle={
-            isDark
-              ? "light-content"
-              : "dark-content"
-          }
-          backgroundColor={
-            colors.background
-          }
-        />
-
         <ActivityIndicator
           size="large"
-          color={
-            colors.primary
-          }
+          color={colors.primary}
         />
 
         <Text
           style={[
             styles.loadingText,
             {
-              color:
-                colors.mutedText,
+              color: colors.mutedText,
             },
           ]}
         >
-          Loading dashboard...
+          Loading trainer dashboard...
         </Text>
       </View>
     );
   }
 
-  // ====================================================
-  // QUICK ACTION
-  // ====================================================
+  /* =======================================================
+     TRAINER DATA
+  ======================================================= */
 
-  const QuickAction = ({
-    icon,
-    title,
-    subtitle,
-    backgroundColor,
-    onPress,
-  }) => {
-    return (
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.actionCard,
-          {
-            backgroundColor:
-              colors.card,
-            borderColor:
-              colors.border,
-            opacity:
-              pressed
-                ? 0.75
-                : 1,
-          },
-        ]}
-      >
-        <View
-          style={[
-            styles.actionIcon,
-            {
-              backgroundColor,
-            },
-          ]}
-        >
-          <Text
-            style={
-              styles.actionIconText
-            }
-          >
-            {icon}
-          </Text>
-        </View>
+  const trainerName =
+    trainer?.name ||
+    trainer?.username ||
+    "Trainer";
 
-        <View
-          style={
-            styles.actionContent
-          }
-        >
-          <Text
-            style={[
-              styles.actionTitle,
-              {
-                color:
-                  colors.text,
-              },
-            ]}
-          >
-            {title}
-          </Text>
+  const specialization =
+    trainer?.specialization ||
+    "Personal Training";
 
-          <Text
-            style={[
-              styles.actionSubtitle,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
-            {subtitle}
-          </Text>
-        </View>
+  const workspaceName =
+    trainer?.workspace_name ||
+    "GymRyt Workspace";
 
-        <Text
-          style={[
-            styles.arrow,
-            {
-              color:
-                colors.primaryLight,
-            },
-          ]}
-        >
-          →
-        </Text>
-      </Pressable>
-    );
-  };
+  const profilePicture =
+    trainer?.profile_picture ||
+    trainer?.profile_image ||
+    null;
 
-  // ====================================================
-  // MAIN DASHBOARD
-  // ====================================================
+  /* =======================================================
+     MAIN UI
+  ======================================================= */
 
   return (
     <View
       style={[
         styles.container,
         {
-          backgroundColor:
-            colors.background,
+          backgroundColor: colors.background,
         },
       ]}
     >
-      <StatusBar
-        barStyle={
-          isDark
-            ? "light-content"
-            : "dark-content"
-        }
-        backgroundColor={
-          colors.background
-        }
-      />
-
-      {/* ==================================================
-          CONTENT
-      ================================================== */}
-
       <ScrollView
-        showsVerticalScrollIndicator={
-          false
-        }
-        contentContainerStyle={
-          styles.content
-        }
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
-            refreshing={
-              refreshing
-            }
-            onRefresh={
-              handleRefresh
-            }
-            tintColor={
-              colors.primary
-            }
-            colors={[
-              colors.primary,
-            ]}
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadDashboard(false);
+            }}
+            tintColor={colors.primary}
           />
         }
       >
 
-        {/* ==================================================
+        {/* =================================================
             HEADER
-        ================================================== */}
+        ================================================= */}
 
-        <View
-          style={styles.header}
-        >
+        <View style={styles.header}>
 
-          {/* =================================================
-              HEADER LEFT
-          ================================================= */}
+          {/* PROFILE PHOTO */}
 
-          <View
-            style={
-              styles.headerLeft
-            }
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push("/trainer/profile")}
           >
-
-            <Text
+            <View
               style={[
-                styles.smallText,
+                styles.profilePhotoWrapper,
                 {
-                  color:
-                    colors.mutedText,
+                  borderColor: colors.primary,
+                  backgroundColor: colors.iconBackground,
                 },
               ]}
             >
-              WELCOME BACK
-            </Text>
-
-            {/* ===============================================
-                MEMBER NAME + PHOTO
-            =============================================== */}
-
-            <View
-              style={
-                styles.memberHeaderRow
-              }
-            >
-
-              {/* PROFILE PHOTO */}
-
-              <Pressable
-                style={[
-                  styles.headerProfileCircle,
-                  {
-                    backgroundColor:
-                      colors.primary,
-                    borderColor:
-                      colors.primary,
-                  },
-                ]}
-                onPress={() =>
-                  router.push(
-                    "/member/profile"
-                  )
-                }
-                activeOpacity={0.8}
-              >
-
-                {member.profilePicture ? (
-                  <Image
-                    source={{
-                      uri:
-                        member.profilePicture,
-                    }}
-                    style={
-                      styles.headerProfileImage
-                    }
-                  />
-                ) : (
-                  <Text
-                    style={
-                      styles.headerProfileText
-                    }
-                  >
-                    {getMemberInitials()}
-                  </Text>
-                )}
-
-              </Pressable>
-
-              {/* NAME */}
-
-              <View
-                style={
-                  styles.memberNameContainer
-                }
-              >
+              {profilePicture ? (
+                <Image
+                  source={{
+                    uri: profilePicture,
+                  }}
+                  style={styles.profilePhoto}
+                />
+              ) : (
                 <Text
                   style={[
-                    styles.title,
+                    styles.profileInitials,
                     {
-                      color:
-                        colors.text,
+                      color: colors.primaryLight,
                     },
                   ]}
-                  numberOfLines={1}
                 >
-                  {member.name ||
-                    "Member"}{" "}
-                  👋
+                  {getInitials(trainerName)}
                 </Text>
-              </View>
-
+              )}
             </View>
+          </TouchableOpacity>
+
+          {/* TRAINER INFORMATION */}
+
+          <View style={styles.headerInfo}>
+            <Text
+              style={[
+                styles.eyebrow,
+                {
+                  color: colors.primaryLight,
+                },
+              ]}
+            >
+              GYMRYT • TRAINER
+            </Text>
 
             <Text
               style={[
-                styles.subtitle,
+                styles.trainerName,
                 {
-                  color:
-                    colors.secondaryText,
+                  color: colors.text,
                 },
               ]}
+              numberOfLines={1}
             >
-              Manage your membership with ease.
+              {trainerName} 👋
             </Text>
 
-          </View>
-
-          {/* ==================================================
-              HEADER RIGHT
-          ================================================== */}
-
-          <View
-            style={
-              styles.headerRight
-            }
-          >
-
-            {/* THEME SWITCH */}
-
-            <Pressable
+            <Text
               style={[
-                styles.themeSwitch,
+                styles.specialization,
                 {
-                  backgroundColor:
-                    isDark
-                      ? "#111827"
-                      : "#E2E8F0",
+                  color: colors.secondaryText,
                 },
               ]}
-              onPress={
-                toggleTheme
-              }
-              activeOpacity={0.8}
+              numberOfLines={1}
             >
+              {specialization}
+            </Text>
 
-              <Text
-                style={
-                  styles.themeIcon
-                }
-              >
-                🌙
-              </Text>
-
-              <Text
-                style={
-                  styles.themeIcon
-                }
-              >
-                ☀️
-              </Text>
-
-              <Animated.View
-                style={[
-                  styles.themeKnob,
-                  {
-                    backgroundColor:
-                      isDark
-                        ? "#1E293B"
-                        : "#FFFFFF",
-
-                    transform: [
-                      {
-                        translateX:
-                          themeAnimation.interpolate({
-                            inputRange: [
-                              0,
-                              1,
-                            ],
-                            outputRange: [
-                              30,
-                              0,
-                            ],
-                          }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-
-                <Text
-                  style={
-                    styles.knobIcon
-                  }
-                >
-                  {isDark
-                    ? "🌙"
-                    : "☀️"}
-                </Text>
-
-              </Animated.View>
-
-            </Pressable>
-
-          </View>
-
-        </View>
-
-        {/* ==================================================
-            MEMBERSHIP
-        ================================================== */}
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          MEMBERSHIP
-        </Text>
-
-        <View
-          style={[
-            styles.membershipCard,
-            {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
-            },
-          ]}
-        >
-
-          <View
-            style={
-              styles.membershipTop
-            }
-          >
-
-            <View
-              style={
-                styles.membershipInfo
-              }
-            >
-
-              <Text
-                style={[
-                  styles.membershipLabel,
-                  {
-                    color:
-                      colors.mutedText,
-                  },
-                ]}
-              >
-                GYM
-              </Text>
-
-              <Text
-                style={[
-                  styles.gymName,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
-                {member.workspaceName ||
-                  "My Gym"}
-              </Text>
-
-            </View>
-
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor:
-                    statusConfig.background,
-                },
-              ]}
-            >
-
-              <View
-                style={[
-                  styles.statusDot,
-                  {
-                    backgroundColor:
-                      statusConfig.color,
-                  },
-                ]}
+            <View style={styles.locationRow}>
+              <Ionicons
+                name="location"
+                size={15}
+                color={colors.secondaryText}
               />
 
               <Text
                 style={[
-                  styles.statusText,
+                  styles.locationText,
                   {
-                    color:
-                      statusConfig.color,
+                    color: colors.secondaryText,
                   },
                 ]}
+                numberOfLines={1}
               >
-                {
-                  statusConfig.text
-                }
+                {workspaceName}
               </Text>
-
             </View>
-
           </View>
 
-          {/* DAYS */}
+          {/* NOTIFICATION */}
 
-          <View
-            style={
-              styles.daysContainer
-            }
-          >
-
-            <Text
-              style={[
-                styles.daysNumber,
-                {
-                  color:
-                    statusConfig.color,
-                },
-              ]}
-            >
-              {daysRemaining}
-            </Text>
-
-            <Text
-              style={[
-                styles.daysLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              DAYS REMAINING
-            </Text>
-
-          </View>
-
-          {/* PROGRESS */}
-
-          <View
+          <TouchableOpacity
             style={[
-              styles.progressBackground,
+              styles.notificationButton,
               {
-                backgroundColor:
-                  colors.border,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
               },
             ]}
+            activeOpacity={0.8}
+            onPress={() => {
+              Alert.alert(
+                "Notifications",
+                "No new notifications."
+              );
+            }}
           >
+            <Ionicons
+              name="notifications-outline"
+              size={25}
+              color={colors.text}
+            />
 
             <View
               style={[
-                styles.progressFill,
+                styles.notificationDot,
                 {
-                  width: `${membershipProgress * 100}%`,
-                  backgroundColor:
-                    statusConfig.color,
+                  backgroundColor: colors.primaryLight,
                 },
               ]}
             />
-
-          </View>
-
-          {/* DATES */}
-
-          <View
-            style={
-              styles.dateRow
-            }
-          >
-
-            <View
-              style={
-                styles.dateColumn
-              }
-            >
-
-              <Text
-                style={[
-                  styles.dateLabel,
-                  {
-                    color:
-                      colors.mutedText,
-                  },
-                ]}
-              >
-                START DATE
-              </Text>
-
-              <Text
-                style={[
-                  styles.dateValue,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
-                {formatDate(
-                  member.membershipStart
-                )}
-              </Text>
-
-            </View>
-
-            <View
-              style={[
-                styles.dateColumn,
-                {
-                  alignItems:
-                    "flex-end",
-                },
-              ]}
-            >
-
-              <Text
-                style={[
-                  styles.dateLabel,
-                  {
-                    color:
-                      colors.mutedText,
-                  },
-                ]}
-              >
-                EXPIRY DATE
-              </Text>
-
-              <Text
-                style={[
-                  styles.dateValue,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
-                {formatDate(
-                  member.membershipEnd
-                )}
-              </Text>
-
-            </View>
-
-          </View>
-
+          </TouchableOpacity>
         </View>
 
-        {/* ==================================================
-            MEMBERSHIP ALERT
-        ================================================== */}
-
-        {String(
-          member.status
-        ).toUpperCase() ===
-          "EXPIRED" && (
-
-          <View
-            style={[
-              styles.alertCard,
-              {
-                backgroundColor:
-                  colors.dangerBackground,
-                borderColor:
-                  colors.danger,
-              },
-            ]}
-          >
-
-            <Text
-              style={[
-                styles.alertTitle,
-                {
-                  color:
-                    colors.danger,
-                },
-              ]}
-            >
-              MEMBERSHIP EXPIRED
-            </Text>
-
-            <Text
-              style={[
-                styles.alertText,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Your membership has expired.
-              Please contact the gym to renew your membership.
-            </Text>
-
-          </View>
-        )}
-
-        {String(
-          member.status
-        ).toUpperCase() ===
-          "EXPIRING" && (
-
-          <View
-            style={[
-              styles.alertCard,
-              {
-                backgroundColor:
-                  colors.warningBackground,
-                borderColor:
-                  colors.warning,
-              },
-            ]}
-          >
-
-            <Text
-              style={[
-                styles.alertTitle,
-                {
-                  color:
-                    colors.warning,
-                },
-              ]}
-            >
-              MEMBERSHIP EXPIRING SOON
-            </Text>
-
-            <Text
-              style={[
-                styles.alertText,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Your membership has only{" "}
-              {daysRemaining} days remaining.
-              Consider renewing soon.
-            </Text>
-
-          </View>
-        )}
-
-        {/* ==================================================
-            QUICK ACTIONS
-        ================================================== */}
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          QUICK ACTIONS
-        </Text>
-
-        <QuickAction
-          icon="✓"
-          title="Attendance"
-          subtitle="Track your gym visits"
-          backgroundColor={
-            colors.iconBackground
-          }
-          onPress={() => {
-            Alert.alert(
-              "Attendance",
-              "Attendance will be connected in the next phase."
-            );
-          }}
-        />
-
-        <QuickAction
-          icon="₹"
-          title="Payments"
-          subtitle="View your payment history"
-          backgroundColor={
-            colors.successBackground
-          }
-          onPress={() => {
-            Alert.alert(
-              "Payments",
-              "Payments will be connected in the next phase."
-            );
-          }}
-        />
-
-        <QuickAction
-          icon="★"
-          title="My Trainer"
-          subtitle="View your assigned trainer"
-          backgroundColor={
-            colors.warningBackground
-          }
-          onPress={() => {
-            Alert.alert(
-              "My Trainer",
-              "Trainer information will be connected in the next phase."
-            );
-          }}
-        />
-
-        <QuickAction
-          icon="●"
-          title="My Profile"
-          subtitle="Manage your account details"
-          backgroundColor={
-            colors.iconBackground
-          }
-          onPress={() =>
-            router.push(
-              "/member/profile"
-            )
-          }
-        />
-
-        {/* ==================================================
-            ACCOUNT INFORMATION
-        ================================================== */}
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          ACCOUNT INFORMATION
-        </Text>
+        {/* =================================================
+            TRAINER OVERVIEW
+        ================================================= */}
 
         <View
           style={[
-            styles.accountCard,
+            styles.overviewCard,
             {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
             },
           ]}
         >
-
-          <View
-            style={
-              styles.accountRow
-            }
-          >
-
+          <View style={styles.overviewHeader}>
             <Text
               style={[
-                styles.accountLabel,
+                styles.overviewTitle,
                 {
-                  color:
-                    colors.mutedText,
+                  color: colors.text,
                 },
               ]}
             >
-              Username
+              TRAINER OVERVIEW
             </Text>
 
-            <Text
+            <View
               style={[
-                styles.accountValue,
+                styles.todayBadge,
                 {
-                  color:
-                    colors.text,
+                  backgroundColor: colors.iconBackground,
+                  borderColor: colors.border,
                 },
               ]}
             >
-              {member.username
-                ? `@${member.username}`
-                : "--"}
-            </Text>
-
-          </View>
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor:
-                  colors.border,
-              },
-            ]}
-          />
-
-          <View
-            style={
-              styles.accountRow
-            }
-          >
-
-            <Text
-              style={[
-                styles.accountLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Phone
-            </Text>
-
-            <Text
-              style={[
-                styles.accountValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {member.phone ||
-                "--"}
-            </Text>
-
-          </View>
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor:
-                  colors.border,
-              },
-            ]}
-          />
-
-          <View
-            style={
-              styles.accountRow
-            }
-          >
-
-            <Text
-              style={[
-                styles.accountLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Email
-            </Text>
-
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.accountValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {member.email ||
-                "--"}
-            </Text>
-
-          </View>
-
-        </View>
-
-      </ScrollView>
-
-      {/* ==================================================
-          BOTTOM NAVIGATION
-      ================================================== */}
-
-      <View
-        style={[
-          styles.bottomNav,
-          {
-            backgroundColor:
-              colors.nav,
-            borderTopColor:
-              colors.border,
-          },
-        ]}
-      >
-
-        {/* HOME */}
-
-        <Pressable
-          style={
-            styles.navItem
-          }
-          activeOpacity={0.7}
-          onPress={() =>
-            router.replace(
-              "/member/dashboard"
-            )
-          }
-        >
-
-          <Text
-            style={
-              styles.navIconActive
-            }
-          >
-            🛖
-          </Text>
-
-          <Text
-            style={[
-              styles.navTextActive,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            Home
-          </Text>
-
-        </Pressable>
-
-        {/* ATTENDANCE */}
-
-        <Pressable
-          style={
-            styles.navItem
-          }
-          onPress={() => {
-            Alert.alert(
-              "Attendance",
-              "Attendance will be connected in the next phase."
-            );
-          }}
-          activeOpacity={0.7}
-        >
-
-          <Text
-            style={[
-              styles.navIcon,
-              {
-                color:
-                  colors.secondaryText,
-              },
-            ]}
-          >
-            ✓
-          </Text>
-
-          <Text
-            style={[
-              styles.navText,
-              {
-                color:
-                  colors.secondaryText,
-              },
-            ]}
-          >
-            Attendance
-          </Text>
-
-        </Pressable>
-
-        {/* PAYMENTS */}
-
-        <Pressable
-          style={
-            styles.navItem
-          }
-          onPress={() => {
-            Alert.alert(
-              "Payments",
-              "Payments will be connected in the next phase."
-            );
-          }}
-          activeOpacity={0.7}
-        >
-
-          <Text
-            style={[
-              styles.navIcon,
-              {
-                color:
-                  colors.secondaryText,
-              },
-            ]}
-          >
-            ₹
-          </Text>
-
-          <Text
-            style={[
-              styles.navText,
-              {
-                color:
-                  colors.secondaryText,
-              },
-            ]}
-          >
-            Payments
-          </Text>
-
-        </Pressable>
-
-        {/* PROFILE */}
-
-        <Pressable
-          style={
-            styles.navItem
-          }
-          onPress={() =>
-            router.push(
-              "/member/profile"
-            )
-          }
-          activeOpacity={0.7}
-        >
-
-          <View
-            style={[
-              styles.navProfileAvatar,
-              {
-                backgroundColor:
-                  colors.iconBackground,
-                borderColor:
-                  colors.primary,
-              },
-            ]}
-          >
-
-            {member.profilePicture ? (
-              <Image
-                source={{
-                  uri:
-                    member.profilePicture,
-                }}
-                style={
-                  styles.navProfileImage
-                }
+              <Ionicons
+                name="calendar-outline"
+                size={14}
+                color={colors.secondaryText}
               />
-            ) : (
+
               <Text
                 style={[
-                  styles.navProfileText,
+                  styles.todayText,
                   {
-                    color:
-                      colors.primaryLight,
+                    color: colors.secondaryText,
                   },
                 ]}
               >
-                {getMemberInitials()}
+                Today
               </Text>
-            )}
-
+            </View>
           </View>
 
+          <View style={styles.statsGrid}>
+
+            {/* TOTAL MEMBERS */}
+
+            <OverviewStat
+              value={stats.total_members}
+              label="TOTAL MEMBERS"
+              icon="people"
+              colors={colors}
+              iconColor="#36B7FF"
+            />
+
+            {/* ACTIVE MEMBERS */}
+
+            <OverviewStat
+              value={stats.active_members}
+              label="ACTIVE MEMBERS"
+              icon="person"
+              colors={colors}
+              iconColor="#45E0A5"
+            />
+
+            {/* EXPIRING */}
+
+            <OverviewStat
+              value={stats.expiring_members}
+              label="EXPIRING SOON"
+              icon="time"
+              colors={colors}
+              iconColor="#FFB21C"
+            />
+
+            {/* EXPIRED */}
+
+            <OverviewStat
+              value={stats.expired_members}
+              label="EXPIRED MEMBERS"
+              icon="person-remove"
+              colors={colors}
+              iconColor="#FF5870"
+            />
+          </View>
+        </View>
+
+        {/* =================================================
+            MY MEMBERS HEADER
+        ================================================= */}
+
+        <View style={styles.membersHeader}>
           <Text
             style={[
-              styles.navText,
+              styles.sectionTitle,
               {
-                color:
-                  colors.secondaryText,
+                color: colors.text,
               },
             ]}
           >
-            Profile
+            MY MEMBERS
           </Text>
 
-        </Pressable>
+          <TouchableOpacity
+            style={styles.membersCountContainer}
+            onPress={() => router.push("/trainer/members")}
+          >
+            <Text
+              style={[
+                styles.membersCount,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              {members.length}
+            </Text>
 
-      </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.secondaryText}
+            />
+          </TouchableOpacity>
+        </View>
 
+        {/* =================================================
+            MEMBERS LIST
+        ================================================= */}
+
+        {members.length === 0 ? (
+          <View
+            style={[
+              styles.emptyCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.emptyIconContainer,
+                {
+                  backgroundColor: colors.iconBackground,
+                },
+              ]}
+            >
+              <Ionicons
+                name="people-outline"
+                size={30}
+                color={colors.primaryLight}
+              />
+            </View>
+
+            <Text
+              style={[
+                styles.emptyTitle,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              No members assigned
+            </Text>
+
+            <Text
+              style={[
+                styles.emptyText,
+                {
+                  color: colors.mutedText,
+                },
+              ]}
+            >
+              Members assigned to you will appear here.
+            </Text>
+          </View>
+        ) : (
+          members.map((member) => (
+            <MemberCard
+              key={member.id}
+              member={member}
+              colors={colors}
+              onPress={() => openMember(member)}
+            />
+          ))
+        )}
+
+        {/* =================================================
+            TRAINER PROFILE CARD
+        ================================================= */}
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push("/trainer/profile")}
+          style={[
+            styles.profileActionCard,
+            {
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.profileActionIcon,
+              {
+                backgroundColor: colors.iconBackground,
+              },
+            ]}
+          >
+            <Ionicons
+              name="person-outline"
+              size={30}
+              color={colors.primaryLight}
+            />
+          </View>
+
+          <View style={styles.profileActionInfo}>
+            <Text
+              style={[
+                styles.profileActionTitle,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              MY TRAINER PROFILE
+            </Text>
+
+            <Text
+              style={[
+                styles.profileActionSubtitle,
+                {
+                  color: colors.secondaryText,
+                },
+              ]}
+            >
+              View and manage your profile
+            </Text>
+          </View>
+
+          <Ionicons
+            name="chevron-forward"
+            size={27}
+            color={colors.text}
+          />
+        </TouchableOpacity>
+
+      </ScrollView>
+
+      {/* ===================================================
+          BOTTOM NAVIGATION
+      =================================================== */}
+
+      <TrainerBottomNav
+        colors={colors}
+        active="home"
+      />
     </View>
   );
 }
 
-// ======================================================
-// STYLES
-// ======================================================
+/* =========================================================
+   OVERVIEW STAT COMPONENT
+========================================================= */
 
-const styles =
-  StyleSheet.create({
+function OverviewStat({
+  value,
+  label,
+  icon,
+  colors,
+  iconColor,
+}) {
+  return (
+    <View
+      style={[
+        styles.overviewStat,
+        {
+          backgroundColor: colors.background,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.statIconCircle,
+          {
+            backgroundColor: `${iconColor}18`,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={29}
+          color={iconColor}
+        />
+      </View>
 
-    container: {
-      flex: 1,
+      <View style={styles.statContent}>
+        <Text
+          style={[
+            styles.statValue,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
+          {value}
+        </Text>
+
+        <Text
+          style={[
+            styles.statLabel,
+            {
+              color: colors.secondaryText,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/* =========================================================
+   MEMBER CARD COMPONENT
+========================================================= */
+
+function MemberCard({
+  member,
+  colors,
+  onPress,
+}) {
+  const status = getStatus(member);
+
+  const days = getDaysRemaining(
+    member.membership_end
+  );
+
+  const isExpired = status === "EXPIRED";
+  const isExpiring = status === "EXPIRING";
+
+  const statusColor = isExpired
+    ? "#FF5870"
+    : isExpiring
+    ? "#FFB21C"
+    : "#45E0A5";
+
+  const memberName =
+    member.name ||
+    member.username ||
+    "Unknown Member";
+
+  const profilePicture =
+    member.profile_picture ||
+    member.profile_image ||
+    null;
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.82}
+      onPress={onPress}
+      style={[
+        styles.memberCard,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+
+      {/* MEMBER AVATAR */}
+
+      <View
+        style={[
+          styles.memberAvatarContainer,
+          {
+            backgroundColor: colors.iconBackground,
+            borderColor: `${statusColor}55`,
+          },
+        ]}
+      >
+        {profilePicture ? (
+          <Image
+            source={{
+              uri: profilePicture,
+            }}
+            style={styles.memberAvatarImage}
+          />
+        ) : (
+          <Text
+            style={[
+              styles.memberAvatarText,
+              {
+                color: statusColor,
+              },
+            ]}
+          >
+            {getInitials(memberName)}
+          </Text>
+        )}
+      </View>
+
+      {/* MEMBER INFORMATION */}
+
+      <View style={styles.memberInfo}>
+        <Text
+          style={[
+            styles.memberName,
+            {
+              color: colors.text,
+            },
+          ]}
+          numberOfLines={1}
+        >
+          {memberName}
+        </Text>
+
+        <Text
+          style={[
+            styles.memberDays,
+            {
+              color: isExpired
+                ? "#FF5870"
+                : isExpiring
+                ? "#FFB21C"
+                : colors.secondaryText,
+            },
+          ]}
+        >
+          {isExpired
+            ? "Membership expired"
+            : `${days} days remaining`}
+        </Text>
+      </View>
+
+      {/* STATUS */}
+
+      <View
+        style={[
+          styles.statusBadge,
+          {
+            backgroundColor: `${statusColor}18`,
+            borderColor: `${statusColor}55`,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.statusText,
+            {
+              color: statusColor,
+            },
+          ]}
+        >
+          {status}
+        </Text>
+      </View>
+
+      {/* ARROW */}
+
+      <Ionicons
+        name="chevron-forward"
+        size={23}
+        color={colors.secondaryText}
+        style={styles.memberArrow}
+      />
+    </TouchableOpacity>
+  );
+}
+
+/* =========================================================
+   BOTTOM NAVIGATION
+========================================================= */
+
+function TrainerBottomNav({
+  colors,
+  active,
+}) {
+  const goTo = (screen) => {
+    if (screen === "home") {
+      router.replace("/trainer/dashboard");
+      return;
+    }
+
+    if (screen === "members") {
+      router.push("/trainer/members");
+      return;
+    }
+
+    if (screen === "workouts") {
+      router.push("/trainer/workouts");
+      return;
+    }
+
+    if (screen === "profile") {
+      router.push("/trainer/profile");
+    }
+  };
+
+  return (
+    <View
+      style={[
+        styles.bottomNav,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <BottomNavItem
+        icon="home"
+        label="Home"
+        active={active === "home"}
+        colors={colors}
+        onPress={() => goTo("home")}
+      />
+
+      <BottomNavItem
+        icon="people-outline"
+        label="Members"
+        active={active === "members"}
+        colors={colors}
+        onPress={() => goTo("members")}
+      />
+
+      <BottomNavItem
+        icon="barbell-outline"
+        label="Workouts"
+        active={active === "workouts"}
+        colors={colors}
+        onPress={() => goTo("workouts")}
+      />
+
+      <BottomNavItem
+        icon="person-outline"
+        label="Profile"
+        active={active === "profile"}
+        colors={colors}
+        onPress={() => goTo("profile")}
+      />
+    </View>
+  );
+}
+
+/* =========================================================
+   BOTTOM NAV ITEM
+========================================================= */
+
+function BottomNavItem({
+  icon,
+  label,
+  active,
+  colors,
+  onPress,
+}) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.75}
+      onPress={onPress}
+      style={styles.bottomNavItem}
+    >
+      <View
+        style={[
+          styles.bottomIconContainer,
+          active && {
+            backgroundColor: colors.iconBackground,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={27}
+          color={
+            active
+              ? colors.primaryLight
+              : colors.secondaryText
+          }
+        />
+      </View>
+
+      <Text
+        style={[
+          styles.bottomLabel,
+          {
+            color: active
+              ? colors.primaryLight
+              : colors.secondaryText,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
+      {active && (
+        <View
+          style={[
+            styles.activeIndicator,
+            {
+              backgroundColor: colors.primaryLight,
+            },
+          ]}
+        />
+      )}
+    </TouchableOpacity>
+  );
+}
+
+/* =========================================================
+   STYLES
+========================================================= */
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  loadingText: {
+    marginTop: 12,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "ios" ? 55 : 45,
+    paddingBottom: 145,
+  },
+
+  /* =======================================================
+     HEADER
+  ======================================================= */
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 27,
+  },
+
+  profilePhotoWrapper: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+
+  profilePhoto: {
+    width: "100%",
+    height: "100%",
+  },
+
+  profileInitials: {
+    fontSize: 27,
+    fontWeight: "900",
+  },
+
+  headerInfo: {
+    flex: 1,
+    marginLeft: 15,
+    marginRight: 8,
+  },
+
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
+  },
+
+  trainerName: {
+    fontSize: 23,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+
+  specialization: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 3,
+  },
+
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
+
+  locationText: {
+    fontSize: 10,
+    marginLeft: 4,
+    flex: 1,
+  },
+
+  notificationButton: {
+    width: 43,
+    height: 43,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+
+  notificationDot: {
+    position: "absolute",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    right: 8,
+    top: 7,
+  },
+
+  /* =======================================================
+     OVERVIEW
+  ======================================================= */
+
+  overviewCard: {
+    borderWidth: 1,
+    borderRadius: 21,
+    padding: 16,
+    marginBottom: 27,
+  },
+
+  overviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 17,
+  },
+
+  overviewTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+
+  todayBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+
+  todayText: {
+    fontSize: 9,
+    fontWeight: "700",
+    marginLeft: 5,
+  },
+
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+
+  overviewStat: {
+    width: "48.4%",
+    minHeight: 116,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 13,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  statIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  statContent: {
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  statValue: {
+    fontSize: 27,
+    fontWeight: "900",
+  },
+
+  statLabel: {
+    fontSize: 8,
+    fontWeight: "900",
+    marginTop: 4,
+    lineHeight: 11,
+  },
+
+  /* =======================================================
+     MEMBERS HEADER
+  ======================================================= */
+
+  membersHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 13,
+  },
+
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+
+  membersCountContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  membersCount: {
+    fontSize: 18,
+    fontWeight: "900",
+    marginRight: 4,
+  },
+
+  /* =======================================================
+     MEMBER CARD
+  ======================================================= */
+
+  memberCard: {
+    minHeight: 88,
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 11,
+    paddingLeft: 11,
+    paddingRight: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  memberAvatarContainer: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+
+  memberAvatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  memberAvatarText: {
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  memberInfo: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 7,
+  },
+
+  memberName: {
+    fontSize: 13,
+    fontWeight: "900",
+  },
+
+  memberDays: {
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 5,
+  },
+
+  statusBadge: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+
+  statusText: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 0.4,
+  },
+
+  memberArrow: {
+    marginLeft: 7,
+  },
+
+  /* =======================================================
+     EMPTY MEMBERS
+  ======================================================= */
+
+  emptyCard: {
+    borderWidth: 1,
+    borderRadius: 19,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  emptyIconContainer: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    marginTop: 12,
+  },
+
+  emptyText: {
+    fontSize: 10,
+    marginTop: 5,
+    textAlign: "center",
+  },
+
+  /* =======================================================
+     PROFILE ACTION
+  ======================================================= */
+
+  profileActionCard: {
+    minHeight: 110,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    marginTop: 10,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(90, 65, 180, 0.22)",
+  },
+
+  profileActionIcon: {
+    width: 61,
+    height: 61,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  profileActionInfo: {
+    flex: 1,
+    marginLeft: 15,
+  },
+
+  profileActionTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 0.7,
+  },
+
+  profileActionSubtitle: {
+    fontSize: 10,
+    marginTop: 5,
+  },
+
+  /* =======================================================
+     BOTTOM NAVIGATION
+  ======================================================= */
+
+  bottomNav: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 91,
+    borderTopWidth: 1,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-around",
+    paddingTop: 10,
+
+    shadowOffset: {
+      width: 0,
+      height: -4,
     },
 
-    content: {
-      paddingHorizontal: 20,
-      paddingTop: 55,
-      paddingBottom: 120,
-    },
-
-    loadingContainer: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-
-    loadingText: {
-      marginTop: 15,
-      fontSize: 13,
-    },
-
-    // ==================================================
-    // HEADER
-    // ==================================================
-
-    header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      marginBottom: 30,
-    },
-
-    headerLeft: {
-      flex: 1,
-      paddingRight: 8,
-    },
-
-    headerRight: {
-      alignItems: "flex-end",
-      justifyContent: "flex-start",
-      marginLeft: 8,
-    },
-
-    smallText: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 2,
-      marginBottom: 6,
-    },
-
-    // ==================================================
-    // MEMBER HEADER
-    // ==================================================
-
-    memberHeaderRow: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-
-    headerProfileCircle: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-
-      justifyContent: "center",
-      alignItems: "center",
-
-      borderWidth: 2,
-
-      overflow: "hidden",
-
-      marginRight: 11,
-    },
-
-    headerProfileImage: {
-      width: "100%",
-      height: "100%",
-      borderRadius: 25,
-    },
-
-    headerProfileText: {
-      color: "#FFFFFF",
-      fontSize: 18,
-      fontWeight: "900",
-    },
-
-    memberNameContainer: {
-      flex: 1,
-    },
-
-    title: {
-      fontSize: 28,
-      fontWeight: "900",
-    },
-
-    subtitle: {
-      fontSize: 14,
-      marginTop: 7,
-      lineHeight: 19,
-    },
-
-    // ==================================================
-    // THEME SWITCH
-    // ==================================================
-
-    themeSwitch: {
-      width: 66,
-      height: 34,
-
-      borderRadius: 18,
-
-      flexDirection: "row",
-
-      alignItems: "center",
-      justifyContent: "space-between",
-
-      paddingHorizontal: 7,
-
-      position: "relative",
-    },
-
-    themeIcon: {
-      fontSize: 13,
-    },
-
-    themeKnob: {
-      position: "absolute",
-
-      width: 28,
-      height: 28,
-
-      borderRadius: 14,
-
-      left: 4,
-
-      alignItems: "center",
-      justifyContent: "center",
-
-      elevation: 3,
-
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-
-      shadowOpacity: 0.2,
-
-      shadowRadius: 3,
-    },
-
-    knobIcon: {
-      fontSize: 13,
-    },
-
-    // ==================================================
-    // SECTION
-    // ==================================================
-
-    sectionTitle: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 1.8,
-      marginBottom: 14,
-    },
-
-    // ==================================================
-    // MEMBERSHIP
-    // ==================================================
-
-    membershipCard: {
-      borderRadius: 20,
-      padding: 20,
-      marginBottom: 18,
-      borderWidth: 1,
-    },
-
-    membershipTop: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-    },
-
-    membershipInfo: {
-      flex: 1,
-    },
-
-    membershipLabel: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 1.5,
-      marginBottom: 6,
-    },
-
-    gymName: {
-      fontSize: 22,
-      fontWeight: "900",
-    },
-
-    statusBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 11,
-      paddingVertical: 8,
-      borderRadius: 10,
-      marginLeft: 10,
-    },
-
-    statusDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      marginRight: 6,
-    },
-
-    statusText: {
-      fontSize: 10,
-      fontWeight: "800",
-    },
-
-    daysContainer: {
-      alignItems: "center",
-      marginTop: 25,
-      marginBottom: 18,
-    },
-
-    daysNumber: {
-      fontSize: 64,
-      lineHeight: 70,
-      fontWeight: "900",
-    },
-
-    daysLabel: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 1.8,
-      marginTop: 2,
-    },
-
-    progressBackground: {
-      height: 9,
-      borderRadius: 5,
-      overflow: "hidden",
-      marginBottom: 22,
-    },
-
-    progressFill: {
-      height: "100%",
-      borderRadius: 5,
-    },
-
-    dateRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-
-    dateColumn: {
-      flex: 1,
-    },
-
-    dateLabel: {
-      fontSize: 9,
-      fontWeight: "800",
-      letterSpacing: 1.3,
-      marginBottom: 5,
-    },
-
-    dateValue: {
-      fontSize: 13,
-      fontWeight: "800",
-    },
-
-    // ==================================================
-    // ALERT
-    // ==================================================
-
-    alertCard: {
-      borderRadius: 18,
-      padding: 15,
-      marginBottom: 18,
-      borderWidth: 1,
-    },
-
-    alertTitle: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 1,
-      marginBottom: 6,
-    },
-
-    alertText: {
-      fontSize: 12,
-      lineHeight: 18,
-    },
-
-    // ==================================================
-    // QUICK ACTIONS
-    // ==================================================
-
-    actionCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      borderRadius: 18,
-      padding: 15,
-      marginBottom: 12,
-      borderWidth: 1,
-    },
-
-    actionIcon: {
-      width: 45,
-      height: 45,
-      borderRadius: 14,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-
-    actionIconText: {
-      color: "#FFFFFF",
-      fontSize: 24,
-      fontWeight: "700",
-    },
-
-    actionContent: {
-      flex: 1,
-      marginLeft: 14,
-    },
-
-    actionTitle: {
-      fontSize: 15,
-      fontWeight: "800",
-    },
-
-    actionSubtitle: {
-      fontSize: 12,
-      marginTop: 4,
-    },
-
-    arrow: {
-      fontSize: 22,
-    },
-
-    // ==================================================
-    // ACCOUNT
-    // ==================================================
-
-    accountCard: {
-      borderRadius: 18,
-      paddingHorizontal: 15,
-      borderWidth: 1,
-      marginBottom: 25,
-    },
-
-    accountRow: {
-      minHeight: 58,
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-
-    accountLabel: {
-      fontSize: 12,
-    },
-
-    accountValue: {
-      fontSize: 12,
-      fontWeight: "800",
-      maxWidth: "60%",
-      textAlign: "right",
-    },
-
-    divider: {
-      height: 1,
-    },
-
-    // ==================================================
-    // BOTTOM NAVIGATION
-    // ==================================================
-
-    bottomNav: {
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-
-      height: 78,
-
-      borderTopWidth: 1,
-
-      flexDirection: "row",
-
-      alignItems: "center",
-      justifyContent: "space-around",
-
-      paddingHorizontal: 8,
-    },
-
-    navItem: {
-      alignItems: "center",
-      justifyContent: "center",
-
-      width: 78,
-      height: 65,
-    },
-
-    navIcon: {
-      fontSize: 19,
-      fontWeight: "800",
-      opacity: 1,
-    },
-
-    navIconActive: {
-      fontSize: 19,
-    },
-
-    navText: {
-      fontSize: 10,
-      fontWeight: "600",
-      marginTop: 4,
-    },
-
-    navTextActive: {
-      fontSize: 10,
-      fontWeight: "700",
-      marginTop: 4,
-    },
-
-    // ==================================================
-    // BOTTOM PROFILE AVATAR
-    // ==================================================
-
-    navProfileAvatar: {
-      width: 27,
-      height: 27,
-
-      borderRadius: 14,
-
-      alignItems: "center",
-      justifyContent: "center",
-
-      overflow: "hidden",
-
-      borderWidth: 1,
-    },
-
-    navProfileImage: {
-      width: "100%",
-      height: "100%",
-      borderRadius: 14,
-    },
-
-    navProfileText: {
-      fontSize: 9,
-      fontWeight: "900",
-    },
-
-  });
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+
+    elevation: 20,
+  },
+
+  bottomNavItem: {
+    width: "25%",
+    height: 76,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    position: "relative",
+  },
+
+  bottomIconContainer: {
+    width: 48,
+    height: 39,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  bottomLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+
+  activeIndicator: {
+    width: 32,
+    height: 4,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+});

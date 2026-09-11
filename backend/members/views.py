@@ -32,6 +32,7 @@ from .models import (
     Workspace,
     TrainerProfile,
     TrainerApplication,
+    WorkoutPlan,
 )
 
 from .serializers import (
@@ -39,6 +40,7 @@ from .serializers import (
     PaymentSerializer,
     WorkspaceSerializer,
     TrainerSerializer,
+    WorkoutPlanSerializer,
 )
 
 
@@ -3162,6 +3164,94 @@ class TrainerListView(APIView):
         )
 
 
+
+# ============================================================
+# OWNER - TRAINER ASSIGNMENT
+# ============================================================
+
+class TrainerAssignmentView(APIView):
+    """Assign or unassign a member to an active trainer in the owner's workspace."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        profile = get_or_create_profile(request.user)
+
+        if not profile.is_owner:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only workspace owners can assign trainers.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        workspace = get_user_workspace(request.user)
+        if not workspace:
+            return Response(
+                {"success": False, "message": "Workspace not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        member_id = request.data.get("member_id")
+        trainer_id = request.data.get("trainer_id")
+
+        if not member_id:
+            return Response(
+                {"success": False, "message": "member_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            member = Member.objects.select_related("workspace", "trainer").get(
+                pk=member_id,
+                workspace=workspace,
+                is_deleted=False,
+            )
+        except (Member.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {"success": False, "message": "Member not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        trainer_user = None
+
+        # Empty / null trainer_id means unassign.
+        if trainer_id not in (None, "", 0, "null"):
+            try:
+                trainer_profile = TrainerProfile.objects.select_related("user").get(
+                    pk=trainer_id,
+                    workspace=workspace,
+                    is_active=True,
+                )
+            except (TrainerProfile.DoesNotExist, ValueError, TypeError):
+                return Response(
+                    {"success": False, "message": "Invalid trainer for this workspace."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            trainer_user = trainer_profile.user
+
+        member.trainer = trainer_user
+        member.save(update_fields=["trainer", "updated_at"])
+        member.refresh_from_db()
+
+        return Response(
+            {
+                "success": True,
+                "message": (
+                    "Member unassigned successfully."
+                    if trainer_user is None
+                    else "Trainer assigned successfully."
+                ),
+                "member": MemberSerializer(
+                    member,
+                    context={"request": request},
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 # ============================================================
 # OWNER - ADD TRAINER
 # ============================================================
@@ -3929,3 +4019,569 @@ class MemberRegisterView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
+
+# ============================================================
+# TRAINER - OWN PROFILE
+# ============================================================
+
+class TrainerProfileView(APIView):
+    """
+    Return and manage the authenticated trainer's own profile.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_trainer_profile(self, request):
+        profile = get_or_create_profile(request.user)
+
+        if not profile.is_trainer:
+            return None
+
+        return (
+            TrainerProfile.objects
+            .select_related("user", "workspace")
+            .filter(
+                user=request.user,
+                is_active=True,
+                workspace__is_active=True,
+            )
+            .first()
+        )
+
+    def get(self, request):
+        trainer_profile = self._get_trainer_profile(request)
+
+        if not trainer_profile:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Trainer profile not found or inactive."
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "trainer": TrainerSerializer(
+                    trainer_profile,
+                    context={"request": request},
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def patch(self, request):
+        trainer_profile = self._get_trainer_profile(request)
+
+        if not trainer_profile:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Trainer profile not found or inactive."
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        image = request.FILES.get("profile_picture")
+
+        if not image:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "A profile picture is required."
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        allowed_types = {
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+        }
+
+        if image.content_type not in allowed_types:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Only JPG, JPEG, PNG and WEBP "
+                        "images are allowed."
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if image.size > 5 * 1024 * 1024:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Profile picture must be "
+                        "smaller than 5 MB."
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            if trainer_profile.profile_picture:
+                trainer_profile.profile_picture.delete(
+                    save=False
+                )
+
+            trainer_profile.profile_picture = image
+
+            trainer_profile.save(
+                update_fields=[
+                    "profile_picture",
+                    "updated_at",
+                ]
+            )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": (
+                        "Profile picture updated "
+                        "successfully."
+                    ),
+                    "trainer": TrainerSerializer(
+                        trainer_profile,
+                        context={"request": request},
+                    ).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Failed to upload "
+                        "profile picture."
+                    ),
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def delete(self, request):
+        trainer_profile = self._get_trainer_profile(request)
+
+        if not trainer_profile:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Trainer profile not found or inactive."
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            if trainer_profile.profile_picture:
+                trainer_profile.profile_picture.delete(
+                    save=False
+                )
+
+                trainer_profile.profile_picture = None
+
+                trainer_profile.save(
+                    update_fields=[
+                        "profile_picture",
+                        "updated_at",
+                    ]
+                )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": (
+                        "Profile picture removed "
+                        "successfully."
+                    ),
+                    "profile_picture": None,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Failed to remove "
+                        "profile picture."
+                    ),
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+# ============================================================
+# TRAINER - WORKOUT PLANS
+# ============================================================
+
+class WorkoutPlanListCreateView(APIView):
+    """
+    Trainer can view/create workout plans only for members
+    assigned to that trainer.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_trainer_profile(self, request):
+        profile = get_or_create_profile(request.user)
+
+        if not profile.is_trainer:
+            return None
+
+        return (
+            TrainerProfile.objects
+            .select_related("workspace")
+            .filter(
+                user=request.user,
+                is_active=True,
+                workspace__is_active=True,
+            )
+            .first()
+        )
+
+    def get(self, request):
+        trainer_profile = self._get_trainer_profile(request)
+
+        if not trainer_profile:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Only active trainers can "
+                        "access workout plans."
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        plans = (
+            WorkoutPlan.objects
+            .filter(
+                trainer=request.user,
+                workspace=trainer_profile.workspace,
+                is_active=True,
+                member__trainer=request.user,
+                member__is_deleted=False,
+            )
+            .select_related(
+                "trainer",
+                "member",
+                "workspace",
+            )
+            .order_by("-created_at")
+        )
+
+        serializer = WorkoutPlanSerializer(
+            plans,
+            many=True,
+            context={"request": request},
+        )
+
+        return Response(
+            {
+                "success": True,
+                "count": plans.count(),
+                "workouts": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def post(self, request):
+        trainer_profile = self._get_trainer_profile(request)
+
+        if not trainer_profile:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Only active trainers can "
+                        "create workout plans."
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        member_id = request.data.get("member")
+
+        if not member_id:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Member is required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            member = (
+                Member.objects
+                .select_related("workspace")
+                .get(
+                    pk=member_id,
+                    workspace=trainer_profile.workspace,
+                    trainer=request.user,
+                    is_deleted=False,
+                )
+            )
+        except (Member.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "You can only create a workout "
+                        "for a member assigned to you."
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        payload = request.data.copy()
+
+        # Accept both "member" and "member_id".
+        payload["member"] = member.id
+
+        serializer = WorkoutPlanSerializer(
+            data=payload,
+            context={"request": request},
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        workout = serializer.save(
+            trainer=request.user,
+            workspace=trainer_profile.workspace,
+            member=member,
+        )
+
+        return Response(
+            {
+                "success": True,
+                "message": (
+                    "Workout plan created "
+                    "and assigned successfully."
+                ),
+                "workout": WorkoutPlanSerializer(
+                    workout,
+                    context={"request": request},
+                ).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class WorkoutPlanDetailView(APIView):
+    """
+    Edit/deactivate a trainer's own workout plan.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_plan(self, request, pk):
+        trainer_profile = (
+            TrainerProfile.objects
+            .filter(
+                user=request.user,
+                is_active=True,
+                workspace__is_active=True,
+            )
+            .first()
+        )
+
+        if not trainer_profile:
+            return None, None
+
+        plan = (
+            WorkoutPlan.objects
+            .select_related(
+                "trainer",
+                "member",
+                "workspace",
+            )
+            .filter(
+                pk=pk,
+                trainer=request.user,
+                workspace=trainer_profile.workspace,
+                is_active=True,
+                member__trainer=request.user,
+                member__is_deleted=False,
+            )
+            .first()
+        )
+
+        return trainer_profile, plan
+
+    def get(self, request, pk):
+        trainer_profile, plan = self._get_plan(
+            request,
+            pk,
+        )
+
+        if not trainer_profile:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Trainer profile not found.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if not plan:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Workout plan not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "workout": WorkoutPlanSerializer(
+                    plan,
+                    context={"request": request},
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def patch(self, request, pk):
+        trainer_profile, plan = self._get_plan(
+            request,
+            pk,
+        )
+
+        if not trainer_profile:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Trainer profile not found.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if not plan:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Workout plan not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        payload = request.data.copy()
+
+        # Do not allow changing ownership from the app.
+        payload.pop("trainer", None)
+        payload.pop("workspace", None)
+
+        if "member" in payload:
+            try:
+                new_member = Member.objects.get(
+                    pk=payload["member"],
+                    workspace=trainer_profile.workspace,
+                    trainer=request.user,
+                    is_deleted=False,
+                )
+            except (Member.DoesNotExist, ValueError, TypeError):
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Invalid member. "
+                            "The member must be assigned to you."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            new_member = plan.member
+
+        serializer = WorkoutPlanSerializer(
+            plan,
+            data=payload,
+            partial=True,
+            context={"request": request},
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        workout = serializer.save(
+            trainer=request.user,
+            workspace=trainer_profile.workspace,
+            member=new_member,
+        )
+
+        return Response(
+            {
+                "success": True,
+                "message": "Workout plan updated successfully.",
+                "workout": WorkoutPlanSerializer(
+                    workout,
+                    context={"request": request},
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, pk):
+        trainer_profile, plan = self._get_plan(
+            request,
+            pk,
+        )
+
+        if not trainer_profile:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Trainer profile not found.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if not plan:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Workout plan not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        plan.is_active = False
+        plan.save(update_fields=["is_active", "updated_at"])
+
+        return Response(
+            {
+                "success": True,
+                "message": "Workout plan removed successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
