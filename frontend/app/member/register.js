@@ -16,7 +16,7 @@ import {
 } from "react-native";
 
 const API_URL =
-  "http://192.168.1.49:8000/api/members/register/";
+  "http://192.168.1.52:8000/api/members/register/";
 
 export default function MemberRegisterScreen() {
   // ============================================================

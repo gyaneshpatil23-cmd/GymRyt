@@ -23,7 +23,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // API
 // ============================================================
 
-const API_URL = "http://192.168.1.49:8000";
+const API_URL = "http://192.168.1.52:8000";
 
 // ============================================================
 // LOGIN SCREEN

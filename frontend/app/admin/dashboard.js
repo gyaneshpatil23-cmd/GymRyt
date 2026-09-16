@@ -15,8 +15,6 @@ import {
   Alert,
   Animated,
   Image,
-  Modal,
-  RefreshControl,
 } from "react-native";
 
 import {
@@ -33,7 +31,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ======================================================
 
 const BASE_URL =
-  "http://192.168.1.49:8000/api/members";
+  "http://192.168.1.52:8000/api/members";
 
 const DASHBOARD_API =
   `${BASE_URL}/dashboard-stats/`;
@@ -47,14 +45,11 @@ const REVENUE_API =
 const ADMIN_PROFILE_PICTURE_API =
   `${BASE_URL}/admin/profile-picture/`;
 
-const TRAINER_APPLICATIONS_API =
-  `${BASE_URL}/trainer-applications/list/`;
-
 // ======================================================
-// OWNER DASHBOARD
+// OWNER + TRAINER DASHBOARD
 // ======================================================
 
-export default function OwnerDashboard() {
+export default function OwnerTrainerDashboard() {
   const {
     isDark,
     colors,
@@ -88,31 +83,13 @@ export default function OwnerDashboard() {
     expired_members: 0,
     expiring_members: 0,
     attendance_today: 0,
-    total_trainers: 0,
   });
 
   const [revenue, setRevenue] = useState(0);
 
   const [members, setMembers] = useState([]);
 
-  const [trainerApplications, setTrainerApplications] =
-    useState([]);
-
-  const [applicationsLoading, setApplicationsLoading] =
-    useState(false);
-
-  const [processingApplicationId, setProcessingApplicationId] =
-    useState(null);
-
-  const [selectedTrainerApplication, setSelectedTrainerApplication] =
-    useState(null);
-
-  const [trainerDetailsVisible, setTrainerDetailsVisible] =
-    useState(false);
-
   const [loading, setLoading] = useState(true);
-
-  const [refreshing, setRefreshing] = useState(false);
 
   const [adminUsername, setAdminUsername] =
     useState("Owner");
@@ -120,55 +97,29 @@ export default function OwnerDashboard() {
   const [adminProfilePicture, setAdminProfilePicture] =
     useState(null);
 
-  const isMounted = useRef(true);
-
-  // ====================================================
-  // CLEANUP
-  // ====================================================
-
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-
   // ====================================================
   // SESSION
   // ====================================================
 
   const getAdminSession = async () => {
-    try {
-      const token =
-        await AsyncStorage.getItem("adminToken");
+    const token =
+      await AsyncStorage.getItem("adminToken");
 
-      const username =
-        await AsyncStorage.getItem("adminUsername");
+    const username =
+      await AsyncStorage.getItem("adminUsername");
 
-      const adminId =
-        await AsyncStorage.getItem("adminId");
+    const adminId =
+      await AsyncStorage.getItem("adminId");
 
-      const userRole =
-        await AsyncStorage.getItem("userRole");
+    const userRole =
+      await AsyncStorage.getItem("userRole");
 
-      return {
-        token,
-        username,
-        adminId,
-        userRole,
-      };
-    } catch (error) {
-      console.log(
-        "SESSION ERROR:",
-        error
-      );
-
-      return {
-        token: null,
-        username: null,
-        adminId: null,
-        userRole: null,
-      };
-    }
+    return {
+      token,
+      username,
+      adminId,
+      userRole,
+    };
   };
 
   // ====================================================
@@ -176,19 +127,12 @@ export default function OwnerDashboard() {
   // ====================================================
 
   const clearAdminSession = async () => {
-    try {
-      await AsyncStorage.multiRemove([
-        "adminToken",
-        "adminUsername",
-        "adminId",
-        "userRole",
-      ]);
-    } catch (error) {
-      console.log(
-        "CLEAR SESSION ERROR:",
-        error
-      );
-    }
+    await AsyncStorage.multiRemove([
+      "adminToken",
+      "adminUsername",
+      "adminId",
+      "userRole",
+    ]);
   };
 
   // ====================================================
@@ -200,7 +144,7 @@ export default function OwnerDashboard() {
 
     Alert.alert(
       "Session Expired",
-      "Your owner session has expired. Please login again.",
+      "Please login again.",
       [
         {
           text: "OK",
@@ -244,11 +188,9 @@ export default function OwnerDashboard() {
       const data =
         await response.json();
 
-      if (isMounted.current) {
-        setAdminProfilePicture(
-          data.profile_picture || null
-        );
-      }
+      setAdminProfilePicture(
+        data.profile_picture || null
+      );
     } catch (error) {
       console.log(
         "PROFILE PICTURE ERROR:",
@@ -258,71 +200,12 @@ export default function OwnerDashboard() {
   };
 
   // ====================================================
-  // PENDING TRAINER APPLICATIONS
-  // ====================================================
-
-  const fetchTrainerApplications = async (token) => {
-    try {
-      setApplicationsLoading(true);
-
-      const response = await fetch(
-        TRAINER_APPLICATIONS_API,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Token ${token}`,
-          },
-        }
-      );
-
-      if (response.status === 401) {
-        await handleSessionExpired();
-        return;
-      }
-
-      const data = await response.json();
-
-      if (!response.ok || !data?.success) {
-        throw new Error(
-          data?.message || "Could not load trainer applications."
-        );
-      }
-
-      if (isMounted.current) {
-        setTrainerApplications(
-          Array.isArray(data.applications)
-            ? data.applications.filter(
-                (application) => application.status === "PENDING"
-              )
-            : []
-        );
-      }
-    } catch (error) {
-      console.log("TRAINER APPLICATIONS ERROR:", error);
-      if (isMounted.current) {
-        setTrainerApplications([]);
-      }
-    } finally {
-      if (isMounted.current) {
-        setApplicationsLoading(false);
-      }
-    }
-  };
-
-  // ====================================================
   // FETCH DASHBOARD DATA
   // ====================================================
 
-  const fetchDashboardData = async (
-    isRefresh = false
-  ) => {
+  const fetchDashboardData = async () => {
     try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+      setLoading(true);
 
       const session =
         await getAdminSession();
@@ -330,16 +213,12 @@ export default function OwnerDashboard() {
       const token =
         session.token;
 
-      // ==================================================
-      // CHECK LOGIN
-      // ==================================================
-
       if (!token) {
         await clearAdminSession();
 
         Alert.alert(
           "Authentication Error",
-          "Owner login session not found. Please login again.",
+          "Owner + Trainer login session not found. Please login again.",
           [
             {
               text: "OK",
@@ -357,10 +236,7 @@ export default function OwnerDashboard() {
       // USERNAME
       // ==================================================
 
-      if (
-        session.username &&
-        isMounted.current
-      ) {
+      if (session.username) {
         setAdminUsername(
           session.username
         );
@@ -373,10 +249,6 @@ export default function OwnerDashboard() {
       await fetchAdminProfilePicture(
         token
       );
-
-      // ==================================================
-      // AUTH HEADERS
-      // ==================================================
 
       const authHeaders = {
         "Content-Type":
@@ -419,31 +291,26 @@ export default function OwnerDashboard() {
         await statsResponse.json();
 
       console.log(
-        "OWNER DASHBOARD STATS:",
+        "OWNER + TRAINER DASHBOARD STATS:",
         statsData
       );
 
-      if (isMounted.current) {
-        setStats({
-          total_members:
-            statsData.total_members ?? 0,
+      setStats({
+        total_members:
+          statsData.total_members ?? 0,
 
-          active_members:
-            statsData.active_members ?? 0,
+        active_members:
+          statsData.active_members ?? 0,
 
-          expired_members:
-            statsData.expired_members ?? 0,
+        expired_members:
+          statsData.expired_members ?? 0,
 
-          expiring_members:
-            statsData.expiring_members ?? 0,
+        expiring_members:
+          statsData.expiring_members ?? 0,
 
-          attendance_today:
-            statsData.attendance_today ?? 0,
-
-          total_trainers:
-            statsData.total_trainers ?? 0,
-        });
-      }
+        attendance_today:
+          statsData.attendance_today ?? 0,
+      });
 
       // ==================================================
       // REVENUE
@@ -475,17 +342,15 @@ export default function OwnerDashboard() {
         await revenueResponse.json();
 
       console.log(
-        "OWNER REVENUE:",
+        "OWNER + TRAINER REVENUE:",
         revenueData
       );
 
-      if (isMounted.current) {
-        setRevenue(
-          Number(
-            revenueData.total_revenue ?? 0
-          )
-        );
-      }
+      setRevenue(
+        Number(
+          revenueData.total_revenue ?? 0
+        )
+      );
 
       // ==================================================
       // MEMBERS
@@ -517,13 +382,9 @@ export default function OwnerDashboard() {
         await membersResponse.json();
 
       console.log(
-        "OWNER MEMBERS:",
+        "OWNER + TRAINER MEMBERS:",
         membersData
       );
-
-      if (!isMounted.current) {
-        return;
-      }
 
       if (
         Array.isArray(membersData)
@@ -542,12 +403,9 @@ export default function OwnerDashboard() {
       } else {
         setMembers([]);
       }
-
-      await fetchTrainerApplications(token);
-
     } catch (error) {
       console.log(
-        "OWNER DASHBOARD ERROR:",
+        "OWNER + TRAINER DASHBOARD ERROR:",
         error
       );
 
@@ -556,133 +414,8 @@ export default function OwnerDashboard() {
         "Could not load dashboard data.\n\nMake sure Django is running and your phone is connected to the same Wi-Fi."
       );
     } finally {
-      if (isMounted.current) {
-        setLoading(false);
-        setRefreshing(false);
-      }
+      setLoading(false);
     }
-  };
-
-  // ====================================================
-  // REFRESH
-  // ====================================================
-
-  const handleRefresh = () => {
-    fetchDashboardData(true);
-  };
-
-  const processTrainerApplication = async (
-    application,
-    action
-  ) => {
-    if (processingApplicationId) {
-      return;
-    }
-
-    try {
-      setProcessingApplicationId(application.id);
-
-      const session = await getAdminSession();
-      if (!session.token) {
-        await handleSessionExpired();
-        return;
-      }
-
-      const response = await fetch(
-        `${BASE_URL}/trainer-applications/${application.id}/action/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Token ${session.token}`,
-          },
-          body: JSON.stringify({ action }),
-        }
-      );
-
-      let data = {};
-      try {
-        data = await response.json();
-      } catch (_error) {
-        // The status-specific fallback below remains useful for malformed errors.
-      }
-
-      if (response.status === 401) {
-        await handleSessionExpired();
-        return;
-      }
-
-      if (!response.ok || !data?.success) {
-        throw new Error(
-          data?.message || "Could not process trainer application."
-        );
-      }
-
-      // Remove immediately, then refresh to remain consistent with the server.
-      setTrainerApplications((current) =>
-        current.filter((item) => item.id !== application.id)
-      );
-
-      Alert.alert(
-        action === "APPROVE"
-          ? "Trainer Approved"
-          : "Application Rejected",
-        action === "APPROVE"
-          ? "The trainer has been approved and added successfully."
-          : "The trainer application has been rejected."
-      );
-
-      await fetchDashboardData(true);
-    } catch (error) {
-      Alert.alert(
-        "Unable to Process Application",
-        error.message || "Please try again."
-      );
-    } finally {
-      if (isMounted.current) {
-        setProcessingApplicationId(null);
-      }
-    }
-  };
-
-  const confirmTrainerAction = (application, action) => {
-    const isApproval = action === "APPROVE";
-    Alert.alert(
-      isApproval ? "Approve Trainer" : "Reject Application",
-      isApproval
-        ? `Approve ${application.name} as a trainer?`
-        : `Reject the trainer application for ${application.name}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: isApproval ? "Approve" : "Reject",
-          style: isApproval ? "default" : "destructive",
-          onPress: () => processTrainerApplication(application, action),
-        },
-      ]
-    );
-  };
-
-  const openTrainerDetails = (application) => {
-    setSelectedTrainerApplication(application);
-    setTrainerDetailsVisible(true);
-  };
-
-  const closeTrainerDetails = () => {
-    setTrainerDetailsVisible(false);
-    setSelectedTrainerApplication(null);
-  };
-
-  const formatTrainerApplicationDate = (value) => {
-    if (!value) {
-      return "Not provided";
-    }
-
-    const date = new Date(value);
-    return Number.isNaN(date.getTime())
-      ? "Not provided"
-      : date.toLocaleString();
   };
 
   // ====================================================
@@ -691,7 +424,7 @@ export default function OwnerDashboard() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchDashboardData(false);
+      fetchDashboardData();
     }, [])
   );
 
@@ -706,9 +439,7 @@ export default function OwnerDashboard() {
   // INITIALS
   // ====================================================
 
-  const getInitials = (
-    name
-  ) => {
+  const getInitials = (name) => {
     if (!name) {
       return "?";
     }
@@ -809,7 +540,7 @@ export default function OwnerDashboard() {
             },
           ]}
         >
-          Loading owner dashboard...
+          Loading dashboard...
         </Text>
       </View>
     );
@@ -834,30 +565,19 @@ export default function OwnerDashboard() {
         contentContainerStyle={
           styles.content
         }
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={
-              colors.primary
-            }
-          />
-        }
       >
 
         {/* ==================================================
             HEADER
         ================================================== */}
 
-        <View
-          style={styles.header}
-        >
+        <View style={styles.header}>
 
           <View
             style={styles.headerLeft}
           >
 
-            {/* PROFILE */}
+            {/* PROFILE PICTURE */}
 
             <TouchableOpacity
               activeOpacity={0.8}
@@ -900,8 +620,6 @@ export default function OwnerDashboard() {
               )}
             </TouchableOpacity>
 
-            {/* OWNER INFO */}
-
             <View
               style={
                 styles.adminNameContainer
@@ -929,7 +647,7 @@ export default function OwnerDashboard() {
                 ]}
                 numberOfLines={1}
               >
-                {adminUsername} 👋
+                {adminUsername} 
               </Text>
 
               <Text
@@ -947,9 +665,7 @@ export default function OwnerDashboard() {
 
           </View>
 
-          {/* ==================================================
-              THEME SWITCH
-          ================================================== */}
+          {/* THEME SWITCH */}
 
           <TouchableOpacity
             style={[
@@ -961,9 +677,7 @@ export default function OwnerDashboard() {
                     : "#E2E8F0",
               },
             ]}
-            onPress={
-              toggleTheme
-            }
+            onPress={toggleTheme}
             activeOpacity={0.8}
           >
             <Text
@@ -1024,7 +738,7 @@ export default function OwnerDashboard() {
         </View>
 
         {/* ==================================================
-            ROLE BADGE
+            ROLE INDICATOR
         ================================================== */}
 
         <View
@@ -1047,7 +761,7 @@ export default function OwnerDashboard() {
               },
             ]}
           >
-            GYM OWNER
+            OWNER + TRAINER
           </Text>
         </View>
 
@@ -1068,14 +782,10 @@ export default function OwnerDashboard() {
         </Text>
 
         <View
-          style={
-            styles.statsGrid
-          }
+          style={styles.statsGrid}
         >
 
-          {/* ==================================================
-              TOTAL MEMBERS
-          ================================================== */}
+          {/* TOTAL MEMBERS */}
 
           <TouchableOpacity
             style={[
@@ -1104,9 +814,7 @@ export default function OwnerDashboard() {
               ]}
             >
               <Text
-                style={
-                  styles.icon
-                }
+                style={styles.icon}
               >
                 👥
               </Text>
@@ -1137,9 +845,7 @@ export default function OwnerDashboard() {
             </Text>
           </TouchableOpacity>
 
-          {/* ==================================================
-              REVENUE
-          ================================================== */}
+          {/* REVENUE */}
 
           <TouchableOpacity
             style={[
@@ -1168,9 +874,7 @@ export default function OwnerDashboard() {
               ]}
             >
               <Text
-                style={
-                  styles.icon
-                }
+                style={styles.icon}
               >
                 ₹
               </Text>
@@ -1203,9 +907,7 @@ export default function OwnerDashboard() {
             </Text>
           </TouchableOpacity>
 
-          {/* ==================================================
-              ACTIVE MEMBERS
-          ================================================== */}
+          {/* EXPIRED */}
 
           <TouchableOpacity
             style={[
@@ -1229,142 +931,12 @@ export default function OwnerDashboard() {
                 styles.iconBox,
                 {
                   backgroundColor:
-                    colors.successBackground,
+                    colors.warningBackground,
                 },
               ]}
             >
               <Text
-                style={
-                  styles.icon
-                }
-              >
-                ✓
-              </Text>
-            </View>
-
-            <Text
-              style={[
-                styles.statNumber,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {stats.active_members}
-            </Text>
-
-            <Text
-              style={[
-                styles.statLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Active Members
-            </Text>
-          </TouchableOpacity>
-
-          {/* ==================================================
-              TOTAL TRAINERS
-          ================================================== */}
-
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.push(
-                "/admin/trainers"
-              )
-            }
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.iconBox,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
-              <Text
-                style={
-                  styles.icon
-                }
-              >
-                👨‍🏫
-              </Text>
-            </View>
-
-            <Text
-              style={[
-                styles.statNumber,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {stats.total_trainers}
-            </Text>
-
-            <Text
-              style={[
-                styles.statLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Total Trainers
-            </Text>
-          </TouchableOpacity>
-
-          {/* ==================================================
-              EXPIRED MEMBERS
-          ================================================== */}
-
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.push(
-                "/admin/members"
-              )
-            }
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.iconBox,
-                {
-                  backgroundColor:
-                    colors.dangerBackground,
-                },
-              ]}
-            >
-              <Text
-                style={
-                  styles.icon
-                }
+                style={styles.icon}
               >
                 !
               </Text>
@@ -1396,22 +968,20 @@ export default function OwnerDashboard() {
 
             <Text
               style={[
-                styles.dangerText,
+                styles.warningText,
                 {
                   color:
-                    colors.danger,
+                    colors.warning,
                 },
               ]}
             >
               {stats.expired_members > 0
                 ? "Needs attention"
-                : "No expired members"}
+                : "All memberships active"}
             </Text>
           </TouchableOpacity>
 
-          {/* ==================================================
-              TODAY'S ATTENDANCE
-          ================================================== */}
+          {/* ATTENDANCE */}
 
           <TouchableOpacity
             style={[
@@ -1423,11 +993,6 @@ export default function OwnerDashboard() {
                   colors.border,
               },
             ]}
-            onPress={() =>
-              router.push(
-                "/admin/attendance"
-              )
-            }
             activeOpacity={0.8}
           >
             <View
@@ -1440,9 +1005,7 @@ export default function OwnerDashboard() {
               ]}
             >
               <Text
-                style={
-                  styles.icon
-                }
+                style={styles.icon}
               >
                 🔥
               </Text>
@@ -1503,57 +1066,6 @@ export default function OwnerDashboard() {
           colors={colors}
         />
 
-        {/* RECORD PAYMENT */}
-
-        <ActionCard
-        icon="₹"
-        title="Record Payment"
-        subtitle="Select a member and record payment"
-        onPress={() =>
-          router.push(
-            "/admin/members"
-          )
-        }
-        colors={colors}
-        payment
-        />
-
-        <ActionCard
-          icon="📊"
-          title="Revenue & Reports"
-          subtitle="View financial records and reports"
-          onPress={() =>
-            router.push(
-              "/admin/revenue"
-            )
-          }
-          colors={colors}
-        />
-
-        <ActionCard
-          icon="🔥"
-          title="Attendance"
-          subtitle="Track today's gym attendance"
-          onPress={() =>
-            router.push(
-              "/admin/attendance"
-            )
-          }
-          colors={colors}
-        />
-
-        <ActionCard
-          icon="📱"
-          title="Registration QR"
-          subtitle="Let new members register"
-          onPress={() =>
-            router.push(
-              "/admin/adminqr"
-            )
-          }
-          colors={colors}
-        />
-
         <ActionCard
           icon="🏋️"
           title="Manage Trainers"
@@ -1566,152 +1078,70 @@ export default function OwnerDashboard() {
           colors={colors}
         />
 
+        <ActionCard
+          icon="🔗"
+          title="Assign Trainers"
+          subtitle="Assign members to personal trainers"
+          onPress={() =>
+            router.push(
+              "/admin/trainerassignment"
+            )
+          }
+          colors={colors}
+        />
+
+        <ActionCard
+          icon="₹"
+          title="Record Payment"
+          subtitle="Record member payment"
+          onPress={() =>
+            router.push(
+              "/admin/recordpayment"
+            )
+          }
+          colors={colors}
+          payment
+        />
+
+        <ActionCard
+          icon="📊"
+          title="Revenue & Reports"
+          subtitle="View gym financial records"
+          onPress={() =>
+            router.push(
+              "/admin/revenue"
+            )
+          }
+          colors={colors}
+        />
+
+        <ActionCard
+          icon="📱"
+          title="Registration QR"
+          subtitle="Let members register"
+          onPress={() =>
+            router.push(
+              "/admin/adminqr"
+            )
+          }
+          colors={colors}
+        />
+
         {/* ==================================================
-            PENDING TRAINER APPLICATIONS
+            TRAINER QUICK ACTION
         ================================================== */}
 
-        <View style={styles.sectionHeader}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: colors.mutedText },
-            ]}
-          >
-            PENDING TRAINER APPLICATIONS
-          </Text>
-
-          <TouchableOpacity
-            onPress={() => fetchDashboardData(true)}
-            disabled={applicationsLoading || !!processingApplicationId}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.viewAll,
-                { color: colors.primaryLight },
-              ]}
-            >
-              Refresh
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {applicationsLoading ? (
-          <View style={styles.applicationLoading}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.applicationLoadingText, { color: colors.mutedText }]}>
-              Loading trainer applications...
-            </Text>
-          </View>
-        ) : trainerApplications.length === 0 ? (
-          <Text style={[styles.applicationEmptyText, { color: colors.mutedText }]}>
-            No pending trainer applications.
-          </Text>
-        ) : (
-          trainerApplications.map((application) => {
-            const isProcessing = processingApplicationId === application.id;
-
-            return (
-              <View
-                key={application.id}
-                style={[
-                  styles.applicationCard,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <View style={styles.applicationHeader}>
-                  {application.profile_picture ? (
-                    <Image
-                      source={{ uri: application.profile_picture }}
-                      style={styles.applicationAvatar}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.applicationAvatar,
-                        { backgroundColor: colors.iconBackground },
-                      ]}
-                    >
-                      <Text style={[styles.avatarText, { color: colors.primaryLight }]}>
-                        {getInitials(application.name)}
-                      </Text>
-                    </View>
-                  )}
-
-                  <View style={styles.applicationInfo}>
-                    <Text style={[styles.memberName, { color: colors.text }]}>
-                      {application.name}
-                    </Text>
-                    <Text style={[styles.applicationDetail, { color: colors.mutedText }]}>
-                      {application.email || "No email provided"}
-                    </Text>
-                    <Text style={[styles.applicationDetail, { color: colors.mutedText }]}>
-                      {application.phone} · @{application.username}
-                    </Text>
-                  </View>
-
-                  <View style={[styles.pendingBadge, { backgroundColor: colors.warningBackground }]}>
-                    <Text style={[styles.pendingBadgeText, { color: colors.warning }]}>
-                      PENDING
-                    </Text>
-                  </View>
-                </View>
-
-                {!!application.specialization && (
-                  <Text style={[styles.applicationDetail, { color: colors.secondaryText }]}>
-                    Specialization: {application.specialization}
-                  </Text>
-                )}
-                {Number(application.experience_years) > 0 && (
-                  <Text style={[styles.applicationDetail, { color: colors.secondaryText }]}>
-                    Experience: {application.experience_years} years
-                  </Text>
-                )}
-                {!!application.bio && (
-                  <Text style={[styles.applicationDetail, { color: colors.secondaryText }]}>
-                    {application.bio}
-                  </Text>
-                )}
-
-                <View style={styles.applicationActions}>
-                  <TouchableOpacity
-                    style={[styles.applicationButton, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
-                    onPress={() => openTrainerDetails(application)}
-                    disabled={!!processingApplicationId}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.applicationButtonText, { color: colors.primaryLight }]}>VIEW DETAILS</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.applicationButton, { backgroundColor: colors.primary }]}
-                    onPress={() => confirmTrainerAction(application, "APPROVE")}
-                    disabled={!!processingApplicationId}
-                    activeOpacity={0.8}
-                  >
-                    {isProcessing ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.applicationButtonText}>APPROVE</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.applicationButton, { backgroundColor: colors.danger }]}
-                    onPress={() => confirmTrainerAction(application, "REJECT")}
-                    disabled={!!processingApplicationId}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.applicationButtonText}>REJECT</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })
-        )}
+        <ActionCard
+          icon="🏃"
+          title="My Training Members"
+          subtitle="View members assigned to you"
+          onPress={() =>
+            router.push(
+              "/admin/members"
+            )
+          }
+          colors={colors}
+        />
 
         {/* ==================================================
             RECENT MEMBERS
@@ -1740,7 +1170,6 @@ export default function OwnerDashboard() {
                 "/admin/members"
               )
             }
-            activeOpacity={0.7}
           >
             <Text
               style={[
@@ -1755,10 +1184,6 @@ export default function OwnerDashboard() {
             </Text>
           </TouchableOpacity>
         </View>
-
-        {/* ==================================================
-            NO MEMBERS
-        ================================================== */}
 
         {recentMembers.length === 0 ? (
           <View
@@ -1795,39 +1220,10 @@ export default function OwnerDashboard() {
                 },
               ]}
             >
-              Add your first gym member to get started.
+              Add your first gym member.
             </Text>
-
-            <TouchableOpacity
-              style={[
-                styles.emptyButton,
-                {
-                  backgroundColor:
-                    colors.primary,
-                },
-              ]}
-              onPress={() =>
-                router.push(
-                  "/admin/adminqr"
-                )
-              }
-              activeOpacity={0.8}
-            >
-              <Text
-                style={
-                  styles.emptyButtonText
-                }
-              >
-                Register Member
-              </Text>
-            </TouchableOpacity>
           </View>
         ) : (
-
-          /* ==================================================
-              MEMBER LIST
-          ================================================== */
-
           recentMembers.map(
             (member) => (
               <TouchableOpacity
@@ -1894,8 +1290,7 @@ export default function OwnerDashboard() {
                     ]}
                     numberOfLines={1}
                   >
-                    {member.name ||
-                      "Unnamed Member"}
+                    {member.name}
                   </Text>
 
                   <Text
@@ -2000,47 +1395,6 @@ export default function OwnerDashboard() {
 
       </ScrollView>
 
-      <Modal
-        visible={trainerDetailsVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={closeTrainerDetails}
-      >
-        <View style={styles.trainerDetailsOverlay}>
-          <View style={[styles.trainerDetailsModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.trainerDetailsHeader}>
-              <View>
-                <Text style={[styles.trainerDetailsEyebrow, { color: colors.primaryLight }]}>TRAINER APPLICATION</Text>
-                <Text style={[styles.trainerDetailsTitle, { color: colors.text }]}>Application Details</Text>
-              </View>
-              <TouchableOpacity onPress={closeTrainerDetails} style={[styles.trainerDetailsCloseIcon, { backgroundColor: colors.iconBackground }]}>
-                <Text style={[styles.trainerDetailsCloseIconText, { color: colors.text }]}>×</Text>
-              </TouchableOpacity>
-            </View>
-
-            {selectedTrainerApplication && (
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.trainerDetailsContent}>
-                <TrainerApplicationDetail label="NAME" value={selectedTrainerApplication.name} colors={colors} />
-                <TrainerApplicationDetail label="USERNAME" value={selectedTrainerApplication.username} colors={colors} />
-                <TrainerApplicationDetail label="EMAIL" value={selectedTrainerApplication.email} colors={colors} />
-                <TrainerApplicationDetail label="PHONE NUMBER" value={selectedTrainerApplication.phone} colors={colors} />
-                <TrainerApplicationDetail label="SPECIALIZATION" value={selectedTrainerApplication.specialization} colors={colors} />
-                <TrainerApplicationDetail label="EXPERIENCE" value={selectedTrainerApplication.experience_years === null || selectedTrainerApplication.experience_years === undefined ? null : `${selectedTrainerApplication.experience_years} years`} colors={colors} />
-                <TrainerApplicationDetail label="APPLICATION ID" value={selectedTrainerApplication.id} colors={colors} />
-                <TrainerApplicationDetail label="STATUS" value={selectedTrainerApplication.status} colors={colors} />
-                <TrainerApplicationDetail label="GYM / WORKSPACE" value={selectedTrainerApplication.workspace_name} colors={colors} />
-                <TrainerApplicationDetail label="SUBMITTED" value={formatTrainerApplicationDate(selectedTrainerApplication.created_at)} colors={colors} />
-                <TrainerApplicationDetail label="UPDATED" value={formatTrainerApplicationDate(selectedTrainerApplication.updated_at)} colors={colors} />
-              </ScrollView>
-            )}
-
-            <TouchableOpacity style={[styles.trainerDetailsCloseButton, { backgroundColor: colors.primary }]} onPress={closeTrainerDetails} activeOpacity={0.8}>
-              <Text style={styles.trainerDetailsCloseButtonText}>CLOSE</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {/* ==================================================
           BOTTOM NAVIGATION
       ================================================== */}
@@ -2120,7 +1474,7 @@ export default function OwnerDashboard() {
           </Text>
         </TouchableOpacity>
 
-        {/* ADD / REGISTRATION */}
+        {/* REGISTRATION */}
 
         <TouchableOpacity
           style={[
@@ -2247,8 +1601,6 @@ function ActionCard({
       onPress={onPress}
       activeOpacity={0.8}
     >
-      {/* ICON */}
-
       <View
         style={[
           styles.actionIcon,
@@ -2268,8 +1620,6 @@ function ActionCard({
           {icon}
         </Text>
       </View>
-
-      {/* CONTENT */}
 
       <View
         style={
@@ -2301,8 +1651,6 @@ function ActionCard({
         </Text>
       </View>
 
-      {/* ARROW */}
-
       <Text
         style={[
           styles.arrow,
@@ -2315,24 +1663,6 @@ function ActionCard({
         →
       </Text>
     </TouchableOpacity>
-  );
-}
-
-function TrainerApplicationDetail({
-  label,
-  value,
-  colors,
-}) {
-  const displayValue =
-    value === null || value === undefined || value === ""
-      ? "Not provided"
-      : String(value);
-
-  return (
-    <View style={[styles.trainerDetailsRow, { borderBottomColor: colors.border }]}>
-      <Text style={[styles.trainerDetailsLabel, { color: colors.secondaryText }]}>{label}</Text>
-      <Text style={[styles.trainerDetailsValue, { color: colors.text }]}>{displayValue}</Text>
-    </View>
   );
 }
 
@@ -2393,10 +1723,6 @@ function calculateDaysRemaining(
 const styles =
   StyleSheet.create({
 
-    // ==================================================
-    // CONTAINER
-    // ==================================================
-
     container: {
       flex: 1,
     },
@@ -2406,10 +1732,6 @@ const styles =
       paddingTop: 55,
       paddingBottom: 120,
     },
-
-    // ==================================================
-    // LOADING
-    // ==================================================
 
     loadingContainer: {
       flex: 1,
@@ -2495,7 +1817,7 @@ const styles =
     },
 
     // ==================================================
-    // THEME SWITCH
+    // THEME
     // ==================================================
 
     themeSwitch: {
@@ -2570,7 +1892,7 @@ const styles =
     },
 
     statCard: {
-      width: "31.5%",
+      width: "48%",
       borderRadius: 20,
       padding: 16,
       marginBottom: 12,
@@ -2613,22 +1935,15 @@ const styles =
       marginTop: 8,
     },
 
-    dangerText: {
-      fontSize: 11,
-      fontWeight: "700",
-      marginTop: 8,
-    },
-
     // ==================================================
     // QUICK ACTIONS
     // ==================================================
 
     actionCard: {
-      width: "100%",
       flexDirection: "row",
       alignItems: "center",
       borderRadius: 18,
-      padding: 13,
+      padding: 15,
       marginBottom: 12,
       borderWidth: 1,
     },
@@ -2664,215 +1979,6 @@ const styles =
 
     arrow: {
       fontSize: 22,
-    },
-
-    actionsGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      justifyContent: "space-between",
-      marginBottom: 12,
-    },
-
-    // ==================================================
-    // TRAINER APPLICATIONS
-    // ==================================================
-
-    applicationLoading: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: 16,
-    },
-
-    applicationLoadingText: {
-      marginLeft: 10,
-      fontSize: 12,
-    },
-
-    applicationEmptyText: {
-      fontSize: 12,
-      paddingBottom: 8,
-    },
-
-    applicationCard: {
-      borderWidth: 1,
-      borderRadius: 16,
-      padding: 14,
-      marginBottom: 10,
-    },
-
-    applicationHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 10,
-    },
-
-    applicationAvatar: {
-      width: 45,
-      height: 45,
-      borderRadius: 23,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-
-    applicationInfo: {
-      flex: 1,
-      marginLeft: 12,
-      marginRight: 8,
-    },
-
-    applicationDetail: {
-      fontSize: 12,
-      lineHeight: 18,
-      marginTop: 2,
-    },
-
-    pendingBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 5,
-      borderRadius: 8,
-    },
-
-    pendingBadgeText: {
-      fontSize: 9,
-      fontWeight: "800",
-    },
-
-    applicationActions: {
-      flexDirection: "row",
-      marginTop: 12,
-      gap: 10,
-    },
-
-    applicationButton: {
-      flex: 1,
-      minHeight: 40,
-      borderRadius: 10,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-
-    applicationButtonText: {
-      color: "#FFFFFF",
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 0.5,
-    },
-
-    trainerDetailsOverlay: {
-      flex: 1,
-      backgroundColor: "rgba(0, 0, 0, 0.58)",
-      justifyContent: "flex-end",
-    },
-
-    trainerDetailsModal: {
-      maxHeight: "88%",
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      borderWidth: 1,
-      padding: 20,
-    },
-
-    trainerDetailsHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 18,
-    },
-
-    trainerDetailsEyebrow: {
-      fontSize: 10,
-      fontWeight: "900",
-      letterSpacing: 1.6,
-    },
-
-    trainerDetailsTitle: {
-      fontSize: 22,
-      fontWeight: "900",
-      marginTop: 4,
-    },
-
-    trainerDetailsCloseIcon: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-
-    trainerDetailsCloseIconText: {
-      fontSize: 27,
-      lineHeight: 28,
-      fontWeight: "300",
-    },
-
-    trainerDetailsContent: {
-      paddingBottom: 12,
-    },
-
-    trainerDetailsProfile: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 14,
-    },
-
-    trainerDetailsImage: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-
-    trainerDetailsImageText: {
-      fontSize: 19,
-      fontWeight: "900",
-    },
-
-    trainerDetailsProfileText: {
-      flex: 1,
-      marginLeft: 13,
-    },
-
-    trainerDetailsName: {
-      fontSize: 18,
-      fontWeight: "900",
-    },
-
-    trainerDetailsUsername: {
-      fontSize: 12,
-      marginTop: 4,
-    },
-
-    trainerDetailsRow: {
-      paddingVertical: 11,
-      borderBottomWidth: 1,
-    },
-
-    trainerDetailsLabel: {
-      fontSize: 10,
-      fontWeight: "900",
-      letterSpacing: 1.1,
-      marginBottom: 4,
-    },
-
-    trainerDetailsValue: {
-      fontSize: 14,
-      lineHeight: 20,
-    },
-
-    trainerDetailsCloseButton: {
-      height: 48,
-      borderRadius: 13,
-      alignItems: "center",
-      justifyContent: "center",
-      marginTop: 12,
-    },
-
-    trainerDetailsCloseButtonText: {
-      color: "#FFFFFF",
-      fontSize: 12,
-      fontWeight: "900",
-      letterSpacing: 1,
     },
 
     // ==================================================
@@ -2917,10 +2023,6 @@ const styles =
       marginTop: 4,
     },
 
-    // ==================================================
-    // STATUS BADGES
-    // ==================================================
-
     activeBadge: {
       paddingHorizontal: 9,
       paddingVertical: 6,
@@ -2954,10 +2056,6 @@ const styles =
       fontWeight: "800",
     },
 
-    // ==================================================
-    // EMPTY STATE
-    // ==================================================
-
     emptyContainer: {
       alignItems: "center",
       paddingVertical: 35,
@@ -2976,24 +2074,10 @@ const styles =
     emptyText: {
       fontSize: 12,
       marginTop: 5,
-      textAlign: "center",
-    },
-
-    emptyButton: {
-      marginTop: 16,
-      paddingHorizontal: 18,
-      paddingVertical: 11,
-      borderRadius: 12,
-    },
-
-    emptyButtonText: {
-      color: "#FFFFFF",
-      fontSize: 12,
-      fontWeight: "800",
     },
 
     // ==================================================
-    // BOTTOM NAVIGATION
+    // BOTTOM NAV
     // ==================================================
 
     bottomNav: {

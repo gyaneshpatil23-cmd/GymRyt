@@ -1,200 +1,352 @@
 from django.urls import path
 
 from .views import (
+    # ========================================================
+    # AUTHENTICATION
+    # ========================================================
     LoginView,
     AdminRegisterView,
-    RegistrationQRView,
-    TrainerRegistrationQRView,
-    MemberRegisterView,
     LogoutAdminView,
-    DashboardStatsView,
-    MemberListCreateView,
-    MemberDetailView,
-    PaymentListCreateView,
-    PaymentDetailView,
-    RevenueStatsView,
-    MemberProfilePictureView,
-    AdminProfilePictureView,
-    TrainerListView,
-    TrainerCreateView,
-    TrainerProfileView,
 
     # ========================================================
-    # TRAINER APPLICATIONS
+    # MEMBER REGISTRATION
     # ========================================================
+    MemberRegisterView,
+    RegistrationQRView,
 
+    # ========================================================
+    # TRAINER REGISTRATION
+    # ========================================================
+    TrainerRegistrationQRView,
     TrainerApplicationCreateView,
     TrainerApplicationListView,
     TrainerApplicationActionView,
+
+    # ========================================================
+    # DASHBOARD
+    # ========================================================
+    DashboardStatsView,
+
+    # ========================================================
+    # PROFILE PICTURES
+    # ========================================================
+    MemberProfilePictureView,
+    AdminProfilePictureView,
+
+    # ========================================================
+    # PAYMENTS / REVENUE
+    # ========================================================
+    PaymentListCreateView,
+    PaymentDetailView,
+    RevenueStatsView,
+
+    # ========================================================
+    # TRAINERS
+    # ========================================================
+    TrainerListView,
+    TrainerCreateView,
+    TrainerDetailView,
+    TrainerProfileView,
+    TrainerAssignmentView,
+
+    # ========================================================
+    # TRAINER WORKOUTS
+    # ========================================================
+    WorkoutPlanListCreateView,
+    WorkoutPlanDetailView,
+
+    # ========================================================
+    # MEMBERS
+    # ========================================================
+    MemberListCreateView,
+    MemberDetailView,
 )
 
 
 urlpatterns = [
 
-    # ========================================================
+    # ============================================================
     # AUTHENTICATION
-    # ========================================================
+    # ============================================================
 
     path(
         "login/",
         LoginView.as_view(),
-        name="login"
+        name="login",
     ),
 
     path(
         "admin/register/",
         AdminRegisterView.as_view(),
-        name="admin-register"
+        name="admin-register",
     ),
 
     path(
         "admin/logout/",
         LogoutAdminView.as_view(),
-        name="admin-logout"
+        name="admin-logout",
     ),
 
 
-    # ========================================================
+    # ============================================================
     # MEMBER REGISTRATION
-    # ========================================================
+    # ============================================================
 
     path(
         "register/",
         MemberRegisterView.as_view(),
-        name="member-register"
+        name="member-register",
     ),
 
     path(
         "registration-qr/",
         RegistrationQRView.as_view(),
-        name="registration-qr"
+        name="registration-qr",
     ),
 
 
-    # ========================================================
-    # TRAINER REGISTRATION QR
-    # ========================================================
+    # ============================================================
+    # TRAINER REGISTRATION
+    # ============================================================
 
     path(
         "trainer-registration-qr/",
         TrainerRegistrationQRView.as_view(),
-        name="trainer-registration-qr"
+        name="trainer-registration-qr",
     ),
 
-
-    # ========================================================
-    # TRAINER APPLICATIONS
-    # ========================================================
-
-    # Trainer submits application after scanning QR
     path(
         "trainer-applications/",
         TrainerApplicationCreateView.as_view(),
-        name="trainer-application-create"
+        name="trainer-application-create",
     ),
 
-    # Owner gets all trainer applications
     path(
         "trainer-applications/list/",
         TrainerApplicationListView.as_view(),
-        name="trainer-application-list"
+        name="trainer-application-list",
     ),
 
-    # Owner approves or rejects application
     path(
         "trainer-applications/<int:pk>/action/",
         TrainerApplicationActionView.as_view(),
-        name="trainer-application-action"
+        name="trainer-application-action",
     ),
 
 
-    # ========================================================
+    # ============================================================
     # DASHBOARD
-    # ========================================================
+    # ============================================================
 
     path(
         "dashboard-stats/",
         DashboardStatsView.as_view(),
-        name="dashboard-stats"
+        name="dashboard-stats",
     ),
 
 
-    # ========================================================
+    # ============================================================
     # PROFILE PICTURES
-    # ========================================================
+    # ============================================================
 
+    # Member profile picture
     path(
         "profile-picture/",
         MemberProfilePictureView.as_view(),
-        name="member-profile-picture"
+        name="member-profile-picture",
     ),
 
+    # Admin / owner profile picture
     path(
         "admin/profile-picture/",
         AdminProfilePictureView.as_view(),
-        name="admin-profile-picture"
+        name="admin-profile-picture",
     ),
 
 
-    # ========================================================
+    # ============================================================
     # PAYMENTS
-    # ========================================================
+    # ============================================================
 
     path(
         "payments/",
         PaymentListCreateView.as_view(),
-        name="payment-list-create"
+        name="payment-list-create",
     ),
 
     path(
         "payments/<int:pk>/",
         PaymentDetailView.as_view(),
-        name="payment-detail"
+        name="payment-detail",
     ),
+
+
+    # ============================================================
+    # REVENUE
+    # ============================================================
 
     path(
         "revenue-stats/",
         RevenueStatsView.as_view(),
-        name="revenue-stats"
+        name="revenue-stats",
     ),
 
 
-    # ========================================================
-    # OWNER - TRAINERS
-    # ========================================================
+    # ============================================================
+    # TRAINERS
+    # ============================================================
+
+    # ------------------------------------------------------------
+    # List all trainers
+    # GET:
+    # /api/members/trainers/
+    # ------------------------------------------------------------
 
     path(
         "trainers/",
         TrainerListView.as_view(),
-        name="trainer-list"
+        name="trainer-list",
     ),
+
+    # ------------------------------------------------------------
+    # Create trainer
+    # POST:
+    # /api/members/trainers/create/
+    # ------------------------------------------------------------
 
     path(
         "trainers/create/",
         TrainerCreateView.as_view(),
-        name="trainer-create"
+        name="trainer-create",
     ),
+
+    # ------------------------------------------------------------
+    # Trainer details / edit / delete
+    #
+    # GET:
+    #     /api/members/trainers/<id>/
+    #
+    # PATCH:
+    #     /api/members/trainers/<id>/
+    #
+    # DELETE:
+    #     /api/members/trainers/<id>/
+    #
+    # Owner only.
+    # ------------------------------------------------------------
+
+    path(
+        "trainers/<int:pk>/",
+        TrainerDetailView.as_view(),
+        name="trainer-detail",
+    ),
+
+
+    # ============================================================
+    # TRAINER PROFILE
+    # ============================================================
+
+    # ------------------------------------------------------------
+    # GET:
+    #     /api/members/trainer/profile/
+    #
+    # PATCH:
+    #     /api/members/trainer/profile/
+    #
+    # DELETE:
+    #     /api/members/trainer/profile/
+    #
+    # Used by the logged-in trainer for their own profile picture.
+    # ------------------------------------------------------------
 
     path(
         "trainer/profile/",
         TrainerProfileView.as_view(),
-        name="trainer-profile"
+        name="trainer-profile",
     ),
 
 
-    # ========================================================
+    # ============================================================
+    # TRAINER ASSIGNMENT
+    # ============================================================
+
+    # Owner can assign/change/unassign trainer
+    path(
+        "trainer/assign/",
+        TrainerAssignmentView.as_view(),
+        name="trainer-assignment",
+    ),
+
+
+    # ============================================================
+    # TRAINER WORKOUTS
+    # ============================================================
+
+    # ------------------------------------------------------------
+    # GET:
+    #     List trainer's workout plans
+    #
+    # POST:
+    #     Create workout plan
+    # ------------------------------------------------------------
+
+    path(
+        "trainer/workouts/",
+        WorkoutPlanListCreateView.as_view(),
+        name="trainer-workout-list-create",
+    ),
+
+    # ------------------------------------------------------------
+    # GET:
+    #     Get one workout
+    #
+    # PATCH:
+    #     Update workout
+    #
+    # DELETE:
+    #     Delete workout
+    # ------------------------------------------------------------
+
+    path(
+        "trainer/workouts/<int:pk>/",
+        WorkoutPlanDetailView.as_view(),
+        name="trainer-workout-detail",
+    ),
+
+
+    # ============================================================
     # MEMBERS
-    # ========================================================
+    # ============================================================
+
+    # ------------------------------------------------------------
+    # GET:
+    #     List members
+    #
+    # POST:
+    #     Create member
+    # ------------------------------------------------------------
 
     path(
         "",
         MemberListCreateView.as_view(),
-        name="member-list-create"
+        name="member-list-create",
     ),
+
+    # ------------------------------------------------------------
+    # GET:
+    #     Get member details
+    #
+    # PATCH:
+    #     Update member
+    #
+    # DELETE:
+    #     Delete member
+    # ------------------------------------------------------------
 
     path(
         "<int:pk>/",
         MemberDetailView.as_view(),
-        name="member-detail"
+        name="member-detail",
     ),
+
 ]

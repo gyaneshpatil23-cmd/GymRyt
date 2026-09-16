@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 
 const API_URL =
-  "http://192.168.1.49:8000/api/members/registration-qr/";
+  "http://192.168.1.52:8000/api/members/registration-qr/";
 
 export default function AdminQRScreen() {
   const router = useRouter();

@@ -31,7 +31,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ======================================================
 
 const BASE_URL =
-  "http://192.168.1.49:8000/api/members";
+  "http://192.168.1.52:8000/api/members";
 
 const DASHBOARD_API =
   `${BASE_URL}/dashboard-stats/`;
@@ -647,7 +647,7 @@ export default function OwnerTrainerDashboard() {
                 ]}
                 numberOfLines={1}
               >
-                {adminUsername} 👋
+                {adminUsername} 
               </Text>
 
               <Text

@@ -1,3 +1,7 @@
+# ============================================================
+# IMPORTS
+# ============================================================
+
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 
@@ -9,6 +13,7 @@ from .models import (
     Workspace,
     TrainerProfile,
     TrainerApplication,
+    WorkoutPlan,
 )
 
 
@@ -17,7 +22,6 @@ from .models import (
 # ============================================================
 
 class WorkspaceSerializer(serializers.ModelSerializer):
-
     owner_username = serializers.CharField(
         source="owner.username",
         read_only=True,
@@ -50,7 +54,6 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 # ============================================================
 
 class TrainerSerializer(serializers.ModelSerializer):
-
     username = serializers.CharField(
         source="user.username",
         read_only=True,
@@ -64,7 +67,10 @@ class TrainerSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
 
-    phone = serializers.CharField(read_only=True, allow_null=True)
+    phone = serializers.CharField(
+        read_only=True,
+        allow_null=True,
+    )
 
     workspace_name = serializers.CharField(
         source="workspace.name",
@@ -105,10 +111,13 @@ class TrainerSerializer(serializers.ModelSerializer):
         ]
 
     def get_name(self, obj):
+        """
+        Return trainer's full name.
+        Falls back to username if first/last name are empty.
+        """
 
         full_name = (
-            f"{obj.user.first_name} "
-            f"{obj.user.last_name}"
+            f"{obj.user.first_name} {obj.user.last_name}"
         ).strip()
 
         return (
@@ -118,10 +127,21 @@ class TrainerSerializer(serializers.ModelSerializer):
         )
 
     def get_profile_picture(self, obj):
+        """
+        Return an absolute URL for the trainer profile picture.
+        """
+
         if not obj.profile_picture:
             return None
+
         request = self.context.get("request")
-        return request.build_absolute_uri(obj.profile_picture.url) if request else obj.profile_picture.url
+
+        if request:
+            return request.build_absolute_uri(
+                obj.profile_picture.url
+            )
+
+        return obj.profile_picture.url
 
 
 # ============================================================
@@ -129,7 +149,6 @@ class TrainerSerializer(serializers.ModelSerializer):
 # ============================================================
 
 class MemberSerializer(serializers.ModelSerializer):
-
     admin_username = serializers.CharField(
         source="admin.username",
         read_only=True,
@@ -148,6 +167,8 @@ class MemberSerializer(serializers.ModelSerializer):
 
     trainer_name = serializers.SerializerMethodField()
 
+    trainer_profile_id = serializers.SerializerMethodField()
+
     profile_picture = serializers.SerializerMethodField()
 
     class Meta:
@@ -157,21 +178,27 @@ class MemberSerializer(serializers.ModelSerializer):
             "id",
             "admin",
             "admin_username",
+
             "workspace",
             "workspace_name",
+
             "trainer",
+            "trainer_profile_id",
             "trainer_username",
             "trainer_name",
+
             "name",
             "phone",
             "email",
             "username",
             "password",
             "profile_picture",
+
             "membership_start",
             "membership_end",
             "status",
             "id_verified",
+
             "created_at",
             "updated_at",
         ]
@@ -204,7 +231,14 @@ class MemberSerializer(serializers.ModelSerializer):
             },
         }
 
+    # --------------------------------------------------------
+    # TRAINER NAME
+    # --------------------------------------------------------
+
     def get_trainer_name(self, obj):
+        """
+        Return assigned trainer's full name.
+        """
 
         if not obj.trainer:
             return None
@@ -220,7 +254,34 @@ class MemberSerializer(serializers.ModelSerializer):
             else obj.trainer.username
         )
 
+    # --------------------------------------------------------
+    # TRAINER PROFILE ID
+    # --------------------------------------------------------
+
+    def get_trainer_profile_id(self, obj):
+        """
+        Return TrainerProfile ID for the assigned trainer.
+        """
+
+        if not obj.trainer:
+            return None
+
+        profile = getattr(
+            obj.trainer,
+            "trainer_profile",
+            None,
+        )
+
+        return profile.id if profile else None
+
+    # --------------------------------------------------------
+    # MEMBER PROFILE PICTURE
+    # --------------------------------------------------------
+
     def get_profile_picture(self, obj):
+        """
+        Return an absolute URL for the member profile picture.
+        """
 
         if not obj.profile_picture:
             return None
@@ -234,7 +295,14 @@ class MemberSerializer(serializers.ModelSerializer):
 
         return obj.profile_picture.url
 
+    # --------------------------------------------------------
+    # CREATE MEMBER
+    # --------------------------------------------------------
+
     def create(self, validated_data):
+        """
+        Hash the password before creating a member.
+        """
 
         password = validated_data.get("password")
 
@@ -247,53 +315,52 @@ class MemberSerializer(serializers.ModelSerializer):
             **validated_data
         )
 
+    # --------------------------------------------------------
+    # UPDATE MEMBER
+    # --------------------------------------------------------
+
     def update(self, instance, validated_data):
+        """
+        Handle password hashing and protect
+        admin/workspace/status fields.
+        """
 
         if "password" in validated_data:
-
             password = validated_data.get("password")
 
             if password:
-
                 validated_data["password"] = make_password(
                     password
                 )
-
             else:
-
                 validated_data.pop(
                     "password",
-                    None
+                    None,
                 )
 
-        validated_data.pop(
-            "status",
-            None
-        )
-
-        validated_data.pop(
-            "admin",
-            None
-        )
-
-        validated_data.pop(
-            "workspace",
-            None
-        )
+        # These fields should not be manually changed here.
+        validated_data.pop("status", None)
+        validated_data.pop("admin", None)
+        validated_data.pop("workspace", None)
 
         return super().update(
             instance,
-            validated_data
+            validated_data,
         )
+
+    # --------------------------------------------------------
+    # REPRESENTATION
+    # --------------------------------------------------------
 
     def to_representation(self, instance):
+        """
+        Recalculate membership status whenever
+        the member is returned through the API.
+        """
 
-        calculated_status = (
-            instance.calculate_status()
-        )
+        calculated_status = instance.calculate_status()
 
         if instance.status != calculated_status:
-
             Member.objects.filter(
                 pk=instance.pk
             ).update(
@@ -312,7 +379,6 @@ class MemberSerializer(serializers.ModelSerializer):
 # ============================================================
 
 class PaymentSerializer(serializers.ModelSerializer):
-
     member_name = serializers.CharField(
         source="member.name",
         read_only=True,
@@ -340,37 +406,52 @@ class PaymentSerializer(serializers.ModelSerializer):
 
         fields = [
             "id",
+
             "member",
             "member_id",
             "member_name",
+
             "admin",
             "admin_username",
+
             "workspace",
             "workspace_name",
+
             "amount",
             "plan",
             "method",
             "date",
             "remark",
             "status",
+
             "created_at",
         ]
 
         read_only_fields = [
             "id",
+
             "member_id",
             "member_name",
+
             "admin",
             "admin_username",
+
             "workspace",
             "workspace_name",
+
             "created_at",
         ]
 
+    # --------------------------------------------------------
+    # PAYMENT AMOUNT VALIDATION
+    # --------------------------------------------------------
+
     def validate_amount(self, value):
+        """
+        Payment amount must be greater than zero.
+        """
 
         if value <= 0:
-
             raise serializers.ValidationError(
                 "Payment amount must be greater than 0."
             )
@@ -385,10 +466,9 @@ class PaymentSerializer(serializers.ModelSerializer):
 class TrainerApplicationSerializer(
     serializers.ModelSerializer
 ):
-
-    # Applications retain a hash only until approval. It is accepted on write
-    # for compatibility with this serializer but must never be serialized.
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(
+        write_only=True
+    )
 
     workspace_name = serializers.CharField(
         source="workspace.name",
@@ -401,35 +481,29 @@ class TrainerApplicationSerializer(
         fields = [
             "id",
 
-            # Owner / workspace
             "workspace",
             "workspace_name",
 
-            # Trainer information
             "name",
             "email",
             "phone",
             "username",
             "password",
+
             "specialization",
             "experience_years",
 
-            # Application status
             "status",
 
-            # Timestamps
             "created_at",
             "updated_at",
         ]
 
         read_only_fields = [
             "id",
-
             "workspace",
             "workspace_name",
-
             "status",
-
             "created_at",
             "updated_at",
         ]
@@ -445,14 +519,17 @@ class TrainerApplicationSerializer(
                 "allow_blank": True,
                 "allow_null": True,
             },
-
         }
 
     # --------------------------------------------------------
-    # VALIDATE USERNAME
+    # USERNAME VALIDATION
     # --------------------------------------------------------
 
     def validate_username(self, value):
+        """
+        Ensure username is not already registered
+        or already used by an active application.
+        """
 
         value = value.strip()
 
@@ -461,39 +538,35 @@ class TrainerApplicationSerializer(
                 "Username is required."
             )
 
-        # Check Django User table.
         if User.objects.filter(
             username__iexact=value
         ).exists():
-
             raise serializers.ValidationError(
                 "This username is already registered."
             )
 
-        # Check pending/approved applications.
-        existing_application = (
-            TrainerApplication.objects.filter(
-                username__iexact=value,
-                status__in=[
-                    "PENDING",
-                    "APPROVED",
-                ],
-            ).exists()
-        )
-
-        if existing_application:
-
+        if TrainerApplication.objects.filter(
+            username__iexact=value,
+            status__in=[
+                "PENDING",
+                "APPROVED",
+            ],
+        ).exists():
             raise serializers.ValidationError(
-                "A trainer application already exists with this username."
+                "A trainer application already exists "
+                "with this username."
             )
 
         return value
 
     # --------------------------------------------------------
-    # VALIDATE PHONE
+    # PHONE VALIDATION
     # --------------------------------------------------------
 
     def validate_phone(self, value):
+        """
+        Phone number is mandatory.
+        """
 
         value = value.strip()
 
@@ -505,10 +578,13 @@ class TrainerApplicationSerializer(
         return value
 
     # --------------------------------------------------------
-    # VALIDATE NAME
+    # NAME VALIDATION
     # --------------------------------------------------------
 
     def validate_name(self, value):
+        """
+        Trainer name is mandatory.
+        """
 
         value = value.strip()
 
@@ -524,18 +600,18 @@ class TrainerApplicationSerializer(
     # --------------------------------------------------------
 
     def create(self, validated_data):
+        """
+        Hash password and create a pending
+        trainer application.
+        """
 
-        password = validated_data.get(
-            "password"
-        )
+        password = validated_data.get("password")
 
         if password:
-
-            validated_data["password"] = (
-                make_password(password)
+            validated_data["password"] = make_password(
+                password
             )
 
-        # Every new application starts as PENDING.
         validated_data["status"] = "PENDING"
 
         return TrainerApplication.objects.create(
@@ -547,74 +623,173 @@ class TrainerApplicationSerializer(
     # --------------------------------------------------------
 
     def update(self, instance, validated_data):
+        """
+        Prevent users from modifying protected
+        application fields.
+        """
 
-        # Do not allow normal serializer updates to
-        # modify owner-controlled fields.
-
-        validated_data.pop(
+        protected_fields = [
             "status",
-            None
-        )
-
-        validated_data.pop(
             "admin",
-            None
-        )
-
-        validated_data.pop(
             "workspace",
-            None
-        )
-
-        validated_data.pop(
             "approved_user",
-            None
-        )
-
-        validated_data.pop(
             "reviewed_at",
-            None
-        )
-
-        validated_data.pop(
             "rejection_reason",
-            None
-        )
+        ]
 
-        # Hash password if a password is supplied.
-
-        if "password" in validated_data:
-
-            password = validated_data.get(
-                "password"
+        for field in protected_fields:
+            validated_data.pop(
+                field,
+                None,
             )
 
+        if "password" in validated_data:
+            password = validated_data.get("password")
+
             if password:
-
-                validated_data["password"] = (
-                    make_password(password)
+                validated_data["password"] = make_password(
+                    password
                 )
-
             else:
-
                 validated_data.pop(
                     "password",
-                    None
+                    None,
                 )
 
         return super().update(
             instance,
-            validated_data
+            validated_data,
         )
 
-    # --------------------------------------------------------
-    # REPRESENTATION
-    # --------------------------------------------------------
+# ============================================================
+# WORKOUT PLAN SERIALIZER
+# ============================================================
 
-    def to_representation(self, instance):
+class WorkoutPlanSerializer(serializers.ModelSerializer):
+    trainer_username = serializers.CharField(
+        source="trainer.username",
+        read_only=True,
+    )
 
-        data = super().to_representation(
-            instance
+    trainer_name = serializers.SerializerMethodField()
+
+    member_name = serializers.CharField(
+        source="member.name",
+        read_only=True,
+    )
+
+    workspace_name = serializers.CharField(
+        source="workspace.name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = WorkoutPlan
+
+        fields = [
+            "id",
+            "trainer",
+            "trainer_username",
+            "trainer_name",
+
+            "member",
+            "member_name",
+
+            "workspace",
+            "workspace_name",
+
+            "title",
+            "description",
+            "days_per_week",
+            "schedule",
+            "exercises",
+            "notes",
+
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "trainer",
+            "trainer_username",
+            "trainer_name",
+            "member_name",
+            "workspace",
+            "workspace_name",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_trainer_name(self, obj):
+        full_name = (
+            f"{obj.trainer.first_name} "
+            f"{obj.trainer.last_name}"
+        ).strip()
+
+        return (
+            full_name
+            if full_name
+            else obj.trainer.username
         )
 
-        return data
+    def validate_title(self, value):
+        value = str(value).strip()
+
+        if not value:
+            raise serializers.ValidationError(
+                "Workout title is required."
+            )
+
+        return value
+
+    def validate_days_per_week(self, value):
+        if value < 1 or value > 7:
+            raise serializers.ValidationError(
+                "Days per week must be between 1 and 7."
+            )
+
+        return value
+
+    def validate_exercises(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError(
+                "Exercises must be a list."
+            )
+
+        for index, exercise in enumerate(value):
+            if not isinstance(exercise, dict):
+                raise serializers.ValidationError(
+                    f"Exercise {index + 1} must be an object."
+                )
+
+            name = str(
+                exercise.get("name", "")
+            ).strip()
+
+            if not name:
+                raise serializers.ValidationError(
+                    f"Exercise {index + 1} needs a name."
+                )
+
+            exercise["name"] = name
+
+            exercise["sets"] = max(
+                0,
+                int(exercise.get("sets", 0) or 0)
+            )
+
+            exercise["reps"] = str(
+                exercise.get("reps", "")
+            ).strip()
+
+            exercise["rest"] = str(
+                exercise.get("rest", "")
+            ).strip()
+
+            exercise["day"] = str(
+                exercise.get("day", "")
+            ).strip()
+
+        return value
