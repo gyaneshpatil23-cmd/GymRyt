@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../context/ThemeContext";
 
-const API_URL = "http://192.168.1.49:8000/api/members/";
+const API_URL = "http://192.168.1.52:8000/api/members/";
 
 export default function TrainerMembersScreen() {
   const { colors } = useTheme();

@@ -33,7 +33,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const BASE_URL =
-  "http://192.168.1.49:8000/api/members";
+  "http://192.168.1.52:8000/api/members";
 
 const MEMBERS_API =
   `${BASE_URL}/`;

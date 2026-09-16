@@ -2373,247 +2373,572 @@ class TrainerApplicationCreateView(APIView):
 
     def post(self, request):
 
+        # ========================================================
+        # READ + NORMALIZE QR PAYLOAD
+        # ========================================================
+
         raw_qr_payload = request.data.get(
-            "qr_payload", request.data.get("token", "")
+            "qr_payload",
+            request.data.get("token", "")
         )
-        qr_token, payload_error = normalize_trainer_qr_payload(raw_qr_payload)
 
-        # Diagnostics intentionally exclude all form fields and passwords.
-        print("TRAINER QR RAW REQUEST TOKEN:", raw_qr_payload)
-        print("TRAINER QR TOKEN AFTER NORMALIZATION:", qr_token)
+        qr_token, payload_error = normalize_trainer_qr_payload(
+            raw_qr_payload
+        )
 
-        name = str(request.data.get("name", "")).strip()
-        email = str(request.data.get("email", "")).strip()
-        phone = str(request.data.get("phone", "")).strip()
-        username = str(request.data.get("username", "")).strip()
-        password = request.data.get("password", "")
-        confirm_password = request.data.get("confirm_password", "")
-        specialization = str(request.data.get("specialization", "")).strip()
-        experience_years = request.data.get("experience_years", 0)
+        # Diagnostics intentionally exclude all form fields
+        # and passwords.
+        print(
+            "TRAINER QR RAW REQUEST TOKEN:",
+            raw_qr_payload
+        )
+
+        print(
+            "TRAINER QR TOKEN AFTER NORMALIZATION:",
+            qr_token
+        )
+
+        # ========================================================
+        # READ FORM DATA
+        # ========================================================
+
+        name = str(
+            request.data.get("name", "")
+        ).strip()
+
+        email = str(
+            request.data.get("email", "")
+        ).strip()
+
+        phone = str(
+            request.data.get("phone", "")
+        ).strip()
+
+        username = str(
+            request.data.get("username", "")
+        ).strip()
+
+        password = request.data.get(
+            "password",
+            ""
+        )
+
+        confirm_password = request.data.get(
+            "confirm_password",
+            ""
+        )
+
+        specialization = str(
+            request.data.get(
+                "specialization",
+                ""
+            )
+        ).strip()
+
+        experience_years = request.data.get(
+            "experience_years",
+            0
+        )
+
+        # ========================================================
+        # EXPERIENCE VALIDATION
+        # ========================================================
 
         try:
-            experience_years = max(0, int(experience_years or 0))
-        except (TypeError, ValueError):
-            return Response(
-                {"success": False, "message": "Experience must be a valid number of years."},
-                status=status.HTTP_400_BAD_REQUEST,
+
+            experience_years = max(
+                0,
+                int(
+                    experience_years or 0
+                )
             )
 
-        if payload_error == "wrong_type":
+        except (
+            TypeError,
+            ValueError
+        ):
+
             return Response(
                 {
                     "success": False,
-                    "message": "This QR code is not a trainer registration QR.",
+                    "message":
+                        "Experience must be a valid number of years.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ========================================================
+        # QR VALIDATION
+        # ========================================================
+
+        if payload_error == "wrong_type":
+
+            return Response(
+                {
+                    "success": False,
+                    "message":
+                        "This QR code is not a trainer registration QR.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not qr_token:
+
             return Response(
                 {
                     "success": False,
-                    "message": "Trainer registration QR code is required.",
+                    "message":
+                        "Trainer registration QR code is required.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # ========================================================
+        # BASIC FORM VALIDATION
+        # ========================================================
+
         if not name:
+
             return Response(
-                {"success": False, "message": "Full name is required."},
+                {
+                    "success": False,
+                    "message":
+                        "Full name is required.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not phone:
+
             return Response(
-                {"success": False, "message": "Phone number is required."},
+                {
+                    "success": False,
+                    "message":
+                        "Phone number is required.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not username:
+
             return Response(
-                {"success": False, "message": "Username is required."},
+                {
+                    "success": False,
+                    "message":
+                        "Username is required.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not password:
+
             return Response(
-                {"success": False, "message": "Password is required."},
+                {
+                    "success": False,
+                    "message":
+                        "Password is required.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not confirm_password:
+
             return Response(
-                {"success": False, "message": "Confirm password is required."},
+                {
+                    "success": False,
+                    "message":
+                        "Confirm password is required.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if password != confirm_password:
+
             return Response(
-                {"success": False, "message": "Passwords do not match."},
+                {
+                    "success": False,
+                    "message":
+                        "Passwords do not match.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if len(password) < 6:
+
             return Response(
                 {
                     "success": False,
-                    "message": "Password must contain at least 6 characters.",
+                    "message":
+                        "Password must contain at least 6 characters.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if len(phone) < 10:
+
             return Response(
                 {
                     "success": False,
-                    "message": "Please enter a valid phone number.",
+                    "message":
+                        "Please enter a valid phone number.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # ========================================================
+        # RESOLVE TRAINER QR
+        # ========================================================
+
         if payload_error == "legacy_signed":
-            qr = resolve_legacy_signed_trainer_qr(raw_qr_payload)
+
+            qr = resolve_legacy_signed_trainer_qr(
+                raw_qr_payload
+            )
+
         else:
+
             qr = (
                 RegistrationQR.objects
-                .filter(token=qr_token)
-                .select_related("admin", "workspace")
+                .filter(
+                    token=qr_token
+                )
+                .select_related(
+                    "admin",
+                    "workspace"
+                )
                 .first()
             )
 
-        # The signed legacy branch resolves the exact owner/workspace first,
-        # then persists and returns its database-backed trainer QR.
-        if qr and payload_error == "legacy_signed":
-            qr = RegistrationQR.objects.select_related(
-                "admin", "workspace"
-            ).get(pk=qr.pk)
+        # ========================================================
+        # LEGACY SIGNED QR
+        # ========================================================
 
-        print("TRAINER QR DATABASE MATCH:", bool(qr))
-        print("TRAINER QR DATABASE ID:", qr.id if qr else None)
-        print("TRAINER QR DATABASE TYPE:", qr.registration_type if qr else None)
-        print("TRAINER QR DATABASE ACTIVE:", qr.is_active if qr else None)
-        print("TRAINER QR DATABASE ADMIN:", qr.admin_id if qr else None)
-        print("TRAINER QR DATABASE WORKSPACE:", qr.workspace_id if qr else None)
+        if (
+            qr
+            and
+            payload_error == "legacy_signed"
+        ):
+
+            qr = (
+                RegistrationQR.objects
+                .select_related(
+                    "admin",
+                    "workspace"
+                )
+                .get(
+                    pk=qr.pk
+                )
+            )
+
+        # ========================================================
+        # QR DIAGNOSTICS
+        # ========================================================
+
+        print(
+            "TRAINER QR DATABASE MATCH:",
+            bool(qr)
+        )
+
+        print(
+            "TRAINER QR DATABASE ID:",
+            qr.id if qr else None
+        )
+
+        print(
+            "TRAINER QR DATABASE TYPE:",
+            qr.registration_type
+            if qr else None
+        )
+
+        print(
+            "TRAINER QR DATABASE ACTIVE:",
+            qr.is_active
+            if qr else None
+        )
+
+        print(
+            "TRAINER QR DATABASE ADMIN:",
+            qr.admin_id
+            if qr else None
+        )
+
+        print(
+            "TRAINER QR DATABASE WORKSPACE:",
+            qr.workspace_id
+            if qr else None
+        )
+
+        # ========================================================
+        # QR NOT FOUND
+        # ========================================================
 
         if not qr:
+
             return Response(
                 {
                     "success": False,
-                    "message": "This trainer registration QR code is invalid or inactive.",
+                    "message":
+                        "This trainer registration QR code is invalid or inactive.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # ========================================================
+        # QR TYPE
+        # ========================================================
 
         if qr.registration_type != "TRAINER":
+
             return Response(
                 {
                     "success": False,
-                    "message": "This QR code is not a trainer registration QR.",
+                    "message":
+                        "This QR code is not a trainer registration QR.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # ========================================================
+        # QR ACTIVE
+        # ========================================================
+
         if not qr.is_active:
+
             return Response(
                 {
                     "success": False,
-                    "message": "This trainer registration QR code is invalid or inactive.",
+                    "message":
+                        "This trainer registration QR code is invalid or inactive.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # ========================================================
+        # WORKSPACE
+        # ========================================================
 
         workspace = qr.workspace
 
-        if not workspace or not workspace.is_active:
+        if (
+            not workspace
+            or
+            not workspace.is_active
+        ):
+
             return Response(
                 {
                     "success": False,
-                    "message": "This QR code is not connected to an active workspace.",
+                    "message":
+                        "This QR code is not connected to an active workspace.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # ========================================================
+        # ADMIN
+        # ========================================================
 
         if not qr.admin.is_active:
+
             return Response(
                 {
                     "success": False,
-                    "message": "The gym administrator account is currently inactive.",
+                    "message":
+                        "The gym administrator account is currently inactive.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if User.objects.filter(username__iexact=username).exists():
+        # ========================================================
+        # USERNAME - CURRENT USER ACCOUNT CHECK
+        # ========================================================
+        #
+        # This checks whether the username is already being used
+        # by an actual Django user account.
+        #
+        # If a trainer was previously deleted, their User record
+        # should also be deleted, so the username becomes available.
+        #
+        # ========================================================
+
+        existing_user = (
+            User.objects
+            .filter(
+                username__iexact=username
+            )
+            .first()
+        )
+
+        if existing_user:
+
             return Response(
                 {
                     "success": False,
-                    "message": "This username is already registered.",
+                    "message":
+                        "This username is already registered.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if TrainerApplication.objects.filter(
-            workspace=workspace,
-            username__iexact=username,
-        ).exists():
+        # ========================================================
+        # PENDING TRAINER APPLICATION - USERNAME
+        # ========================================================
+        #
+        # IMPORTANT:
+        #
+        # Previously this checked ANY application:
+        #
+        # TrainerApplication.objects.filter(...).exists()
+        #
+        # That meant a REJECTED application permanently blocked
+        # the username.
+        #
+        # Now ONLY PENDING applications block a new application.
+        #
+        # ========================================================
+
+        pending_username_application = (
+            TrainerApplication.objects
+            .filter(
+                workspace=workspace,
+                username__iexact=username,
+                status="PENDING",
+            )
+            .first()
+        )
+
+        if pending_username_application:
+
             return Response(
                 {
                     "success": False,
-                    "message": "A trainer application with this username already exists for this gym.",
+                    "message":
+                        "A trainer application with this username is already pending for this gym.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if email and TrainerApplication.objects.filter(
-            workspace=workspace,
-            email__iexact=email,
-        ).exists():
-            return Response(
-                {
-                    "success": False,
-                    "message": "A trainer application with this email already exists for this gym.",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+        # ========================================================
+        # PENDING TRAINER APPLICATION - EMAIL
+        # ========================================================
+        #
+        # Same rule for email:
+        #
+        # REJECTED email → available again
+        # PENDING email → blocked
+        #
+        # ========================================================
+
+        if email:
+
+            pending_email_application = (
+                TrainerApplication.objects
+                .filter(
+                    workspace=workspace,
+                    email__iexact=email,
+                    status="PENDING",
+                )
+                .first()
             )
+
+            if pending_email_application:
+
+                return Response(
+                    {
+                        "success": False,
+                        "message":
+                            "A trainer application with this email is already pending for this gym.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # ========================================================
+        # CREATE TRAINER APPLICATION
+        # ========================================================
 
         try:
+
             data = {
                 "admin": qr.admin,
+
                 "workspace": workspace,
+
                 "registration_qr": qr,
+
                 "name": name,
+
                 "email": email or None,
+
                 "phone": phone,
+
                 "username": username,
-                "password": make_password(password),
-                "specialization": specialization or None,
-                "experience_years": experience_years,
-                "status": "PENDING",
+
+                "password":
+                    make_password(
+                        password
+                    ),
+
+                "specialization":
+                    specialization or None,
+
+                "experience_years":
+                    experience_years,
+
+                "status":
+                    "PENDING",
             }
 
-            application = TrainerApplication.objects.create(**data)
+            application = (
+                TrainerApplication.objects.create(
+                    **data
+                )
+            )
+
+            # ====================================================
+            # SUCCESS
+            # ====================================================
 
             return Response(
                 {
                     "success": True,
-                    "message": "Trainer application submitted successfully.",
-                    "application_id": application.id,
-                    "status": application.status,
-                    "workspace_id": workspace.id,
-                    "workspace_name": workspace.name,
+
+                    "message":
+                        "Trainer application submitted successfully.",
+
+                    "application_id":
+                        application.id,
+
+                    "status":
+                        application.status,
+
+                    "workspace_id":
+                        workspace.id,
+
+                    "workspace_name":
+                        workspace.name,
                 },
                 status=status.HTTP_201_CREATED,
             )
 
+        # ========================================================
+        # CREATION ERROR
+        # ========================================================
+
         except Exception as e:
-            print("Trainer application creation error:", str(e))
+
+            print(
+                "Trainer application creation error:",
+                str(e)
+            )
+
             return Response(
                 {
                     "success": False,
-                    "message": "Unable to submit trainer application.",
+                    "message":
+                        "Unable to submit trainer application.",
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
 
 # ============================================================
 # OWNER - TRAINER APPLICATION LIST
@@ -3163,6 +3488,534 @@ class TrainerListView(APIView):
             status=status.HTTP_200_OK
         )
 
+# ============================================================
+# OWNER - TRAINER DETAILS / EDIT / DELETE
+# ============================================================
+
+class TrainerDetailView(APIView):
+    """
+    Owner-only trainer management.
+
+    GET:
+        View a trainer belonging to the owner's workspace.
+
+    PATCH:
+        Edit trainer account and trainer details.
+
+    DELETE:
+        Remove the trainer account from the workspace.
+        Assigned members are automatically unassigned.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_trainer(self, request, pk):
+        profile = get_or_create_profile(request.user)
+
+        if not profile.is_owner:
+            return None, Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Only workspace owners can "
+                        "manage trainers."
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        workspace = get_user_workspace(request.user)
+
+        if not workspace:
+            return None, Response(
+                {
+                    "success": False,
+                    "message": (
+                        "No active workspace found "
+                        "for this account."
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            trainer = (
+                TrainerProfile.objects
+                .select_related("user", "workspace")
+                .get(
+                    pk=pk,
+                    workspace=workspace,
+                )
+            )
+
+        except (
+            TrainerProfile.DoesNotExist,
+            ValueError,
+            TypeError,
+        ):
+            return None, Response(
+                {
+                    "success": False,
+                    "message": "Trainer not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return trainer, None
+
+    # --------------------------------------------------------
+    # GET TRAINER DETAILS
+    # --------------------------------------------------------
+
+    def get(self, request, pk):
+
+        trainer, error_response = self._get_trainer(
+            request,
+            pk,
+        )
+
+        if error_response:
+            return error_response
+
+        serializer = TrainerSerializer(
+            trainer,
+            context={"request": request},
+        )
+
+        return Response(
+            {
+                "success": True,
+                "trainer": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    # --------------------------------------------------------
+    # UPDATE TRAINER
+    # --------------------------------------------------------
+
+    @transaction.atomic
+    def patch(self, request, pk):
+
+        trainer, error_response = self._get_trainer(
+            request,
+            pk,
+        )
+
+        if error_response:
+            return error_response
+
+        trainer_user = trainer.user
+
+        # ----------------------------------------------------
+        # Allowed fields
+        # ----------------------------------------------------
+
+        allowed_fields = {
+            "name",
+            "username",
+            "email",
+            "phone",
+            "specialization",
+            "experience_years",
+            "is_active",
+        }
+
+        invalid_fields = (
+            set(request.data.keys()) - allowed_fields
+        )
+
+        if invalid_fields:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "These fields cannot be edited: "
+                        + ", ".join(
+                            sorted(invalid_fields)
+                        )
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ====================================================
+        # NAME
+        # ====================================================
+
+        if "name" in request.data:
+
+            name = str(
+                request.data.get("name") or ""
+            ).strip()
+
+            if not name:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Full name is required.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            name_parts = name.split()
+
+            trainer_user.first_name = name_parts[0]
+
+            trainer_user.last_name = " ".join(
+                name_parts[1:]
+            )
+
+        # ====================================================
+        # USERNAME
+        # ====================================================
+
+        if "username" in request.data:
+
+            username = str(
+                request.data.get("username") or ""
+            ).strip()
+
+            if not username:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Username is required.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if len(username) > 150:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Username cannot be longer "
+                            "than 150 characters."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            username_exists = (
+                User.objects
+                .filter(
+                    username__iexact=username
+                )
+                .exclude(
+                    pk=trainer_user.id
+                )
+                .exists()
+            )
+
+            if username_exists:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "This username is already "
+                            "being used."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            trainer_user.username = username
+
+        # ====================================================
+        # EMAIL
+        # ====================================================
+
+        if "email" in request.data:
+
+            email = str(
+                request.data.get("email") or ""
+            ).strip()
+
+            if not email:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Email is required.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if "@" not in email or "." not in email.split("@")[-1]:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Please enter a valid email address."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            email_exists = (
+                User.objects
+                .filter(
+                    email__iexact=email
+                )
+                .exclude(
+                    pk=trainer_user.id
+                )
+                .exists()
+            )
+
+            if email_exists:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "This email is already "
+                            "being used."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            trainer_user.email = email
+
+        # ====================================================
+        # PHONE
+        # ====================================================
+
+        if "phone" in request.data:
+
+            phone = str(
+                request.data.get("phone") or ""
+            ).strip()
+
+            if not phone:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Phone number is required."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Count only numeric characters.
+            # This allows formats such as:
+            # +91 9535046464
+            # 95350-46464
+            # 9535046464
+            digits_only = "".join(
+                character
+                for character in phone
+                if character.isdigit()
+            )
+
+            if len(digits_only) < 10:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Please enter a valid phone number."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            trainer.phone = phone
+
+        # ====================================================
+        # SPECIALIZATION
+        # ====================================================
+
+        if "specialization" in request.data:
+
+            specialization = str(
+                request.data.get("specialization") or ""
+            ).strip()
+
+            trainer.specialization = specialization
+
+        # ====================================================
+        # EXPERIENCE
+        # ====================================================
+
+        if "experience_years" in request.data:
+
+            value = request.data.get(
+                "experience_years"
+            )
+
+            try:
+                value = int(value)
+
+            except (
+                TypeError,
+                ValueError,
+            ):
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Experience must be "
+                            "a valid number."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if value < 0:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Experience cannot "
+                            "be negative."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if value > 60:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Experience cannot be "
+                            "greater than 60 years."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            trainer.experience_years = value
+
+        # ====================================================
+        # ACTIVE / INACTIVE
+        # ====================================================
+
+        if "is_active" in request.data:
+
+            value = request.data.get(
+                "is_active"
+            )
+
+            if isinstance(value, bool):
+
+                trainer.is_active = value
+
+            elif str(value).lower() in (
+                "true",
+                "1",
+            ):
+
+                trainer.is_active = True
+
+            elif str(value).lower() in (
+                "false",
+                "0",
+            ):
+
+                trainer.is_active = False
+
+            else:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "is_active must be "
+                            "true or false."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # ====================================================
+        # SAVE USER
+        # ====================================================
+
+        trainer_user.save(
+            update_fields=[
+                "first_name",
+                "last_name",
+                "username",
+                "email",
+            ]
+        )
+
+        # ====================================================
+        # SAVE TRAINER PROFILE
+        # ====================================================
+
+        trainer.save()
+
+        # Refresh both objects
+        trainer_user.refresh_from_db()
+        trainer.refresh_from_db()
+
+        serializer = TrainerSerializer(
+            trainer,
+            context={"request": request},
+        )
+
+        return Response(
+            {
+                "success": True,
+                "message": (
+                    "Trainer updated successfully."
+                ),
+                "trainer": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    # --------------------------------------------------------
+    # DELETE TRAINER
+    # --------------------------------------------------------
+
+    @transaction.atomic
+    def delete(self, request, pk):
+
+        trainer, error_response = self._get_trainer(
+            request,
+            pk,
+        )
+
+        if error_response:
+            return error_response
+
+        trainer_user = trainer.user
+
+        # ----------------------------------------------------
+        # Remove trainer assignment from all members.
+        # ----------------------------------------------------
+
+        Member.objects.filter(
+            trainer=trainer_user
+        ).update(
+            trainer=None,
+            updated_at=timezone.now(),
+        )
+
+        # ----------------------------------------------------
+        # Delete trainer profile.
+        # ----------------------------------------------------
+
+        trainer.delete()
+
+        # ----------------------------------------------------
+        # Delete trainer's Django user account.
+        # ----------------------------------------------------
+
+        trainer_user.delete()
+
+        return Response(
+            {
+                "success": True,
+                "message": (
+                    "Trainer deleted successfully."
+                ),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 # ============================================================

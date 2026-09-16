@@ -921,3 +921,194 @@ class WorkoutPlan(models.Model):
             f"{self.member.name} - "
             f"{self.trainer.username}"
         )
+
+# ============================================================
+# NOTIFICATION
+# ============================================================
+
+class Notification(models.Model):
+    """
+    Stores notifications for owners, trainers and members.
+
+    Examples:
+    - New trainer application
+    - New member joined
+    - Trainer assigned
+    - Workout uploaded
+    - Membership expiring
+    - Payment received
+    """
+
+    NOTIFICATION_TYPE_CHOICES = [
+        (
+            "TRAINER_APPLICATION",
+            "Trainer Application",
+        ),
+        (
+            "NEW_MEMBER",
+            "New Member",
+        ),
+        (
+            "TRAINER_ASSIGNED",
+            "Trainer Assigned",
+        ),
+        (
+            "WORKOUT_UPLOADED",
+            "Workout Uploaded",
+        ),
+        (
+            "MEMBERSHIP_EXPIRING",
+            "Membership Expiring",
+        ),
+        (
+            "MEMBERSHIP_EXPIRED",
+            "Membership Expired",
+        ),
+        (
+            "PAYMENT_RECEIVED",
+            "Payment Received",
+        ),
+        (
+            "PAYMENT_FAILED",
+            "Payment Failed",
+        ),
+        (
+            "MEMBER_REMOVED",
+            "Member Removed",
+        ),
+        (
+            "WELCOME",
+            "Welcome",
+        ),
+    ]
+
+    id = models.BigAutoField(
+        primary_key=True
+    )
+
+    # --------------------------------------------------------
+    # WHO RECEIVES THE NOTIFICATION
+    # --------------------------------------------------------
+
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+
+    # --------------------------------------------------------
+    # GYM / WORKSPACE
+    # --------------------------------------------------------
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+
+    # --------------------------------------------------------
+    # NOTIFICATION TYPE
+    # --------------------------------------------------------
+
+    notification_type = models.CharField(
+        max_length=30,
+        choices=NOTIFICATION_TYPE_CHOICES,
+    )
+
+    # --------------------------------------------------------
+    # NOTIFICATION CONTENT
+    # --------------------------------------------------------
+
+    title = models.CharField(
+        max_length=200
+    )
+
+    message = models.TextField()
+
+    # --------------------------------------------------------
+    # RELATED OBJECT
+    # --------------------------------------------------------
+    #
+    # These two fields allow the notification to open the
+    # correct screen when the user taps it.
+    #
+    # Example:
+    #
+    # Trainer Application #9
+    #
+    # related_type = "trainer_application"
+    # related_id   = 9
+    #
+    # Later:
+    #
+    # Member #15
+    #
+    # related_type = "member"
+    # related_id   = 15
+    #
+    # --------------------------------------------------------
+
+    related_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    related_type = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+    )
+
+    # --------------------------------------------------------
+    # READ / UNREAD
+    # --------------------------------------------------------
+
+    is_read = models.BooleanField(
+        default=False
+    )
+
+    # --------------------------------------------------------
+    # TIMESTAMP
+    # --------------------------------------------------------
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+
+        ordering = [
+            "-created_at"
+        ]
+
+        indexes = [
+
+            models.Index(
+                fields=[
+                    "recipient",
+                    "is_read",
+                    "created_at",
+                ]
+            ),
+
+            models.Index(
+                fields=[
+                    "workspace",
+                    "created_at",
+                ]
+            ),
+
+            models.Index(
+                fields=[
+                    "notification_type",
+                    "created_at",
+                ]
+            ),
+        ]
+
+    def __str__(self):
+
+        return (
+            f"{self.recipient.username} - "
+            f"{self.title}"
+        )

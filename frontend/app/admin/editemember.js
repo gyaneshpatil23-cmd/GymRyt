@@ -27,7 +27,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.49:8000/api/members";
+  "http://192.168.1.52:8000/api/members";
 
 // ============================================================
 // EDIT MEMBER

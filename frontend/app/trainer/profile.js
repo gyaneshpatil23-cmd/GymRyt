@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+
 import {
     View,
     Text,
@@ -8,62 +9,120 @@ import {
     Image,
     Alert,
     ActivityIndicator,
-    Dimensions,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+
+import {
+    Ionicons,
+    MaterialCommunityIcons,
+} from "@expo/vector-icons";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+
+import { router, useFocusEffect } from "expo-router";
+
+import * as ImagePicker from "expo-image-picker";
+
+import { File } from "expo-file-system"; 
+
 
 
 // ============================================================
 // API CONFIG
 // ============================================================
 
-// Change this ONLY if your backend URL is different.
-const API_BASE_URL = "http://192.168.1.49:8000/api";
+const API_BASE_URL =
+    "http://192.168.1.52:8000/api/members";
 
-const { width } = Dimensions.get("window");
+const BACKEND_BASE_URL =
+    "http://192.168.1.52:8000";
+
 
 
 // ============================================================
-// TRAINER PROFILE SCREEN
+// TRAINER PROFILE
 // ============================================================
 
 export default function TrainerProfile() {
 
     const [trainer, setTrainer] = useState(null);
+
     const [loading, setLoading] = useState(true);
-    const [loggingOut, setLoggingOut] = useState(false);
+
+    const [uploadingPhoto, setUploadingPhoto] =
+        useState(false);
+
+    const [loggingOut, setLoggingOut] =
+        useState(false);
+
 
 
     // ========================================================
     // LOAD PROFILE
     // ========================================================
 
-    useEffect(() => {
-        loadTrainerProfile();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+
+            loadTrainerProfile();
+
+        }, [])
+    );
+
 
 
     // ========================================================
-    // GET AUTH TOKEN
+    // GET TOKEN
     // ========================================================
 
     const getToken = async () => {
-        try {
-            const token =
-                await AsyncStorage.getItem("access_token");
 
-            return token;
+        try {
+
+            return await AsyncStorage.getItem(
+                "adminToken"
+            );
+
         } catch (error) {
-            console.log("Token error:", error);
+
+            console.log(
+                "Token error:",
+                error
+            );
+
             return null;
         }
     };
 
 
+
     // ========================================================
-    // LOAD TRAINER PROFILE
+    // FULL IMAGE URL
+    // ========================================================
+
+    const getFullImageUrl = (image) => {
+
+        if (!image) {
+            return null;
+        }
+
+        if (
+            image.startsWith("http://") ||
+            image.startsWith("https://")
+        ) {
+            return image;
+        }
+
+        if (image.startsWith("/")) {
+            return `${BACKEND_BASE_URL}${image}`;
+        }
+
+        return `${BACKEND_BASE_URL}/${image}`;
+    };
+
+
+
+    // ========================================================
+    // LOAD PROFILE
     // ========================================================
 
     const loadTrainerProfile = async () => {
@@ -72,38 +131,105 @@ export default function TrainerProfile() {
 
             setLoading(true);
 
-            const token = await getToken();
+            const token =
+                await getToken();
 
-            const headers = {
-                "Content-Type": "application/json",
-            };
 
-            if (token) {
-                headers.Authorization = `Bearer ${token}`;
+
+            if (!token) {
+
+                Alert.alert(
+                    "Session Expired",
+                    "Please login again.",
+                    [
+                        {
+                            text: "OK",
+                            onPress: () =>
+                                router.replace("/"),
+                        },
+                    ]
+                );
+
+                return;
             }
 
-            const response = await fetch(
-                `${API_BASE_URL}/trainer/profile/`,
-                {
-                    method: "GET",
-                    headers,
-                }
+
+
+            const response =
+                await fetch(
+                    `${API_BASE_URL}/trainer/profile/`,
+                    {
+                        method: "GET",
+
+                        headers: {
+                            Accept:
+                                "application/json",
+
+                            Authorization:
+                                `Token ${token}`,
+                        },
+                    }
+                );
+
+
+
+            const contentType =
+                response.headers.get(
+                    "content-type"
+                ) || "";
+
+
+
+            let data;
+
+
+
+            if (
+                contentType.includes(
+                    "application/json"
+                )
+            ) {
+
+                data =
+                    await response.json();
+
+            } else {
+
+                const text =
+                    await response.text();
+
+                console.log(
+                    "PROFILE SERVER RESPONSE:",
+                    text
+                );
+
+                throw new Error(
+                    `Server returned HTTP ${response.status}`
+                );
+            }
+
+
+
+            console.log(
+                "TRAINER PROFILE:",
+                data
             );
 
-            const data = await response.json();
 
-            console.log("TRAINER PROFILE:", data);
 
             if (!response.ok) {
 
                 throw new Error(
                     data?.detail ||
                     data?.message ||
+                    data?.error ||
                     "Unable to load trainer profile."
                 );
             }
 
-            setTrainer(data);
+
+
+            setTrainer(data.trainer || data);
 
         } catch (error) {
 
@@ -113,7 +239,8 @@ export default function TrainerProfile() {
             );
 
             Alert.alert(
-                "Error",
+                "Profile Error",
+                error?.message ||
                 "Unable to load trainer profile."
             );
 
@@ -124,8 +251,9 @@ export default function TrainerProfile() {
     };
 
 
+
     // ========================================================
-    // GET TRAINER NAME
+    // TRAINER NAME
     // ========================================================
 
     const getTrainerName = () => {
@@ -134,38 +262,31 @@ export default function TrainerProfile() {
             return "Trainer";
         }
 
-        if (trainer.name) {
-            return trainer.name;
-        }
-
-        if (trainer.full_name) {
-            return trainer.full_name;
-        }
-
-        if (trainer.username) {
-            return trainer.username;
-        }
-
-        return "Trainer";
+        return (
+            trainer.name ||
+            trainer.full_name ||
+            trainer.username ||
+            "Trainer"
+        );
     };
 
 
+
     // ========================================================
-    // GET FIRST LETTER
+    // INITIAL
     // ========================================================
 
     const getInitial = () => {
 
-        const name = getTrainerName();
-
-        return name
+        return getTrainerName()
             .charAt(0)
             .toUpperCase();
     };
 
 
+
     // ========================================================
-    // GET WORKSPACE / GYM NAME
+    // GYM NAME
     // ========================================================
 
     const getGymName = () => {
@@ -183,8 +304,9 @@ export default function TrainerProfile() {
     };
 
 
+
     // ========================================================
-    // GET PROFILE IMAGE
+    // PROFILE IMAGE
     // ========================================================
 
     const getProfileImage = () => {
@@ -193,7 +315,7 @@ export default function TrainerProfile() {
             return null;
         }
 
-        return (
+        return getFullImageUrl(
             trainer.profile_picture ||
             trainer.profile_image ||
             trainer.image ||
@@ -202,14 +324,361 @@ export default function TrainerProfile() {
     };
 
 
+
     // ========================================================
-    // DESIGN WORKOUT
+    // CHANGE PHOTO
     // ========================================================
 
-    const handleDesignWorkout = () => {
+    const handleChangePhoto = async () => {
 
-        router.push("/trainer/workout");
+        try {
+
+            const permission =
+                await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+
+
+            if (
+                permission.status !==
+                "granted"
+            ) {
+
+                Alert.alert(
+                    "Permission Required",
+                    "Please allow photo library access to change your profile picture."
+                );
+
+                return;
+            }
+
+
+
+            const result =
+                await ImagePicker.launchImageLibraryAsync(
+                    {
+                        mediaTypes:
+                            ["images"],
+
+                        allowsEditing:
+                            true,
+
+                        aspect:
+                            [1, 1],
+
+                        quality:
+                            0.85,
+                    }
+                );
+
+
+
+            if (
+                result.canceled ||
+                !result.assets ||
+                result.assets.length === 0
+            ) {
+
+                return;
+            }
+
+
+
+            await uploadProfilePhoto(
+                result.assets[0]
+            );
+
+        } catch (error) {
+
+            console.log(
+                "Image picker error:",
+                error
+            );
+
+            Alert.alert(
+                "Photo Error",
+                "Unable to select the image."
+            );
+        }
     };
+
+
+
+    // ========================================================
+    // UPLOAD PHOTO
+    // ========================================================
+
+    // ========================================================
+// UPLOAD PROFILE PHOTO
+// ========================================================
+
+const uploadProfilePhoto = async (image) => {
+
+    try {
+
+        setUploadingPhoto(true);
+
+
+        // ------------------------------------------------
+        // GET TOKEN
+        // ------------------------------------------------
+
+        const token =
+            await getToken();
+
+
+        if (!token) {
+
+            Alert.alert(
+                "Session Expired",
+                "Please login again."
+            );
+
+            return;
+        }
+
+
+        // ------------------------------------------------
+        // CHECK IMAGE
+        // ------------------------------------------------
+
+        if (!image?.uri) {
+
+            throw new Error(
+                "Selected image could not be accessed."
+            );
+        }
+
+
+        console.log(
+            "IMAGE URI:",
+            image.uri
+        );
+
+
+        // ------------------------------------------------
+        // CREATE EXPO FILE
+        //
+        // This is the important fix.
+        //
+        // Instead of passing:
+        // { uri, name, type }
+        //
+        // we create a real Expo File object.
+        //
+        // Expo File implements Blob and can be
+        // appended to FormData.
+        // ------------------------------------------------
+
+        const file =
+            new File(image.uri);
+
+
+        console.log(
+            "FILE URI:",
+            file.uri
+        );
+
+        console.log(
+            "FILE NAME:",
+            file.name
+        );
+
+        console.log(
+            "FILE TYPE:",
+            file.type
+        );
+
+
+        // ------------------------------------------------
+        // VERIFY FILE
+        // ------------------------------------------------
+
+        if (!file.exists) {
+
+            throw new Error(
+                "The selected image file could not be found."
+            );
+        }
+
+
+        // ------------------------------------------------
+        // CREATE FORMDATA
+        // ------------------------------------------------
+
+        const formData =
+            new FormData();
+
+
+        // ------------------------------------------------
+        // APPEND REAL FILE OBJECT
+        // ------------------------------------------------
+
+        formData.append(
+            "profile_picture",
+            file
+        );
+
+
+        console.log(
+            "Uploading profile picture..."
+        );
+
+
+        // ------------------------------------------------
+        // SEND PATCH REQUEST
+        // ------------------------------------------------
+        //
+        // IMPORTANT:
+        // Do NOT manually set Content-Type.
+        //
+        // Fetch will generate:
+        //
+        // multipart/form-data;
+        // boundary=...
+        //
+        // ------------------------------------------------
+
+        const response =
+            await fetch(
+                `${API_BASE_URL}/trainer/profile/`,
+                {
+                    method: "PATCH",
+
+                    headers: {
+                        Accept:
+                            "application/json",
+
+                        Authorization:
+                            `Token ${token}`,
+                    },
+
+                    body: formData,
+                }
+            );
+
+
+        // ------------------------------------------------
+        // READ RESPONSE
+        // ------------------------------------------------
+
+        const contentType =
+            response.headers.get(
+                "content-type"
+            ) || "";
+
+
+        let data;
+
+
+        if (
+            contentType.includes(
+                "application/json"
+            )
+        ) {
+
+            data =
+                await response.json();
+
+        } else {
+
+            const text =
+                await response.text();
+
+            console.log(
+                "PHOTO UPLOAD SERVER RESPONSE:",
+                text
+            );
+
+            throw new Error(
+                `Server returned HTTP ${response.status}`
+            );
+        }
+
+
+        console.log(
+            "PHOTO UPLOAD RESPONSE:",
+            data
+        );
+
+
+        // ------------------------------------------------
+        // HANDLE SERVER ERROR
+        // ------------------------------------------------
+
+        if (!response.ok) {
+
+            throw new Error(
+                data?.detail ||
+                data?.message ||
+                data?.error ||
+                JSON.stringify(data) ||
+                "Unable to upload profile picture."
+            );
+        }
+
+
+        // ------------------------------------------------
+        // IMPORTANT:
+        //
+        // Backend may return:
+        //
+        // {
+        //   success: true,
+        //   trainer: {...}
+        // }
+        //
+        // OR:
+        //
+        // {
+        //   id: 3,
+        //   name: "Parth",
+        //   ...
+        // }
+        //
+        // Support both.
+        // ------------------------------------------------
+
+        const updatedTrainer =
+            data?.trainer ||
+            data;
+
+
+        setTrainer(
+            updatedTrainer
+        );
+
+
+        // ------------------------------------------------
+        // SUCCESS
+        // ------------------------------------------------
+
+        Alert.alert(
+            "Success",
+            "Profile picture updated successfully."
+        );
+
+
+    } catch (error) {
+
+        console.log(
+            "Profile photo upload error:",
+            error
+        );
+
+
+        Alert.alert(
+            "Upload Failed",
+            error?.message ||
+            "Unable to upload profile picture."
+        );
+
+
+    } finally {
+
+        setUploadingPhoto(false);
+    }
+};
+
 
 
     // ========================================================
@@ -221,69 +690,79 @@ export default function TrainerProfile() {
         Alert.alert(
             "Logout",
             "Are you sure you want to logout?",
+
             [
                 {
                     text: "Cancel",
                     style: "cancel",
                 },
+
                 {
                     text: "Logout",
                     style: "destructive",
-                    onPress: performLogout,
+                    onPress:
+                        performLogout,
                 },
             ]
         );
     };
 
 
+
     // ========================================================
     // PERFORM LOGOUT
     // ========================================================
 
-    const performLogout = async () => {
+    const performLogout =
+        async () => {
 
-        try {
+            try {
 
-            setLoggingOut(true);
-
-            // ------------------------------------------------
-            // Clear locally stored authentication information
-            // ------------------------------------------------
-
-            await AsyncStorage.multiRemove([
-                "access_token",
-                "refresh_token",
-                "token",
-                "user",
-                "trainer",
-                "role",
-            ]);
+                setLoggingOut(true);
 
 
-            // ------------------------------------------------
-            // Navigate to login
-            // ------------------------------------------------
 
-            router.replace("/");
+                await AsyncStorage.multiRemove(
+                    [
+                        "adminToken",
+                        "adminUsername",
+                        "adminId",
+                        "userRole",
+                        "workspaceId",
+                        "workspaceName",
+
+                        "access_token",
+                        "refresh_token",
+                        "token",
+
+                        "user",
+                        "trainer",
+                        "role",
+                    ]
+                );
 
 
-        } catch (error) {
 
-            console.log(
-                "Logout error:",
-                error
-            );
+                router.replace("/");
 
-            Alert.alert(
-                "Logout Error",
-                "Unable to logout. Please try again."
-            );
+            } catch (error) {
 
-        } finally {
+                console.log(
+                    "Logout error:",
+                    error
+                );
 
-            setLoggingOut(false);
-        }
-    };
+                Alert.alert(
+                    "Logout Error",
+                    "Unable to logout. Please try again."
+                );
+
+            } finally {
+
+                setLoggingOut(false);
+            }
+        };
+
 
 
     // ========================================================
@@ -293,14 +772,23 @@ export default function TrainerProfile() {
     if (loading) {
 
         return (
-            <View style={styles.loadingContainer}>
+
+            <View
+                style={
+                    styles.loadingContainer
+                }
+            >
 
                 <ActivityIndicator
                     size="large"
                     color="#2F80FF"
                 />
 
-                <Text style={styles.loadingText}>
+                <Text
+                    style={
+                        styles.loadingText
+                    }
+                >
                     Loading profile...
                 </Text>
 
@@ -309,128 +797,206 @@ export default function TrainerProfile() {
     }
 
 
+
     // ========================================================
-    // MAIN UI
+    // MAIN
     // ========================================================
 
     return (
 
-        <View style={styles.container}>
+        <View
+            style={
+                styles.container
+            }
+        >
 
             {/* ==================================================
                 HEADER
             ================================================== */}
 
-            <View style={styles.header}>
+            <View
+                style={
+                    styles.header
+                }
+            >
 
                 <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
+                    style={
+                        styles.backButton
+                    }
+                    onPress={() =>
+                        router.back()
+                    }
                     activeOpacity={0.8}
                 >
 
                     <Ionicons
                         name="arrow-back"
-                        size={22}
+                        size={25}
                         color="#FFFFFF"
                     />
 
                 </TouchableOpacity>
 
 
-                <Text style={styles.headerTitle}>
+
+                <Text
+                    style={
+                        styles.headerTitle
+                    }
+                >
                     My Profile
                 </Text>
 
             </View>
 
 
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-            >
 
+            {/* ==================================================
+                CONTENT
+            ================================================== */}
+
+            <ScrollView
+                showsVerticalScrollIndicator={
+                    false
+                }
+                contentContainerStyle={
+                    styles.scrollContent
+                }
+            >
 
                 {/* ==================================================
                     PROFILE CARD
                 ================================================== */}
 
-                <View style={styles.profileCard}>
+                <View
+                    style={
+                        styles.profileCard
+                    }
+                >
 
-                    {/* PROFILE IMAGE */}
-
-                    <View style={styles.avatarWrapper}>
+                    <View
+                        style={
+                            styles.avatarWrapper
+                        }
+                    >
 
                         {getProfileImage() ? (
 
                             <Image
                                 source={{
-                                    uri: getProfileImage(),
+                                    uri:
+                                        getProfileImage(),
                                 }}
-                                style={styles.avatar}
+                                style={
+                                    styles.avatar
+                                }
                             />
 
                         ) : (
 
-                            <View style={styles.avatarPlaceholder}>
+                            <View
+                                style={
+                                    styles.avatarPlaceholder
+                                }
+                            >
 
-                                <Text style={styles.avatarText}>
+                                <Text
+                                    style={
+                                        styles.avatarText
+                                    }
+                                >
                                     {getInitial()}
                                 </Text>
 
                             </View>
-
                         )}
 
 
-                        {/* CAMERA BUTTON */}
 
                         <TouchableOpacity
-                            style={styles.cameraButton}
+                            style={
+                                styles.cameraButton
+                            }
+                            onPress={
+                                handleChangePhoto
+                            }
+                            disabled={
+                                uploadingPhoto
+                            }
                             activeOpacity={0.8}
                         >
 
-                            <Ionicons
-                                name="camera"
-                                size={16}
-                                color="#FFFFFF"
-                            />
+                            {uploadingPhoto ? (
+
+                                <ActivityIndicator
+                                    size="small"
+                                    color="#FFFFFF"
+                                />
+
+                            ) : (
+
+                                <Ionicons
+                                    name="camera"
+                                    size={17}
+                                    color="#FFFFFF"
+                                />
+
+                            )}
 
                         </TouchableOpacity>
 
                     </View>
 
 
-                    {/* NAME */}
 
-                    <Text style={styles.profileName}>
+                    <Text
+                        style={
+                            styles.profileName
+                        }
+                    >
                         {getTrainerName()}
                     </Text>
 
 
-                    {/* ROLE */}
 
-                    <Text style={styles.profileRole}>
+                    <Text
+                        style={
+                            styles.profileRole
+                        }
+                    >
                         TRAINER
                     </Text>
 
 
-                    {/* GYM */}
 
-                    <Text style={styles.profileGym}>
+                    <Text
+                        style={
+                            styles.profileGym
+                        }
+                    >
                         {getGymName()}
                     </Text>
 
                 </View>
 
 
+
                 {/* ==================================================
                     ACCOUNT INFORMATION
                 ================================================== */}
 
-                <SectionTitle title="ACCOUNT INFORMATION" />
+                <SectionTitle
+                    title="ACCOUNT INFORMATION"
+                />
 
-                <View style={styles.infoCard}>
+
+
+                <View
+                    style={
+                        styles.infoCard
+                    }
+                >
 
                     <InfoRow
                         icon="person"
@@ -444,7 +1010,9 @@ export default function TrainerProfile() {
                     />
 
 
+
                     <Divider />
+
 
 
                     <InfoRow
@@ -453,13 +1021,17 @@ export default function TrainerProfile() {
                         label="Trainer ID"
                         value={
                             trainer?.id
-                                ? String(trainer.id)
+                                ? String(
+                                    trainer.id
+                                )
                                 : "—"
                         }
                     />
 
 
+
                     <Divider />
+
 
 
                     <InfoRow
@@ -473,11 +1045,13 @@ export default function TrainerProfile() {
                     />
 
 
+
                     <Divider />
 
 
+
                     <InfoRow
-                        icon="phone"
+                        icon="call"
                         iconType="ion"
                         label="Phone"
                         value={
@@ -489,13 +1063,22 @@ export default function TrainerProfile() {
                 </View>
 
 
+
                 {/* ==================================================
                     TRAINER INFORMATION
                 ================================================== */}
 
-                <SectionTitle title="TRAINER INFORMATION" />
+                <SectionTitle
+                    title="TRAINER INFORMATION"
+                />
 
-                <View style={styles.infoCard}>
+
+
+                <View
+                    style={
+                        styles.infoCard
+                    }
+                >
 
                     <InfoRow
                         icon="arm-flex"
@@ -508,7 +1091,9 @@ export default function TrainerProfile() {
                     />
 
 
+
                     <Divider />
+
 
 
                     <InfoRow
@@ -517,10 +1102,12 @@ export default function TrainerProfile() {
                         label="Experience"
                         value={
                             trainer?.experience_years !==
-                            undefined &&
-                            trainer?.experience_years !== null
+                                undefined &&
+                            trainer?.experience_years !==
+                                null
                                 ? `${trainer.experience_years} ${
-                                    trainer.experience_years === 1
+                                    trainer.experience_years ===
+                                    1
                                         ? "Year"
                                         : "Years"
                                 }`
@@ -529,95 +1116,67 @@ export default function TrainerProfile() {
                     />
 
 
+
                     <Divider />
+
 
 
                     <InfoRow
                         icon="office-building"
                         iconType="material"
                         label="Gym"
-                        value={getGymName()}
+                        value={
+                            getGymName()
+                        }
                     />
 
                 </View>
+
 
 
                 {/* ==================================================
                     ABOUT ME
                 ================================================== */}
 
-                <SectionTitle title="ABOUT ME" />
+                <SectionTitle
+                    title="ABOUT ME"
+                />
 
-                <View style={styles.aboutCard}>
 
-                    <Text style={styles.aboutText}>
 
-                        {trainer?.bio
-                            ? trainer.bio
-                            : "No trainer bio added yet."}
+                <View
+                    style={
+                        styles.aboutCard
+                    }
+                >
 
+                    <Text
+                        style={
+                            styles.aboutText
+                        }
+                    >
+                        {trainer?.bio ||
+                            "No trainer bio added yet."}
                     </Text>
 
                 </View>
 
 
+
                 {/* ==================================================
-                    DESIGN WORKOUT BUTTON
+                    LOGOUT
                 ================================================== */}
 
                 <TouchableOpacity
-                    style={styles.workoutButton}
-                    onPress={handleDesignWorkout}
-                    activeOpacity={0.85}
-                >
-
-                    <View style={styles.workoutIconContainer}>
-
-                        <Text style={styles.workoutEmoji}>
-                            💪
-                        </Text>
-
-                    </View>
-
-
-                    <View style={styles.workoutTextContainer}>
-
-                        <Text style={styles.workoutTitle}>
-                            Design Workout
-                        </Text>
-
-                        <Text style={styles.workoutSubtitle}>
-                            Create and assign workouts
-                        </Text>
-
-                        <Text style={styles.workoutSubtitle}>
-                            to your members
-                        </Text>
-
-                    </View>
-
-
-                    <View style={styles.workoutArrow}>
-
-                        <Ionicons
-                            name="arrow-forward"
-                            size={21}
-                            color="#FFFFFF"
-                        />
-
-                    </View>
-
-                </TouchableOpacity>
-
-
-                {/* ==================================================
-                    LOGOUT BUTTON
-                ================================================== */}
-
-                <TouchableOpacity
-                    style={styles.logoutButton}
-                    onPress={handleLogout}
-                    disabled={loggingOut}
+                    style={
+                        styles.logoutButton
+                    }
+                    onPress={
+                        handleLogout
+                    }
+                    disabled={
+                        loggingOut
+                    }
                     activeOpacity={0.8}
                 >
 
@@ -639,7 +1198,12 @@ export default function TrainerProfile() {
                     )}
 
 
-                    <Text style={styles.logoutText}>
+
+                    <Text
+                        style={
+                            styles.logoutText
+                        }
+                    >
                         {loggingOut
                             ? "Logging out..."
                             : "Logout"}
@@ -648,31 +1212,52 @@ export default function TrainerProfile() {
                 </TouchableOpacity>
 
 
-                {/* BOTTOM SPACE */}
 
-                <View style={{ height: 35 }} />
+                <View
+                    style={{
+                        height: 110,
+                    }}
+                />
 
             </ScrollView>
+
+
+
+            {/* ==================================================
+                TRAINER BOTTOM NAVIGATION
+            ================================================== */}
+
+            <TrainerBottomNav
+                active="profile"
+            />
 
         </View>
     );
 }
 
 
+
 // ============================================================
 // SECTION TITLE
 // ============================================================
 
-function SectionTitle({ title }) {
+function SectionTitle({
+    title,
+}) {
 
     return (
 
-        <Text style={styles.sectionTitle}>
+        <Text
+            style={
+                styles.sectionTitle
+            }
+        >
             {title}
         </Text>
 
     );
 }
+
 
 
 // ============================================================
@@ -682,9 +1267,16 @@ function SectionTitle({ title }) {
 function Divider() {
 
     return (
-        <View style={styles.divider} />
+
+        <View
+            style={
+                styles.divider
+            }
+        />
+
     );
 }
+
 
 
 // ============================================================
@@ -700,13 +1292,20 @@ function InfoRow({
 
     return (
 
-        <View style={styles.infoRow}>
+        <View
+            style={
+                styles.infoRow
+            }
+        >
 
-            {/* ICON */}
+            <View
+                style={
+                    styles.infoIcon
+                }
+            >
 
-            <View style={styles.infoIcon}>
-
-                {iconType === "material" ? (
+                {iconType ===
+                "material" ? (
 
                     <MaterialCommunityIcons
                         name={icon}
@@ -727,16 +1326,27 @@ function InfoRow({
             </View>
 
 
-            {/* TEXT */}
 
-            <View style={styles.infoTextContainer}>
+            <View
+                style={
+                    styles.infoTextContainer
+                }
+            >
 
-                <Text style={styles.infoLabel}>
+                <Text
+                    style={
+                        styles.infoLabel
+                    }
+                >
                     {label}
                 </Text>
 
+
+
                 <Text
-                    style={styles.infoValue}
+                    style={
+                        styles.infoValue
+                    }
                     numberOfLines={1}
                 >
                     {value}
@@ -749,15 +1359,197 @@ function InfoRow({
 }
 
 
+
+// ============================================================
+// TRAINER BOTTOM NAVIGATION
+// ============================================================
+
+function TrainerBottomNav({
+    active,
+}) {
+
+    const goTo = (screen) => {
+
+        if (screen === active) {
+            return;
+        }
+
+
+
+        if (screen === "home") {
+
+            router.replace(
+                "/trainer/dashboard"
+            );
+
+        } else if (
+            screen === "members"
+        ) {
+
+            router.replace(
+                "/trainer/members"
+            );
+
+        } else if (
+            screen === "workouts"
+        ) {
+
+            router.replace(
+                "/trainer/workout"
+            );
+
+        } else if (
+            screen === "profile"
+        ) {
+
+            router.replace(
+                "/trainer/profile"
+            );
+        }
+    };
+
+
+
+    return (
+
+        <View
+            style={
+                styles.bottomNav
+            }
+        >
+
+            <NavItem
+                icon="home"
+                label="Home"
+                active={
+                    active === "home"
+                }
+                onPress={() =>
+                    goTo("home")
+                }
+            />
+
+
+
+            <NavItem
+                icon="people"
+                label="Members"
+                active={
+                    active === "members"
+                }
+                onPress={() =>
+                    goTo("members")
+                }
+            />
+
+
+
+            <NavItem
+                icon="barbell-outline"
+                label="Workouts"
+                active={
+                    active === "workouts"
+                }
+                onPress={() =>
+                    goTo("workouts")
+                }
+            />
+
+
+
+            <NavItem
+                icon="person-outline"
+                label="Profile"
+                active={
+                    active === "profile"
+                }
+                onPress={() =>
+                    goTo("profile")
+                }
+            />
+
+        </View>
+    );
+}
+
+
+
+// ============================================================
+// NAV ITEM
+// ============================================================
+
+function NavItem({
+    icon,
+    label,
+    active,
+    onPress,
+}) {
+
+    return (
+
+        <TouchableOpacity
+            style={
+                styles.navItem
+            }
+            onPress={onPress}
+            activeOpacity={0.8}
+        >
+
+            <View
+                style={[
+                    styles.navIconBox,
+                    active &&
+                    styles.navIconBoxActive,
+                ]}
+            >
+
+                <Ionicons
+                    name={icon}
+                    size={27}
+                    color={
+                        active
+                            ? "#4DA3FF"
+                            : "#AAB6C8"
+                    }
+                />
+
+            </View>
+
+
+
+            <Text
+                style={[
+                    styles.navLabel,
+                    active &&
+                    styles.navLabelActive,
+                ]}
+            >
+                {label}
+            </Text>
+
+
+
+            {active && (
+
+                <View
+                    style={
+                        styles.navIndicator
+                    }
+                />
+
+            )}
+
+        </TouchableOpacity>
+    );
+}
+
+
+
 // ============================================================
 // STYLES
 // ============================================================
 
 const styles = StyleSheet.create({
-
-    // ========================================================
-    // MAIN
-    // ========================================================
 
     container: {
         flex: 1,
@@ -765,11 +1557,13 @@ const styles = StyleSheet.create({
     },
 
 
+
     scrollContent: {
         paddingHorizontal: 24,
         paddingTop: 24,
         paddingBottom: 30,
     },
+
 
 
     // ========================================================
@@ -786,6 +1580,7 @@ const styles = StyleSheet.create({
     },
 
 
+
     backButton: {
         width: 54,
         height: 54,
@@ -799,11 +1594,13 @@ const styles = StyleSheet.create({
     },
 
 
+
     headerTitle: {
         color: "#FFFFFF",
         fontSize: 23,
         fontWeight: "800",
     },
+
 
 
     // ========================================================
@@ -822,20 +1619,16 @@ const styles = StyleSheet.create({
 
         alignItems: "center",
 
-        // IMPORTANT:
-        // Reduced height compared to your screenshot.
         minHeight: 330,
     },
 
 
-    // ========================================================
-    // AVATAR
-    // ========================================================
 
     avatarWrapper: {
         position: "relative",
         marginBottom: 14,
     },
+
 
 
     avatar: {
@@ -845,6 +1638,7 @@ const styles = StyleSheet.create({
         resizeMode: "cover",
         backgroundColor: "#2563EB",
     },
+
 
 
     avatarPlaceholder: {
@@ -857,11 +1651,13 @@ const styles = StyleSheet.create({
     },
 
 
+
     avatarText: {
         color: "#FFFFFF",
         fontSize: 38,
         fontWeight: "800",
     },
+
 
 
     cameraButton: {
@@ -884,9 +1680,6 @@ const styles = StyleSheet.create({
     },
 
 
-    // ========================================================
-    // PROFILE TEXT
-    // ========================================================
 
     profileName: {
         color: "#FFFFFF",
@@ -895,6 +1688,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
         textAlign: "center",
     },
+
 
 
     profileRole: {
@@ -906,6 +1700,7 @@ const styles = StyleSheet.create({
     },
 
 
+
     profileGym: {
         color: "#8793A8",
         fontSize: 16,
@@ -915,8 +1710,9 @@ const styles = StyleSheet.create({
     },
 
 
+
     // ========================================================
-    // SECTION TITLE
+    // SECTION
     // ========================================================
 
     sectionTitle: {
@@ -929,9 +1725,6 @@ const styles = StyleSheet.create({
     },
 
 
-    // ========================================================
-    // INFORMATION CARD
-    // ========================================================
 
     infoCard: {
         backgroundColor: "#071321",
@@ -944,16 +1737,13 @@ const styles = StyleSheet.create({
     },
 
 
-    // ========================================================
-    // INFO ROW
-    // ========================================================
 
     infoRow: {
         minHeight: 72,
-
         flexDirection: "row",
         alignItems: "center",
     },
+
 
 
     infoIcon: {
@@ -970,10 +1760,12 @@ const styles = StyleSheet.create({
     },
 
 
+
     infoTextContainer: {
         flex: 1,
         justifyContent: "center",
     },
+
 
 
     infoLabel: {
@@ -984,6 +1776,7 @@ const styles = StyleSheet.create({
     },
 
 
+
     infoValue: {
         color: "#FFFFFF",
         fontSize: 14,
@@ -991,11 +1784,13 @@ const styles = StyleSheet.create({
     },
 
 
+
     divider: {
         height: 1,
         backgroundColor: "#102344",
         marginLeft: 58,
     },
+
 
 
     // ========================================================
@@ -1017,89 +1812,13 @@ const styles = StyleSheet.create({
     },
 
 
+
     aboutText: {
         color: "#A6B1C2",
         fontSize: 13,
         lineHeight: 20,
     },
 
-
-    // ========================================================
-    // DESIGN WORKOUT
-    // ========================================================
-
-    workoutButton: {
-        minHeight: 78,
-
-        backgroundColor: "#2563EB",
-
-        borderRadius: 19,
-
-        marginTop: 20,
-
-        paddingHorizontal: 14,
-
-        flexDirection: "row",
-        alignItems: "center",
-
-        elevation: 5,
-        shadowColor: "#2563EB",
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-    },
-
-
-    workoutIconContainer: {
-        width: 48,
-        height: 48,
-
-        borderRadius: 15,
-
-        backgroundColor: "rgba(255,255,255,0.12)",
-
-        alignItems: "center",
-        justifyContent: "center",
-
-        marginRight: 12,
-    },
-
-
-    workoutEmoji: {
-        fontSize: 27,
-    },
-
-
-    workoutTextContainer: {
-        flex: 1,
-    },
-
-
-    workoutTitle: {
-        color: "#FFFFFF",
-        fontSize: 14,
-        fontWeight: "800",
-        marginBottom: 3,
-    },
-
-
-    workoutSubtitle: {
-        color: "#D6E3FF",
-        fontSize: 10,
-        lineHeight: 14,
-    },
-
-
-    workoutArrow: {
-        width: 36,
-        height: 36,
-
-        alignItems: "center",
-        justifyContent: "center",
-    },
 
 
     // ========================================================
@@ -1109,7 +1828,7 @@ const styles = StyleSheet.create({
     logoutButton: {
         height: 58,
 
-        marginTop: 13,
+        marginTop: 20,
 
         borderRadius: 17,
 
@@ -1119,9 +1838,12 @@ const styles = StyleSheet.create({
         borderColor: "#55202B",
 
         flexDirection: "row",
+
         alignItems: "center",
+
         justifyContent: "center",
     },
+
 
 
     logoutText: {
@@ -1132,21 +1854,122 @@ const styles = StyleSheet.create({
     },
 
 
+
+    // ========================================================
+    // BOTTOM NAV
+    // ========================================================
+
+    bottomNav: {
+        position: "absolute",
+
+        left: 0,
+        right: 0,
+        bottom: 0,
+
+        height: 92,
+
+        backgroundColor: "#061321",
+
+        borderTopWidth: 1,
+        borderTopColor: "#0F294C",
+
+        flexDirection: "row",
+
+        alignItems: "center",
+
+        justifyContent: "space-around",
+
+        paddingBottom: 7,
+
+        elevation: 20,
+    },
+
+
+
+    navItem: {
+        width: "25%",
+
+        height: 82,
+
+        alignItems: "center",
+
+        justifyContent: "center",
+
+        position: "relative",
+    },
+
+
+
+    navIconBox: {
+        width: 58,
+        height: 43,
+
+        borderRadius: 15,
+
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+
+
+    navIconBoxActive: {
+        backgroundColor: "#102F69",
+    },
+
+
+
+    navLabel: {
+        color: "#A1ACBD",
+        fontSize: 11,
+        fontWeight: "700",
+        marginTop: 2,
+    },
+
+
+
+    navLabelActive: {
+        color: "#4DA3FF",
+    },
+
+
+
+    navIndicator: {
+        position: "absolute",
+
+        bottom: 0,
+
+        width: 58,
+
+        height: 4,
+
+        borderRadius: 4,
+
+        backgroundColor: "#4DA3FF",
+    },
+
+
+
     // ========================================================
     // LOADING
     // ========================================================
 
     loadingContainer: {
         flex: 1,
+
         backgroundColor: "#020617",
+
         alignItems: "center",
+
         justifyContent: "center",
     },
 
 
+
     loadingText: {
         color: "#8793A8",
+
         fontSize: 14,
+
         marginTop: 12,
     },
 

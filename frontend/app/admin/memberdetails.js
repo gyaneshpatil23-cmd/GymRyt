@@ -7,7 +7,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../context/ThemeContext";
 
-const BASE_URL = "http://192.168.1.49:8000/api/members";
+const BASE_URL = "http://192.168.1.52:8000/api/members";
 const MEMBERS_API = `${BASE_URL}/`;
 const PAYMENTS_API = `${BASE_URL}/payments/`;
 

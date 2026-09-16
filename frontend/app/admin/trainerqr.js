@@ -28,7 +28,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.49:8000/api/members/trainer-registration-qr/";
+  "http://192.168.1.52:8000/api/members/trainer-registration-qr/";
 
 // ============================================================
 // TRAINER QR SCREEN

@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 
 const API =
-  "http://192.168.1.49:8000/api/members/trainer/profile/";
+  "http://192.168.1.52:8000/api/members/trainer/profile/";
 
 export default function TrainerProfile() {
   const { colors } = useTheme();
