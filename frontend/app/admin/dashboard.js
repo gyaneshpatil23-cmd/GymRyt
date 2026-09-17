@@ -45,11 +45,14 @@ const REVENUE_API =
 const ADMIN_PROFILE_PICTURE_API =
   `${BASE_URL}/admin/profile-picture/`;
 
+const NOTIFICATION_UNREAD_API =
+  `${BASE_URL}/notifications/unread-count/`;
+
 // ======================================================
-// OWNER + TRAINER DASHBOARD
+// OWNER-ONLY DASHBOARD
 // ======================================================
 
-export default function OwnerTrainerDashboard() {
+export default function OwnerDashboard() {
   const {
     isDark,
     colors,
@@ -96,6 +99,9 @@ export default function OwnerTrainerDashboard() {
 
   const [adminProfilePicture, setAdminProfilePicture] =
     useState(null);
+
+  const [unreadNotifications, setUnreadNotifications] =
+    useState(0);
 
   // ====================================================
   // SESSION
@@ -160,21 +166,18 @@ export default function OwnerTrainerDashboard() {
   // PROFILE PICTURE
   // ====================================================
 
-  const fetchAdminProfilePicture = async (
-    token
-  ) => {
+  const fetchAdminProfilePicture = async (token) => {
     try {
-      const response =
-        await fetch(
-          ADMIN_PROFILE_PICTURE_API,
-          {
-            method: "GET",
-            headers: {
-              Authorization:
-                `Token ${token}`,
-            },
-          }
-        );
+      const response = await fetch(
+        ADMIN_PROFILE_PICTURE_API,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Token ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
 
       if (response.status === 401) {
         await handleSessionExpired();
@@ -200,6 +203,56 @@ export default function OwnerTrainerDashboard() {
   };
 
   // ====================================================
+  // NOTIFICATION UNREAD COUNT
+  // ====================================================
+
+  const fetchUnreadNotifications = async (token) => {
+    try {
+      const response = await fetch(
+        NOTIFICATION_UNREAD_API,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Token ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 401) {
+        await handleSessionExpired();
+        return;
+      }
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data =
+        await response.json();
+
+      setUnreadNotifications(
+        Number(data.unread_count ?? 0)
+      );
+    } catch (error) {
+      console.log(
+        "NOTIFICATION COUNT ERROR:",
+        error
+      );
+    }
+  };
+
+  // ====================================================
+  // OPEN NOTIFICATIONS
+  // ====================================================
+
+  const openNotifications = () => {
+    router.push(
+      "/admin/notifications"
+    );
+  };
+
+  // ====================================================
   // FETCH DASHBOARD DATA
   // ====================================================
 
@@ -218,7 +271,7 @@ export default function OwnerTrainerDashboard() {
 
         Alert.alert(
           "Authentication Error",
-          "Owner + Trainer login session not found. Please login again.",
+          "Owner login session not found. Please login again.",
           [
             {
               text: "OK",
@@ -247,6 +300,14 @@ export default function OwnerTrainerDashboard() {
       // ==================================================
 
       await fetchAdminProfilePicture(
+        token
+      );
+
+      // ==================================================
+      // NOTIFICATIONS
+      // ==================================================
+
+      await fetchUnreadNotifications(
         token
       );
 
@@ -291,7 +352,7 @@ export default function OwnerTrainerDashboard() {
         await statsResponse.json();
 
       console.log(
-        "OWNER + TRAINER DASHBOARD STATS:",
+        "OWNER DASHBOARD STATS:",
         statsData
       );
 
@@ -342,7 +403,7 @@ export default function OwnerTrainerDashboard() {
         await revenueResponse.json();
 
       console.log(
-        "OWNER + TRAINER REVENUE:",
+        "OWNER REVENUE:",
         revenueData
       );
 
@@ -382,7 +443,7 @@ export default function OwnerTrainerDashboard() {
         await membersResponse.json();
 
       console.log(
-        "OWNER + TRAINER MEMBERS:",
+        "OWNER MEMBERS:",
         membersData
       );
 
@@ -405,7 +466,7 @@ export default function OwnerTrainerDashboard() {
       }
     } catch (error) {
       console.log(
-        "OWNER + TRAINER DASHBOARD ERROR:",
+        "OWNER DASHBOARD ERROR:",
         error
       );
 
@@ -647,7 +708,7 @@ export default function OwnerTrainerDashboard() {
                 ]}
                 numberOfLines={1}
               >
-                {adminUsername} 
+                {adminUsername}
               </Text>
 
               <Text
@@ -665,75 +726,133 @@ export default function OwnerTrainerDashboard() {
 
           </View>
 
-          {/* THEME SWITCH */}
+          {/* ==================================================
+              HEADER ACTIONS
+          ================================================== */}
 
-          <TouchableOpacity
-            style={[
-              styles.themeSwitch,
-              {
-                backgroundColor:
-                  isDark
-                    ? "#111827"
-                    : "#E2E8F0",
-              },
-            ]}
-            onPress={toggleTheme}
-            activeOpacity={0.8}
+          <View
+            style={
+              styles.headerActions
+            }
           >
-            <Text
-              style={
-                styles.themeIcon
-              }
-            >
-              🌙
-            </Text>
 
-            <Text
-              style={
-                styles.themeIcon
-              }
-            >
-              ☀️
-            </Text>
+            {/* NOTIFICATION BELL */}
 
-            <Animated.View
+            <TouchableOpacity
               style={[
-                styles.themeKnob,
+                styles.notificationButton,
                 {
                   backgroundColor:
-                    isDark
-                      ? "#1E293B"
-                      : "#FFFFFF",
-
-                  transform: [
-                    {
-                      translateX:
-                        themeAnimation.interpolate({
-                          inputRange: [
-                            0,
-                            1,
-                          ],
-                          outputRange: [
-                            30,
-                            0,
-                          ],
-                        }),
-                    },
-                  ],
+                    colors.card,
+                  borderColor:
+                    colors.border,
                 },
               ]}
+              onPress={
+                openNotifications
+              }
+              activeOpacity={0.8}
             >
               <Text
                 style={
-                  styles.knobIcon
+                  styles.notificationIcon
                 }
               >
-                {isDark
-                  ? "🌙"
-                  : "☀️"}
+                🔔
               </Text>
-            </Animated.View>
-          </TouchableOpacity>
+
+              {unreadNotifications > 0 && (
+                <View
+                  style={
+                    styles.notificationBadge
+                  }
+                >
+                  <Text
+                    style={
+                      styles.notificationBadgeText
+                    }
+                  >
+                    {unreadNotifications > 99
+                      ? "99+"
+                      : unreadNotifications}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* THEME SWITCH */}
+
+            <TouchableOpacity
+              style={[
+                styles.themeSwitch,
+                {
+                  backgroundColor:
+                    isDark
+                      ? "#111827"
+                      : "#E2E8F0",
+                },
+              ]}
+              onPress={
+                toggleTheme
+              }
+              activeOpacity={0.8}
+            >
+              <Text
+                style={
+                  styles.themeIcon
+                }
+              >
+                🌙
+              </Text>
+
+              <Text
+                style={
+                  styles.themeIcon
+                }
+              >
+                ☀️
+              </Text>
+
+              <Animated.View
+                style={[
+                  styles.themeKnob,
+                  {
+                    backgroundColor:
+                      isDark
+                        ? "#1E293B"
+                        : "#FFFFFF",
+
+                    transform: [
+                      {
+                        translateX:
+                          themeAnimation.interpolate({
+                            inputRange: [
+                              0,
+                              1,
+                            ],
+                            outputRange: [
+                              30,
+                              0,
+                            ],
+                          }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Text
+                  style={
+                    styles.knobIcon
+                  }
+                >
+                  {isDark
+                    ? "🌙"
+                    : "☀️"}
+                </Text>
+              </Animated.View>
+            </TouchableOpacity>
+
+          </View>
 
         </View>
 
@@ -761,7 +880,7 @@ export default function OwnerTrainerDashboard() {
               },
             ]}
           >
-            OWNER + TRAINER
+            OWNER
           </Text>
         </View>
 
@@ -1122,22 +1241,6 @@ export default function OwnerTrainerDashboard() {
           onPress={() =>
             router.push(
               "/admin/adminqr"
-            )
-          }
-          colors={colors}
-        />
-
-        {/* ==================================================
-            TRAINER QUICK ACTION
-        ================================================== */}
-
-        <ActionCard
-          icon="🏃"
-          title="My Training Members"
-          subtitle="View members assigned to you"
-          onPress={() =>
-            router.push(
-              "/admin/members"
             )
           }
           colors={colors}
@@ -1798,6 +1901,56 @@ const styles =
     },
 
     // ==================================================
+    // HEADER ACTIONS
+    // ==================================================
+
+    headerActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginLeft: 8,
+    },
+
+    // ==================================================
+    // NOTIFICATIONS
+    // ==================================================
+
+    notificationButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 8,
+      position: "relative",
+    },
+
+    notificationIcon: {
+      fontSize: 19,
+    },
+
+    notificationBadge: {
+      position: "absolute",
+      top: -5,
+      right: -5,
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      paddingHorizontal: 4,
+      backgroundColor: "#EF4444",
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 2,
+      borderColor: "#FFFFFF",
+    },
+
+    notificationBadgeText: {
+      color: "#FFFFFF",
+      fontSize: 8,
+      fontWeight: "900",
+    },
+
+    // ==================================================
     // ROLE BADGE
     // ==================================================
 
@@ -1829,7 +1982,6 @@ const styles =
       justifyContent: "space-between",
       paddingHorizontal: 7,
       position: "relative",
-      marginLeft: 10,
     },
 
     themeIcon: {

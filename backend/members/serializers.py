@@ -14,6 +14,7 @@ from .models import (
     TrainerProfile,
     TrainerApplication,
     WorkoutPlan,
+    Notification,
 )
 
 
@@ -793,3 +794,33 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
             ).strip()
 
         return value
+
+# ============================================================
+# NOTIFICATION SERIALIZER
+# ============================================================
+
+class NotificationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Notification
+
+        fields = [
+            "id",
+            "notification_type",
+            "title",
+            "message",
+            "related_id",
+            "related_type",
+            "is_read",
+            "created_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "notification_type",
+            "title",
+            "message",
+            "related_id",
+            "related_type",
+            "created_at",
+        ]
