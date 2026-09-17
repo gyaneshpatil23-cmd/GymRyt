@@ -20,11 +20,20 @@ import { useTheme } from "../../context/ThemeContext";
    API CONFIGURATION
 ========================================================= */
 
-const BASE_URL = "http://192.168.1.52:8000/api/members";
+const BASE_URL =
+  "http://192.168.1.52:8000/api/members";
 
-const DASHBOARD_API = `${BASE_URL}/dashboard-stats/`;
-const MEMBERS_API = `${BASE_URL}/`;
-const PROFILE_API = `${BASE_URL}/trainer/profile/`;
+const DASHBOARD_API =
+  `${BASE_URL}/dashboard-stats/`;
+
+const MEMBERS_API =
+  `${BASE_URL}/`;
+
+const PROFILE_API =
+  `${BASE_URL}/trainer/profile/`;
+
+const NOTIFICATION_UNREAD_API =
+  `${BASE_URL}/notifications/unread-count/`;
 
 /* =========================================================
    HELPER FUNCTIONS
@@ -53,7 +62,10 @@ const getDaysRemaining = (date) => {
 
   const difference = endDate - today;
 
-  return Math.max(Math.ceil(difference / 86400000), 0);
+  return Math.max(
+    Math.ceil(difference / 86400000),
+    0
+  );
 };
 
 const getStatus = (member) => {
@@ -61,7 +73,9 @@ const getStatus = (member) => {
     return member.status.toUpperCase();
   }
 
-  const days = getDaysRemaining(member.membership_end);
+  const days = getDaysRemaining(
+    member.membership_end
+  );
 
   if (days <= 0) return "EXPIRED";
   if (days <= 7) return "EXPIRING";
@@ -85,6 +99,9 @@ export default function TrainerDashboard() {
 
   const [members, setMembers] = useState([]);
   const [trainer, setTrainer] = useState(null);
+
+  const [unreadNotificationCount, setUnreadNotificationCount] =
+    useState(0);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -116,16 +133,86 @@ export default function TrainerDashboard() {
   };
 
   /* =======================================================
+     LOAD UNREAD NOTIFICATION COUNT
+  ======================================================= */
+
+  const loadUnreadNotificationCount = async () => {
+    try {
+      const token =
+        await AsyncStorage.getItem("adminToken");
+
+      if (!token) {
+        return;
+      }
+
+      const response = await fetch(
+        NOTIFICATION_UNREAD_API,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Token ${token}`,
+          },
+        }
+      );
+
+      console.log(
+        "TRAINER NOTIFICATION COUNT STATUS:",
+        response.status
+      );
+
+      if (response.status === 401) {
+        return;
+      }
+
+      if (!response.ok) {
+        console.log(
+          "TRAINER NOTIFICATION COUNT FAILED:",
+          response.status
+        );
+        return;
+      }
+
+      const data = await response.json();
+
+      console.log(
+        "TRAINER NOTIFICATION COUNT:",
+        data
+      );
+
+      const unreadCount = Number(
+        data.unread_count ??
+        data.count ??
+        data.unread ??
+        0
+      );
+
+      setUnreadNotificationCount(
+        Math.max(unreadCount, 0)
+      );
+
+    } catch (error) {
+      console.log(
+        "UNREAD NOTIFICATION COUNT ERROR:",
+        error
+      );
+    }
+  };
+
+  /* =======================================================
      LOAD DASHBOARD
   ======================================================= */
 
-  const loadDashboard = async (initialLoad = true) => {
+  const loadDashboard = async (
+    initialLoad = true
+  ) => {
     try {
       if (initialLoad) {
         setLoading(true);
       }
 
-      const token = await AsyncStorage.getItem("adminToken");
+      const token =
+        await AsyncStorage.getItem("adminToken");
 
       if (!token) {
         return expireSession();
@@ -136,20 +223,23 @@ export default function TrainerDashboard() {
         Authorization: `Token ${token}`,
       };
 
-      const [statsResponse, membersResponse, profileResponse] =
-        await Promise.all([
-          fetch(DASHBOARD_API, {
-            headers,
-          }),
+      const [
+        statsResponse,
+        membersResponse,
+        profileResponse,
+      ] = await Promise.all([
+        fetch(DASHBOARD_API, {
+          headers,
+        }),
 
-          fetch(MEMBERS_API, {
-            headers,
-          }),
+        fetch(MEMBERS_API, {
+          headers,
+        }),
 
-          fetch(PROFILE_API, {
-            headers,
-          }),
-        ]);
+        fetch(PROFILE_API, {
+          headers,
+        }),
+      ]);
 
       /* ===================================================
          AUTHORIZATION CHECK
@@ -168,16 +258,30 @@ export default function TrainerDashboard() {
       =================================================== */
 
       if (!statsResponse.ok) {
-        throw new Error("Unable to load dashboard statistics.");
+        throw new Error(
+          "Unable to load dashboard statistics."
+        );
       }
 
-      const statsData = await statsResponse.json();
+      const statsData =
+        await statsResponse.json();
 
       setStats({
-        total_members: Number(statsData.total_members || 0),
-        active_members: Number(statsData.active_members || 0),
-        expiring_members: Number(statsData.expiring_members || 0),
-        expired_members: Number(statsData.expired_members || 0),
+        total_members: Number(
+          statsData.total_members || 0
+        ),
+
+        active_members: Number(
+          statsData.active_members || 0
+        ),
+
+        expiring_members: Number(
+          statsData.expiring_members || 0
+        ),
+
+        expired_members: Number(
+          statsData.expired_members || 0
+        ),
       });
 
       /* ===================================================
@@ -185,14 +289,20 @@ export default function TrainerDashboard() {
       =================================================== */
 
       if (!membersResponse.ok) {
-        throw new Error("Unable to load assigned members.");
+        throw new Error(
+          "Unable to load assigned members."
+        );
       }
 
-      const memberData = await membersResponse.json();
+      const memberData =
+        await membersResponse.json();
 
-      const memberList = Array.isArray(memberData)
-        ? memberData
-        : memberData.results || memberData.members || [];
+      const memberList =
+        Array.isArray(memberData)
+          ? memberData
+          : memberData.results ||
+            memberData.members ||
+            [];
 
       setMembers(memberList);
 
@@ -201,7 +311,8 @@ export default function TrainerDashboard() {
       =================================================== */
 
       if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
+        const profileData =
+          await profileResponse.json();
 
         setTrainer(
           profileData.trainer ||
@@ -209,13 +320,18 @@ export default function TrainerDashboard() {
             null
         );
       }
+
     } catch (error) {
-      console.log("TRAINER DASHBOARD ERROR:", error);
+      console.log(
+        "TRAINER DASHBOARD ERROR:",
+        error
+      );
 
       Alert.alert(
         "Connection Error",
         "Could not load your trainer dashboard. Make sure Django is running."
       );
+
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -229,6 +345,7 @@ export default function TrainerDashboard() {
   useFocusEffect(
     useCallback(() => {
       loadDashboard(true);
+      loadUnreadNotificationCount();
     }, [])
   );
 
@@ -246,11 +363,17 @@ export default function TrainerDashboard() {
         phone: member.phone || "",
         email: member.email || "",
         username: member.username || "",
-        membership_start: member.membership_start || "",
-        membership_end: member.membership_end || "",
+        membership_start:
+          member.membership_start || "",
+        membership_end:
+          member.membership_end || "",
         status: member.status || "",
-        id_verified: member.id_verified ? "true" : "false",
-        trainer_name: member.trainer_name || "",
+        id_verified:
+          member.id_verified
+            ? "true"
+            : "false",
+        trainer_name:
+          member.trainer_name || "",
       },
     });
   };
@@ -265,7 +388,8 @@ export default function TrainerDashboard() {
         style={[
           styles.loadingContainer,
           {
-            backgroundColor: colors.background,
+            backgroundColor:
+              colors.background,
           },
         ]}
       >
@@ -319,19 +443,24 @@ export default function TrainerDashboard() {
       style={[
         styles.container,
         {
-          backgroundColor: colors.background,
+          backgroundColor:
+            colors.background,
         },
       ]}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={
+          styles.scrollContent
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
+
               loadDashboard(false);
+              loadUnreadNotificationCount();
             }}
             tintColor={colors.primary}
           />
@@ -348,14 +477,21 @@ export default function TrainerDashboard() {
 
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => router.push("/trainer/profile")}
+            onPress={() =>
+              router.push(
+                "/trainer/profile"
+              )
+            }
           >
             <View
               style={[
                 styles.profilePhotoWrapper,
                 {
-                  borderColor: colors.primary,
-                  backgroundColor: colors.iconBackground,
+                  borderColor:
+                    colors.primary,
+
+                  backgroundColor:
+                    colors.iconBackground,
                 },
               ]}
             >
@@ -364,18 +500,23 @@ export default function TrainerDashboard() {
                   source={{
                     uri: profilePicture,
                   }}
-                  style={styles.profilePhoto}
+                  style={
+                    styles.profilePhoto
+                  }
                 />
               ) : (
                 <Text
                   style={[
                     styles.profileInitials,
                     {
-                      color: colors.primaryLight,
+                      color:
+                        colors.primaryLight,
                     },
                   ]}
                 >
-                  {getInitials(trainerName)}
+                  {getInitials(
+                    trainerName
+                  )}
                 </Text>
               )}
             </View>
@@ -388,7 +529,8 @@ export default function TrainerDashboard() {
               style={[
                 styles.eyebrow,
                 {
-                  color: colors.primaryLight,
+                  color:
+                    colors.primaryLight,
                 },
               ]}
             >
@@ -411,7 +553,8 @@ export default function TrainerDashboard() {
               style={[
                 styles.specialization,
                 {
-                  color: colors.secondaryText,
+                  color:
+                    colors.secondaryText,
                 },
               ]}
               numberOfLines={1}
@@ -419,18 +562,23 @@ export default function TrainerDashboard() {
               {specialization}
             </Text>
 
-            <View style={styles.locationRow}>
+            <View
+              style={styles.locationRow}
+            >
               <Ionicons
                 name="location"
                 size={15}
-                color={colors.secondaryText}
+                color={
+                  colors.secondaryText
+                }
               />
 
               <Text
                 style={[
                   styles.locationText,
                   {
-                    color: colors.secondaryText,
+                    color:
+                      colors.secondaryText,
                   },
                 ]}
                 numberOfLines={1}
@@ -440,38 +588,63 @@ export default function TrainerDashboard() {
             </View>
           </View>
 
-          {/* NOTIFICATION */}
+          {/* =================================================
+              NOTIFICATION BUTTON
+          ================================================= */}
 
           <TouchableOpacity
             style={[
               styles.notificationButton,
               {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
+                backgroundColor:
+                  colors.card,
+
+                borderColor:
+                  colors.border,
               },
             ]}
             activeOpacity={0.8}
-            onPress={() => {
-              Alert.alert(
-                "Notifications",
-                "No new notifications."
-              );
-            }}
+            onPress={() =>
+              router.push(
+                "/admin/notifications"
+              )
+            }
           >
             <Ionicons
-              name="notifications-outline"
+              name={
+                unreadNotificationCount > 0
+                  ? "notifications"
+                  : "notifications-outline"
+              }
               size={25}
               color={colors.text}
             />
 
-            <View
-              style={[
-                styles.notificationDot,
-                {
-                  backgroundColor: colors.primaryLight,
-                },
-              ]}
-            />
+            {/* UNREAD BADGE */}
+
+            {unreadNotificationCount >
+              0 && (
+              <View
+                style={[
+                  styles.notificationBadge,
+                  {
+                    backgroundColor:
+                      "#EF4444",
+                  },
+                ]}
+              >
+                <Text
+                  style={
+                    styles.notificationBadgeText
+                  }
+                >
+                  {unreadNotificationCount >
+                  9
+                    ? "9+"
+                    : unreadNotificationCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -483,17 +656,25 @@ export default function TrainerDashboard() {
           style={[
             styles.overviewCard,
             {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
+              backgroundColor:
+                colors.card,
+
+              borderColor:
+                colors.border,
             },
           ]}
         >
-          <View style={styles.overviewHeader}>
+          <View
+            style={
+              styles.overviewHeader
+            }
+          >
             <Text
               style={[
                 styles.overviewTitle,
                 {
-                  color: colors.text,
+                  color:
+                    colors.text,
                 },
               ]}
             >
@@ -504,22 +685,28 @@ export default function TrainerDashboard() {
               style={[
                 styles.todayBadge,
                 {
-                  backgroundColor: colors.iconBackground,
-                  borderColor: colors.border,
+                  backgroundColor:
+                    colors.iconBackground,
+
+                  borderColor:
+                    colors.border,
                 },
               ]}
             >
               <Ionicons
                 name="calendar-outline"
                 size={14}
-                color={colors.secondaryText}
+                color={
+                  colors.secondaryText
+                }
               />
 
               <Text
                 style={[
                   styles.todayText,
                   {
-                    color: colors.secondaryText,
+                    color:
+                      colors.secondaryText,
                   },
                 ]}
               >
@@ -528,12 +715,16 @@ export default function TrainerDashboard() {
             </View>
           </View>
 
-          <View style={styles.statsGrid}>
+          <View
+            style={styles.statsGrid}
+          >
 
             {/* TOTAL MEMBERS */}
 
             <OverviewStat
-              value={stats.total_members}
+              value={
+                stats.total_members
+              }
               label="TOTAL MEMBERS"
               icon="people"
               colors={colors}
@@ -543,7 +734,9 @@ export default function TrainerDashboard() {
             {/* ACTIVE MEMBERS */}
 
             <OverviewStat
-              value={stats.active_members}
+              value={
+                stats.active_members
+              }
               label="ACTIVE MEMBERS"
               icon="person"
               colors={colors}
@@ -553,7 +746,9 @@ export default function TrainerDashboard() {
             {/* EXPIRING */}
 
             <OverviewStat
-              value={stats.expiring_members}
+              value={
+                stats.expiring_members
+              }
               label="EXPIRING SOON"
               icon="time"
               colors={colors}
@@ -563,12 +758,15 @@ export default function TrainerDashboard() {
             {/* EXPIRED */}
 
             <OverviewStat
-              value={stats.expired_members}
+              value={
+                stats.expired_members
+              }
               label="EXPIRED MEMBERS"
               icon="person-remove"
               colors={colors}
               iconColor="#FF5870"
             />
+
           </View>
         </View>
 
@@ -576,7 +774,9 @@ export default function TrainerDashboard() {
             MY MEMBERS HEADER
         ================================================= */}
 
-        <View style={styles.membersHeader}>
+        <View
+          style={styles.membersHeader}
+        >
           <Text
             style={[
               styles.sectionTitle,
@@ -589,8 +789,14 @@ export default function TrainerDashboard() {
           </Text>
 
           <TouchableOpacity
-            style={styles.membersCountContainer}
-            onPress={() => router.push("/trainer/members")}
+            style={
+              styles.membersCountContainer
+            }
+            onPress={() =>
+              router.push(
+                "/trainer/members"
+              )
+            }
           >
             <Text
               style={[
@@ -606,7 +812,9 @@ export default function TrainerDashboard() {
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={colors.secondaryText}
+              color={
+                colors.secondaryText
+              }
             />
           </TouchableOpacity>
         </View>
@@ -620,8 +828,11 @@ export default function TrainerDashboard() {
             style={[
               styles.emptyCard,
               {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
+                backgroundColor:
+                  colors.card,
+
+                borderColor:
+                  colors.border,
               },
             ]}
           >
@@ -629,14 +840,17 @@ export default function TrainerDashboard() {
               style={[
                 styles.emptyIconContainer,
                 {
-                  backgroundColor: colors.iconBackground,
+                  backgroundColor:
+                    colors.iconBackground,
                 },
               ]}
             >
               <Ionicons
                 name="people-outline"
                 size={30}
-                color={colors.primaryLight}
+                color={
+                  colors.primaryLight
+                }
               />
             </View>
 
@@ -644,7 +858,8 @@ export default function TrainerDashboard() {
               style={[
                 styles.emptyTitle,
                 {
-                  color: colors.text,
+                  color:
+                    colors.text,
                 },
               ]}
             >
@@ -655,11 +870,13 @@ export default function TrainerDashboard() {
               style={[
                 styles.emptyText,
                 {
-                  color: colors.mutedText,
+                  color:
+                    colors.mutedText,
                 },
               ]}
             >
-              Members assigned to you will appear here.
+              Members assigned to you
+              will appear here.
             </Text>
           </View>
         ) : (
@@ -668,7 +885,9 @@ export default function TrainerDashboard() {
               key={member.id}
               member={member}
               colors={colors}
-              onPress={() => openMember(member)}
+              onPress={() =>
+                openMember(member)
+              }
             />
           ))
         )}
@@ -679,11 +898,16 @@ export default function TrainerDashboard() {
 
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.push("/trainer/profile")}
+          onPress={() =>
+            router.push(
+              "/trainer/profile"
+            )
+          }
           style={[
             styles.profileActionCard,
             {
-              borderColor: colors.border,
+              borderColor:
+                colors.border,
             },
           ]}
         >
@@ -691,23 +915,31 @@ export default function TrainerDashboard() {
             style={[
               styles.profileActionIcon,
               {
-                backgroundColor: colors.iconBackground,
+                backgroundColor:
+                  colors.iconBackground,
               },
             ]}
           >
             <Ionicons
               name="person-outline"
               size={30}
-              color={colors.primaryLight}
+              color={
+                colors.primaryLight
+              }
             />
           </View>
 
-          <View style={styles.profileActionInfo}>
+          <View
+            style={
+              styles.profileActionInfo
+            }
+          >
             <Text
               style={[
                 styles.profileActionTitle,
                 {
-                  color: colors.text,
+                  color:
+                    colors.text,
                 },
               ]}
             >
@@ -718,7 +950,8 @@ export default function TrainerDashboard() {
               style={[
                 styles.profileActionSubtitle,
                 {
-                  color: colors.secondaryText,
+                  color:
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -763,8 +996,11 @@ function OverviewStat({
       style={[
         styles.overviewStat,
         {
-          backgroundColor: colors.background,
-          borderColor: colors.border,
+          backgroundColor:
+            colors.background,
+
+          borderColor:
+            colors.border,
         },
       ]}
     >
@@ -772,7 +1008,8 @@ function OverviewStat({
         style={[
           styles.statIconCircle,
           {
-            backgroundColor: `${iconColor}18`,
+            backgroundColor:
+              `${iconColor}18`,
           },
         ]}
       >
@@ -783,7 +1020,9 @@ function OverviewStat({
         />
       </View>
 
-      <View style={styles.statContent}>
+      <View
+        style={styles.statContent}
+      >
         <Text
           style={[
             styles.statValue,
@@ -799,7 +1038,8 @@ function OverviewStat({
           style={[
             styles.statLabel,
             {
-              color: colors.secondaryText,
+              color:
+                colors.secondaryText,
             },
           ]}
         >
@@ -819,20 +1059,26 @@ function MemberCard({
   colors,
   onPress,
 }) {
-  const status = getStatus(member);
+  const status =
+    getStatus(member);
 
-  const days = getDaysRemaining(
-    member.membership_end
-  );
+  const days =
+    getDaysRemaining(
+      member.membership_end
+    );
 
-  const isExpired = status === "EXPIRED";
-  const isExpiring = status === "EXPIRING";
+  const isExpired =
+    status === "EXPIRED";
 
-  const statusColor = isExpired
-    ? "#FF5870"
-    : isExpiring
-    ? "#FFB21C"
-    : "#45E0A5";
+  const isExpiring =
+    status === "EXPIRING";
+
+  const statusColor =
+    isExpired
+      ? "#FF5870"
+      : isExpiring
+      ? "#FFB21C"
+      : "#45E0A5";
 
   const memberName =
     member.name ||
@@ -851,8 +1097,11 @@ function MemberCard({
       style={[
         styles.memberCard,
         {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
+          backgroundColor:
+            colors.card,
+
+          borderColor:
+            colors.border,
         },
       ]}
     >
@@ -863,8 +1112,11 @@ function MemberCard({
         style={[
           styles.memberAvatarContainer,
           {
-            backgroundColor: colors.iconBackground,
-            borderColor: `${statusColor}55`,
+            backgroundColor:
+              colors.iconBackground,
+
+            borderColor:
+              `${statusColor}55`,
           },
         ]}
       >
@@ -873,25 +1125,32 @@ function MemberCard({
             source={{
               uri: profilePicture,
             }}
-            style={styles.memberAvatarImage}
+            style={
+              styles.memberAvatarImage
+            }
           />
         ) : (
           <Text
             style={[
               styles.memberAvatarText,
               {
-                color: statusColor,
+                color:
+                  statusColor,
               },
             ]}
           >
-            {getInitials(memberName)}
+            {getInitials(
+              memberName
+            )}
           </Text>
         )}
       </View>
 
       {/* MEMBER INFORMATION */}
 
-      <View style={styles.memberInfo}>
+      <View
+        style={styles.memberInfo}
+      >
         <Text
           style={[
             styles.memberName,
@@ -928,8 +1187,11 @@ function MemberCard({
         style={[
           styles.statusBadge,
           {
-            backgroundColor: `${statusColor}18`,
-            borderColor: `${statusColor}55`,
+            backgroundColor:
+              `${statusColor}18`,
+
+            borderColor:
+              `${statusColor}55`,
           },
         ]}
       >
@@ -937,7 +1199,8 @@ function MemberCard({
           style={[
             styles.statusText,
             {
-              color: statusColor,
+              color:
+                statusColor,
             },
           ]}
         >
@@ -950,8 +1213,12 @@ function MemberCard({
       <Ionicons
         name="chevron-forward"
         size={23}
-        color={colors.secondaryText}
-        style={styles.memberArrow}
+        color={
+          colors.secondaryText
+        }
+        style={
+          styles.memberArrow
+        }
       />
     </TouchableOpacity>
   );
@@ -967,22 +1234,30 @@ function TrainerBottomNav({
 }) {
   const goTo = (screen) => {
     if (screen === "home") {
-      router.replace("/trainer/dashboard");
+      router.replace(
+        "/trainer/dashboard"
+      );
       return;
     }
 
     if (screen === "members") {
-      router.push("/trainer/members");
+      router.push(
+        "/trainer/members"
+      );
       return;
     }
 
     if (screen === "workouts") {
-      router.push("/trainer/workouts");
+      router.push(
+        "/trainer/workouts"
+      );
       return;
     }
 
     if (screen === "profile") {
-      router.push("/trainer/profile");
+      router.push(
+        "/trainer/profile"
+      );
     }
   };
 
@@ -991,41 +1266,60 @@ function TrainerBottomNav({
       style={[
         styles.bottomNav,
         {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
+          backgroundColor:
+            colors.card,
+
+          borderColor:
+            colors.border,
         },
       ]}
     >
       <BottomNavItem
         icon="home"
         label="Home"
-        active={active === "home"}
+        active={
+          active === "home"
+        }
         colors={colors}
-        onPress={() => goTo("home")}
+        onPress={() =>
+          goTo("home")
+        }
       />
 
       <BottomNavItem
         icon="people-outline"
         label="Members"
-        active={active === "members"}
+        active={
+          active === "members"
+        }
         colors={colors}
-        onPress={() => goTo("members")}
+        onPress={() =>
+          goTo("members")
+        }
       />
 
       <BottomNavItem
         icon="barbell-outline"
         label="Workouts"
-        active={active === "workouts"}
+        active={
+          active === "workouts"
+        }
         colors={colors}
-        onPress={() => goTo("workouts")}
+        onPress={() =>
+          goTo("workouts")
+        }
       />
 
       <BottomNavItem
         icon="person-outline"
         label="Profile"
-        active={active === "profile"}
+        active={
+          active === "profile"
+        }
         colors={colors}
-        onPress={() => goTo("profile")}
+        onPress={() =>
+          goTo("profile")
+        }
       />
     </View>
   );
@@ -1046,13 +1340,16 @@ function BottomNavItem({
     <TouchableOpacity
       activeOpacity={0.75}
       onPress={onPress}
-      style={styles.bottomNavItem}
+      style={
+        styles.bottomNavItem
+      }
     >
       <View
         style={[
           styles.bottomIconContainer,
           active && {
-            backgroundColor: colors.iconBackground,
+            backgroundColor:
+              colors.iconBackground,
           },
         ]}
       >
@@ -1085,7 +1382,8 @@ function BottomNavItem({
           style={[
             styles.activeIndicator,
             {
-              backgroundColor: colors.primaryLight,
+              backgroundColor:
+                colors.primaryLight,
             },
           ]}
         />
@@ -1098,421 +1396,442 @@ function BottomNavItem({
    STYLES
 ========================================================= */
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+const styles =
+  StyleSheet.create({
 
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingText: {
-    marginTop: 12,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 55 : 45,
-    paddingBottom: 145,
-  },
-
-  /* =======================================================
-     HEADER
-  ======================================================= */
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 27,
-  },
-
-  profilePhotoWrapper: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-
-  profilePhoto: {
-    width: "100%",
-    height: "100%",
-  },
-
-  profileInitials: {
-    fontSize: 27,
-    fontWeight: "900",
-  },
-
-  headerInfo: {
-    flex: 1,
-    marginLeft: 15,
-    marginRight: 8,
-  },
-
-  eyebrow: {
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1.4,
-  },
-
-  trainerName: {
-    fontSize: 23,
-    fontWeight: "900",
-    marginTop: 4,
-  },
-
-  specialization: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 3,
-  },
-
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 6,
-  },
-
-  locationText: {
-    fontSize: 10,
-    marginLeft: 4,
-    flex: 1,
-  },
-
-  notificationButton: {
-    width: 43,
-    height: 43,
-    borderRadius: 15,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-
-  notificationDot: {
-    position: "absolute",
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    right: 8,
-    top: 7,
-  },
-
-  /* =======================================================
-     OVERVIEW
-  ======================================================= */
-
-  overviewCard: {
-    borderWidth: 1,
-    borderRadius: 21,
-    padding: 16,
-    marginBottom: 27,
-  },
-
-  overviewHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 17,
-  },
-
-  overviewTitle: {
-    fontSize: 15,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  todayBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 15,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-
-  todayText: {
-    fontSize: 9,
-    fontWeight: "700",
-    marginLeft: 5,
-  },
-
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-
-  overviewStat: {
-    width: "48.4%",
-    minHeight: 116,
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 13,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  statIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  statContent: {
-    flex: 1,
-    marginLeft: 10,
-  },
-
-  statValue: {
-    fontSize: 27,
-    fontWeight: "900",
-  },
-
-  statLabel: {
-    fontSize: 8,
-    fontWeight: "900",
-    marginTop: 4,
-    lineHeight: 11,
-  },
-
-  /* =======================================================
-     MEMBERS HEADER
-  ======================================================= */
-
-  membersHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 13,
-  },
-
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  membersCountContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  membersCount: {
-    fontSize: 18,
-    fontWeight: "900",
-    marginRight: 4,
-  },
-
-  /* =======================================================
-     MEMBER CARD
-  ======================================================= */
-
-  memberCard: {
-    minHeight: 88,
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingVertical: 11,
-    paddingLeft: 11,
-    paddingRight: 9,
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  memberAvatarContainer: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-
-  memberAvatarImage: {
-    width: "100%",
-    height: "100%",
-  },
-
-  memberAvatarText: {
-    fontSize: 18,
-    fontWeight: "900",
-  },
-
-  memberInfo: {
-    flex: 1,
-    marginLeft: 12,
-    marginRight: 7,
-  },
-
-  memberName: {
-    fontSize: 13,
-    fontWeight: "900",
-  },
-
-  memberDays: {
-    fontSize: 10,
-    fontWeight: "600",
-    marginTop: 5,
-  },
-
-  statusBadge: {
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-
-  statusText: {
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 0.4,
-  },
-
-  memberArrow: {
-    marginLeft: 7,
-  },
-
-  /* =======================================================
-     EMPTY MEMBERS
-  ======================================================= */
-
-  emptyCard: {
-    borderWidth: 1,
-    borderRadius: 19,
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  emptyIconContainer: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: "900",
-    marginTop: 12,
-  },
-
-  emptyText: {
-    fontSize: 10,
-    marginTop: 5,
-    textAlign: "center",
-  },
-
-  /* =======================================================
-     PROFILE ACTION
-  ======================================================= */
-
-  profileActionCard: {
-    minHeight: 110,
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    marginTop: 10,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(90, 65, 180, 0.22)",
-  },
-
-  profileActionIcon: {
-    width: 61,
-    height: 61,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  profileActionInfo: {
-    flex: 1,
-    marginLeft: 15,
-  },
-
-  profileActionTitle: {
-    fontSize: 14,
-    fontWeight: "900",
-    letterSpacing: 0.7,
-  },
-
-  profileActionSubtitle: {
-    fontSize: 10,
-    marginTop: 5,
-  },
-
-  /* =======================================================
-     BOTTOM NAVIGATION
-  ======================================================= */
-
-  bottomNav: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 91,
-    borderTopWidth: 1,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-around",
-    paddingTop: 10,
-
-    shadowOffset: {
-      width: 0,
-      height: -4,
+    container: {
+      flex: 1,
     },
 
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
+    loadingContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-    elevation: 20,
-  },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 12,
+      fontWeight: "700",
+    },
 
-  bottomNavItem: {
-    width: "25%",
-    height: 76,
-    alignItems: "center",
-    justifyContent: "flex-start",
-    position: "relative",
-  },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 55
+          : 45,
+      paddingBottom: 145,
+    },
 
-  bottomIconContainer: {
-    width: 48,
-    height: 39,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    /* =======================================================
+       HEADER
+    ======================================================= */
 
-  bottomLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    marginTop: 2,
-  },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 27,
+    },
 
-  activeIndicator: {
-    width: 32,
-    height: 4,
-    borderRadius: 4,
-    marginTop: 6,
-  },
-});
+    profilePhotoWrapper: {
+      width: 82,
+      height: 82,
+      borderRadius: 41,
+      borderWidth: 2,
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+    },
+
+    profilePhoto: {
+      width: "100%",
+      height: "100%",
+    },
+
+    profileInitials: {
+      fontSize: 27,
+      fontWeight: "900",
+    },
+
+    headerInfo: {
+      flex: 1,
+      marginLeft: 15,
+      marginRight: 8,
+    },
+
+    eyebrow: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.4,
+    },
+
+    trainerName: {
+      fontSize: 23,
+      fontWeight: "900",
+      marginTop: 4,
+    },
+
+    specialization: {
+      fontSize: 13,
+      fontWeight: "600",
+      marginTop: 3,
+    },
+
+    locationRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 6,
+    },
+
+    locationText: {
+      fontSize: 10,
+      marginLeft: 4,
+      flex: 1,
+    },
+
+    notificationButton: {
+      width: 43,
+      height: 43,
+      borderRadius: 15,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      position: "relative",
+    },
+
+    /* =======================================================
+       NOTIFICATION BADGE
+    ======================================================= */
+
+    notificationBadge: {
+      position: "absolute",
+      right: -4,
+      top: -5,
+      minWidth: 18,
+      height: 18,
+      paddingHorizontal: 4,
+      borderRadius: 9,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 2,
+      borderColor: "#050816",
+    },
+
+    notificationBadgeText: {
+      color: "#FFFFFF",
+      fontSize: 8,
+      fontWeight: "900",
+    },
+
+    /* =======================================================
+       OVERVIEW
+    ======================================================= */
+
+    overviewCard: {
+      borderWidth: 1,
+      borderRadius: 21,
+      padding: 16,
+      marginBottom: 27,
+    },
+
+    overviewHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 17,
+    },
+
+    overviewTitle: {
+      fontSize: 15,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+
+    todayBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderRadius: 15,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+    },
+
+    todayText: {
+      fontSize: 9,
+      fontWeight: "700",
+      marginLeft: 5,
+    },
+
+    statsGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    },
+
+    overviewStat: {
+      width: "48.4%",
+      minHeight: 116,
+      borderWidth: 1,
+      borderRadius: 18,
+      padding: 13,
+      marginBottom: 10,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+
+    statIconCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    statContent: {
+      flex: 1,
+      marginLeft: 10,
+    },
+
+    statValue: {
+      fontSize: 27,
+      fontWeight: "900",
+    },
+
+    statLabel: {
+      fontSize: 8,
+      fontWeight: "900",
+      marginTop: 4,
+      lineHeight: 11,
+    },
+
+    /* =======================================================
+       MEMBERS HEADER
+    ======================================================= */
+
+    membersHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 13,
+    },
+
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+
+    membersCountContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+
+    membersCount: {
+      fontSize: 18,
+      fontWeight: "900",
+      marginRight: 4,
+    },
+
+    /* =======================================================
+       MEMBER CARD
+    ======================================================= */
+
+    memberCard: {
+      minHeight: 88,
+      borderWidth: 1,
+      borderRadius: 18,
+      paddingVertical: 11,
+      paddingLeft: 11,
+      paddingRight: 9,
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 10,
+    },
+
+    memberAvatarContainer: {
+      width: 58,
+      height: 58,
+      borderRadius: 18,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+    },
+
+    memberAvatarImage: {
+      width: "100%",
+      height: "100%",
+    },
+
+    memberAvatarText: {
+      fontSize: 18,
+      fontWeight: "900",
+    },
+
+    memberInfo: {
+      flex: 1,
+      marginLeft: 12,
+      marginRight: 7,
+    },
+
+    memberName: {
+      fontSize: 13,
+      fontWeight: "900",
+    },
+
+    memberDays: {
+      fontSize: 10,
+      fontWeight: "600",
+      marginTop: 5,
+    },
+
+    statusBadge: {
+      borderWidth: 1,
+      borderRadius: 16,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+    },
+
+    statusText: {
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 0.4,
+    },
+
+    memberArrow: {
+      marginLeft: 7,
+    },
+
+    /* =======================================================
+       EMPTY MEMBERS
+    ======================================================= */
+
+    emptyCard: {
+      borderWidth: 1,
+      borderRadius: 19,
+      paddingVertical: 30,
+      paddingHorizontal: 20,
+      alignItems: "center",
+      marginBottom: 10,
+    },
+
+    emptyIconContainer: {
+      width: 58,
+      height: 58,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    emptyTitle: {
+      fontSize: 15,
+      fontWeight: "900",
+      marginTop: 12,
+    },
+
+    emptyText: {
+      fontSize: 10,
+      marginTop: 5,
+      textAlign: "center",
+    },
+
+    /* =======================================================
+       PROFILE ACTION
+    ======================================================= */
+
+    profileActionCard: {
+      minHeight: 110,
+      borderWidth: 1,
+      borderRadius: 20,
+      paddingHorizontal: 18,
+      marginTop: 10,
+      marginBottom: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor:
+        "rgba(90, 65, 180, 0.22)",
+    },
+
+    profileActionIcon: {
+      width: 61,
+      height: 61,
+      borderRadius: 17,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    profileActionInfo: {
+      flex: 1,
+      marginLeft: 15,
+    },
+
+    profileActionTitle: {
+      fontSize: 14,
+      fontWeight: "900",
+      letterSpacing: 0.7,
+    },
+
+    profileActionSubtitle: {
+      fontSize: 10,
+      marginTop: 5,
+    },
+
+    /* =======================================================
+       BOTTOM NAVIGATION
+    ======================================================= */
+
+    bottomNav: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 91,
+      borderTopWidth: 1,
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-around",
+      paddingTop: 10,
+
+      shadowOffset: {
+        width: 0,
+        height: -4,
+      },
+
+      shadowOpacity: 0.15,
+      shadowRadius: 15,
+
+      elevation: 20,
+    },
+
+    bottomNavItem: {
+      width: "25%",
+      height: 76,
+      alignItems: "center",
+      justifyContent: "flex-start",
+      position: "relative",
+    },
+
+    bottomIconContainer: {
+      width: 48,
+      height: 39,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    bottomLabel: {
+      fontSize: 9,
+      fontWeight: "800",
+      marginTop: 2,
+    },
+
+    activeIndicator: {
+      width: 32,
+      height: 4,
+      borderRadius: 4,
+      marginTop: 6,
+    },
+  });

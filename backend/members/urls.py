@@ -60,6 +60,22 @@ from .views import (
     # ========================================================
     MemberListCreateView,
     MemberDetailView,
+
+    # ========================================================
+    # OWNER / TRAINER NOTIFICATIONS
+    # ========================================================
+    NotificationListView,
+    NotificationUnreadCountView,
+    NotificationReadView,
+    NotificationMarkAllReadView,
+
+    # ========================================================
+    # MEMBER NOTIFICATIONS
+    # ========================================================
+    MemberNotificationListView,
+    MemberNotificationUnreadCountView,
+    MemberNotificationReadView,
+    MemberNotificationMarkAllReadView,
 )
 
 
@@ -198,6 +214,7 @@ urlpatterns = [
 
     # ------------------------------------------------------------
     # List all trainers
+    #
     # GET:
     # /api/members/trainers/
     # ------------------------------------------------------------
@@ -210,6 +227,7 @@ urlpatterns = [
 
     # ------------------------------------------------------------
     # Create trainer
+    #
     # POST:
     # /api/members/trainers/create/
     # ------------------------------------------------------------
@@ -347,6 +365,64 @@ urlpatterns = [
         "<int:pk>/",
         MemberDetailView.as_view(),
         name="member-detail",
+    ),
+
+
+    # ============================================================
+    # OWNER / TRAINER NOTIFICATIONS
+    # ============================================================
+
+    path(
+        "notifications/",
+        NotificationListView.as_view(),
+        name="notification-list",
+    ),
+
+    path(
+        "notifications/unread-count/",
+        NotificationUnreadCountView.as_view(),
+        name="notification-unread-count",
+    ),
+
+    path(
+        "notifications/<int:pk>/read/",
+        NotificationReadView.as_view(),
+        name="notification-read",
+    ),
+
+    path(
+        "notifications/mark-all-read/",
+        NotificationMarkAllReadView.as_view(),
+        name="notification-mark-all-read",
+    ),
+
+
+    # ============================================================
+    # MEMBER NOTIFICATIONS
+    # ============================================================
+
+    path(
+        "member-notifications/",
+        MemberNotificationListView.as_view(),
+        name="member-notification-list",
+    ),
+
+    path(
+        "member-notifications/unread-count/",
+        MemberNotificationUnreadCountView.as_view(),
+        name="member-notification-unread-count",
+    ),
+
+    path(
+        "member-notifications/<int:pk>/read/",
+        MemberNotificationReadView.as_view(),
+        name="member-notification-read",
+    ),
+
+    path(
+        "member-notifications/mark-all-read/",
+        MemberNotificationMarkAllReadView.as_view(),
+        name="member-notification-mark-all-read",
     ),
 
 ]

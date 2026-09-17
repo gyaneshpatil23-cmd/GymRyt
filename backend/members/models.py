@@ -929,57 +929,19 @@ class WorkoutPlan(models.Model):
 class Notification(models.Model):
     """
     Stores notifications for owners, trainers and members.
-
-    Examples:
-    - New trainer application
-    - New member joined
-    - Trainer assigned
-    - Workout uploaded
-    - Membership expiring
-    - Payment received
     """
 
     NOTIFICATION_TYPE_CHOICES = [
-        (
-            "TRAINER_APPLICATION",
-            "Trainer Application",
-        ),
-        (
-            "NEW_MEMBER",
-            "New Member",
-        ),
-        (
-            "TRAINER_ASSIGNED",
-            "Trainer Assigned",
-        ),
-        (
-            "WORKOUT_UPLOADED",
-            "Workout Uploaded",
-        ),
-        (
-            "MEMBERSHIP_EXPIRING",
-            "Membership Expiring",
-        ),
-        (
-            "MEMBERSHIP_EXPIRED",
-            "Membership Expired",
-        ),
-        (
-            "PAYMENT_RECEIVED",
-            "Payment Received",
-        ),
-        (
-            "PAYMENT_FAILED",
-            "Payment Failed",
-        ),
-        (
-            "MEMBER_REMOVED",
-            "Member Removed",
-        ),
-        (
-            "WELCOME",
-            "Welcome",
-        ),
+        ("TRAINER_APPLICATION", "Trainer Application"),
+        ("NEW_MEMBER", "New Member"),
+        ("TRAINER_ASSIGNED", "Trainer Assigned"),
+        ("WORKOUT_UPLOADED", "Workout Uploaded"),
+        ("MEMBERSHIP_EXPIRING", "Membership Expiring"),
+        ("MEMBERSHIP_EXPIRED", "Membership Expired"),
+        ("PAYMENT_RECEIVED", "Payment Received"),
+        ("PAYMENT_FAILED", "Payment Failed"),
+        ("MEMBER_REMOVED", "Member Removed"),
+        ("WELCOME", "Welcome"),
     ]
 
     id = models.BigAutoField(
@@ -987,13 +949,27 @@ class Notification(models.Model):
     )
 
     # --------------------------------------------------------
-    # WHO RECEIVES THE NOTIFICATION
+    # OWNER / TRAINER RECIPIENT
     # --------------------------------------------------------
 
     recipient = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="notifications",
+        null=True,
+        blank=True,
+    )
+
+    # --------------------------------------------------------
+    # MEMBER RECIPIENT
+    # --------------------------------------------------------
+
+    recipient_member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name="member_notifications",
+        null=True,
+        blank=True,
     )
 
     # --------------------------------------------------------
@@ -1028,25 +1004,6 @@ class Notification(models.Model):
     # --------------------------------------------------------
     # RELATED OBJECT
     # --------------------------------------------------------
-    #
-    # These two fields allow the notification to open the
-    # correct screen when the user taps it.
-    #
-    # Example:
-    #
-    # Trainer Application #9
-    #
-    # related_type = "trainer_application"
-    # related_id   = 9
-    #
-    # Later:
-    #
-    # Member #15
-    #
-    # related_type = "member"
-    # related_id   = 15
-    #
-    # --------------------------------------------------------
 
     related_id = models.BigIntegerField(
         null=True,
@@ -1074,6 +1031,10 @@ class Notification(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True
     )
+
+    # --------------------------------------------------------
+    # META
+    # --------------------------------------------------------
 
     class Meta:
 
@@ -1106,9 +1067,29 @@ class Notification(models.Model):
             ),
         ]
 
+    # --------------------------------------------------------
+    # STRING REPRESENTATION
+    # --------------------------------------------------------
+
     def __str__(self):
 
+        if self.recipient_id:
+
+            recipient_name = (
+                self.recipient.username
+            )
+
+        elif self.recipient_member_id:
+
+            recipient_name = (
+                self.recipient_member.name
+            )
+
+        else:
+
+            recipient_name = "Unknown"
+
         return (
-            f"{self.recipient.username} - "
+            f"{recipient_name} - "
             f"{self.title}"
         )

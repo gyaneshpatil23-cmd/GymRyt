@@ -14,10 +14,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Keyboard,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 // ============================================================
 // API
@@ -25,23 +25,19 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_URL = "http://192.168.1.52:8000";
 
+
 // ============================================================
 // LOGIN SCREEN
 // ============================================================
 
 export default function LoginScreen() {
+
   // ==========================================================
   // MODE
   // ==========================================================
 
   const [isCreateAccount, setIsCreateAccount] = useState(false);
 
-  // "select_role" | "form"
-  const [createAccountStep, setCreateAccountStep] =
-    useState("select_role");
-
-  // "OWNER" | "OWNER_TRAINER"
-  const [selectedRole, setSelectedRole] = useState(null);
 
   // ==========================================================
   // LOGIN
@@ -49,6 +45,7 @@ export default function LoginScreen() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
 
   // ==========================================================
   // CREATE ACCOUNT
@@ -60,21 +57,26 @@ export default function LoginScreen() {
   const [createPassword, setCreatePassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+
   // ==========================================================
   // PASSWORD VISIBILITY
   // ==========================================================
 
   const [showPassword, setShowPassword] = useState(false);
+
   const [showCreatePassword, setShowCreatePassword] =
     useState(false);
+
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
+
 
   // ==========================================================
   // LOADING
   // ==========================================================
 
   const [loading, setLoading] = useState(false);
+
 
   // ==========================================================
   // FOCUS STATES
@@ -101,14 +103,12 @@ export default function LoginScreen() {
   const [confirmPasswordFocused, setConfirmPasswordFocused] =
     useState(false);
 
+
   // ==========================================================
   // REFS
   // ==========================================================
 
   const scrollViewRef = useRef(null);
-
-  const loginUsernameRef = useRef(null);
-  const loginPasswordRef = useRef(null);
 
   const fullNameRef = useRef(null);
   const emailRef = useRef(null);
@@ -116,91 +116,14 @@ export default function LoginScreen() {
   const createPasswordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
 
-  // ==========================================================
-  // KEYBOARD AUTO-SCROLL
-  // ==========================================================
-
-  const scrollToInput = (ref, extraOffset = 100) => {
-    if (!ref?.current || !scrollViewRef.current) {
-      return;
-    }
-
-    setTimeout(() => {
-      ref.current?.measureLayout(
-        scrollViewRef.current.getInnerViewNode?.() ||
-          scrollViewRef.current,
-        (x, y) => {
-          scrollViewRef.current?.scrollTo({
-            y: Math.max(0, y - extraOffset),
-            animated: true,
-          });
-        },
-        () => {
-          // Fallback if measureLayout is unavailable
-          scrollViewRef.current?.scrollToEnd({
-            animated: true,
-          });
-        }
-      );
-    }, 250);
-  };
-
-  // More reliable scrolling method for React Native forms.
-  const handleInputFocus = (ref, fallbackY = 0) => {
-    setTimeout(() => {
-      if (!scrollViewRef.current) {
-        return;
-      }
-
-      if (ref?.current?.measureInWindow) {
-        ref.current.measureInWindow(
-          (x, y, width, height) => {
-            const screenHeight =
-              Platform.OS === "android"
-                ? 700
-                : 750;
-
-            const keyboardSafetySpace = 180;
-
-            if (
-              y + height >
-              screenHeight - keyboardSafetySpace
-            ) {
-              scrollViewRef.current.scrollTo({
-                y: Math.max(
-                  0,
-                  fallbackY + 180
-                ),
-                animated: true,
-              });
-            }
-          }
-        );
-      } else {
-        scrollViewRef.current.scrollTo({
-          y: fallbackY,
-          animated: true,
-        });
-      }
-    }, 300);
-  };
 
   // ==========================================================
   // SWITCH MODE
   // ==========================================================
 
   const switchMode = (createAccount) => {
-    Keyboard.dismiss();
 
     setIsCreateAccount(createAccount);
-
-    if (createAccount) {
-      setCreateAccountStep("select_role");
-      setSelectedRole(null);
-    } else {
-      setCreateAccountStep("select_role");
-      setSelectedRole(null);
-    }
 
     setShowPassword(false);
     setShowCreatePassword(false);
@@ -209,55 +132,28 @@ export default function LoginScreen() {
     setLoading(false);
 
     setTimeout(() => {
-      scrollViewRef.current?.scrollTo({
-        y: 0,
-        animated: false,
-      });
-    }, 150);
+
+      if (scrollViewRef.current) {
+
+        scrollViewRef.current.scrollTo({
+          y: 0,
+          animated: false,
+        });
+
+      }
+
+    }, 100);
   };
 
-  // ==========================================================
-  // SELECT ACCOUNT ROLE
-  // ==========================================================
-
-  const selectRole = (role) => {
-    Keyboard.dismiss();
-
-    setSelectedRole(role);
-    setCreateAccountStep("form");
-
-    setTimeout(() => {
-      scrollViewRef.current?.scrollTo({
-        y: 0,
-        animated: false,
-      });
-    }, 150);
-  };
-
-  // ==========================================================
-  // CHANGE ACCOUNT ROLE
-  // ==========================================================
-
-  const changeRole = () => {
-    Keyboard.dismiss();
-
-    setCreateAccountStep("select_role");
-    setSelectedRole(null);
-
-    setTimeout(() => {
-      scrollViewRef.current?.scrollTo({
-        y: 0,
-        animated: false,
-      });
-    }, 150);
-  };
 
   // ==========================================================
   // LOGIN
   // ==========================================================
 
   const handleLogin = async () => {
+
     if (!username.trim() || !password.trim()) {
+
       Alert.alert(
         "Missing Information",
         "Please enter your username and password."
@@ -266,8 +162,11 @@ export default function LoginScreen() {
       return;
     }
 
+
     try {
+
       setLoading(true);
+
 
       // ======================================================
       // LOGIN REQUEST
@@ -289,6 +188,7 @@ export default function LoginScreen() {
         }
       );
 
+
       // ======================================================
       // RESPONSE
       // ======================================================
@@ -296,13 +196,18 @@ export default function LoginScreen() {
       let data = {};
 
       try {
+
         data = await response.json();
+
       } catch (error) {
+
         console.log(
           "Could not parse login response:",
           error
         );
+
       }
+
 
       console.log(
         "LOGIN STATUS:",
@@ -314,37 +219,48 @@ export default function LoginScreen() {
         data
       );
 
+
       // ======================================================
       // LOGIN SUCCESS
       // ======================================================
 
       if (response.ok && data.success) {
-        const rawRole = String(
-          data.role || ""
-        ).toUpperCase();
 
-        const role =
-          rawRole === "OWNER_TRAINER"
-            ? "OWNER_TRAINER"
-            : rawRole === "TRAINER"
-            ? "TRAINER"
-            : rawRole === "MEMBER"
-            ? "MEMBER"
-            : rawRole === "OWNER" ||
-              rawRole === "ADMIN"
-            ? "OWNER"
-            : rawRole;
 
         // ====================================================
-        // ADMIN / OWNER / TRAINER
+        // NORMALIZE ROLE
+        // ====================================================
+
+        const normalizedRole =
+          String(data.role || "")
+            .trim()
+            .toUpperCase();
+
+
+        console.log(
+          "NORMALIZED ROLE:",
+          normalizedRole
+        );
+
+
+        // ====================================================
+        // OWNER / TRAINER / OWNER + TRAINER
         // ====================================================
 
         if (
-          role === "OWNER" ||
-          role === "OWNER_TRAINER" ||
-          role === "TRAINER"
+          normalizedRole === "ADMIN" ||
+          normalizedRole === "OWNER" ||
+          normalizedRole === "TRAINER" ||
+          normalizedRole === "OWNER_TRAINER"
         ) {
+
+
+          // --------------------------------------------------
+          // TOKEN REQUIRED
+          // --------------------------------------------------
+
           if (!data.token) {
+
             Alert.alert(
               "Login Error",
               "Login succeeded but no authentication token was received."
@@ -353,8 +269,9 @@ export default function LoginScreen() {
             return;
           }
 
+
           // --------------------------------------------------
-          // CLEAR OLD STAFF SESSION
+          // CLEAR OLD ADMIN SESSION
           // --------------------------------------------------
 
           await AsyncStorage.multiRemove([
@@ -366,14 +283,16 @@ export default function LoginScreen() {
             "workspaceName",
           ]);
 
+
           // --------------------------------------------------
-          // SAVE TOKEN
+          // SAVE ADMIN TOKEN
           // --------------------------------------------------
 
           await AsyncStorage.setItem(
             "adminToken",
-            data.token
+            String(data.token)
           );
+
 
           // --------------------------------------------------
           // SAVE USERNAME
@@ -381,9 +300,9 @@ export default function LoginScreen() {
 
           await AsyncStorage.setItem(
             "adminUsername",
-            data.username ||
-              username.trim()
+            data.username || username.trim()
           );
+
 
           // --------------------------------------------------
           // SAVE USER ID
@@ -393,11 +312,14 @@ export default function LoginScreen() {
             data.id !== undefined &&
             data.id !== null
           ) {
+
             await AsyncStorage.setItem(
               "adminId",
               String(data.id)
             );
+
           }
+
 
           // --------------------------------------------------
           // SAVE ROLE
@@ -405,8 +327,9 @@ export default function LoginScreen() {
 
           await AsyncStorage.setItem(
             "userRole",
-            role
+            String(data.role || "")
           );
+
 
           // --------------------------------------------------
           // SAVE WORKSPACE ID
@@ -416,22 +339,28 @@ export default function LoginScreen() {
             data.workspace_id !== undefined &&
             data.workspace_id !== null
           ) {
+
             await AsyncStorage.setItem(
               "workspaceId",
               String(data.workspace_id)
             );
+
           }
+
 
           // --------------------------------------------------
           // SAVE WORKSPACE NAME
           // --------------------------------------------------
 
           if (data.workspace_name) {
+
             await AsyncStorage.setItem(
               "workspaceName",
               String(data.workspace_name)
             );
+
           }
+
 
           // --------------------------------------------------
           // DEBUG
@@ -442,7 +371,7 @@ export default function LoginScreen() {
           );
 
           console.log(
-            "STAFF LOGIN SUCCESS"
+            "ADMIN / STAFF LOGIN SUCCESS"
           );
 
           console.log(
@@ -457,7 +386,7 @@ export default function LoginScreen() {
 
           console.log(
             "ROLE:",
-            role
+            data.role
           );
 
           console.log(
@@ -474,32 +403,59 @@ export default function LoginScreen() {
             "================================"
           );
 
+
           // --------------------------------------------------
-          // DASHBOARD ROUTING
+          // ADMIN DASHBOARD
           // --------------------------------------------------
 
-          if (role === "OWNER_TRAINER") {
-            router.replace(
-              "/owner-trainer/dashboard"
-            );
-          } else if (role === "TRAINER") {
-            router.replace(
-              "/trainer/dashboard"
-            );
-          } else {
-            router.replace(
-              "/admin/dashboard"
-            );
-          }
+          router.replace(
+            "/admin/dashboard"
+          );
 
           return;
         }
+
 
         // ====================================================
         // MEMBER LOGIN
         // ====================================================
 
-        if (role === "MEMBER") {
+        if (normalizedRole === "MEMBER") {
+
+
+          // --------------------------------------------------
+          // MEMBER TOKEN REQUIRED
+          // --------------------------------------------------
+
+          if (!data.member_token) {
+
+            console.log(
+              "MEMBER LOGIN ERROR: member_token missing"
+            );
+
+            Alert.alert(
+              "Login Error",
+              "Login succeeded but no member authentication token was received."
+            );
+
+            return;
+          }
+
+
+          // --------------------------------------------------
+          // CLEAR OLD STAFF SESSION
+          // --------------------------------------------------
+
+          await AsyncStorage.multiRemove([
+            "adminToken",
+            "adminUsername",
+            "adminId",
+            "userRole",
+            "workspaceId",
+            "workspaceName",
+          ]);
+
+
           // --------------------------------------------------
           // CLEAR OLD MEMBER SESSION
           // --------------------------------------------------
@@ -519,6 +475,29 @@ export default function LoginScreen() {
             "memberProfilePicture",
           ]);
 
+
+          // --------------------------------------------------
+          // SAVE MEMBER AUTH TOKEN
+          // --------------------------------------------------
+
+          await AsyncStorage.setItem(
+            "memberToken",
+            String(data.member_token)
+          );
+
+
+          // --------------------------------------------------
+          // SAVE MEMBER PROFILE PICTURE
+          // --------------------------------------------------
+
+          await AsyncStorage.setItem(
+            "memberProfilePicture",
+            data.profile_picture
+              ? String(data.profile_picture)
+              : ""
+          );
+
+
           // --------------------------------------------------
           // SAVE MEMBER ID
           // --------------------------------------------------
@@ -527,11 +506,14 @@ export default function LoginScreen() {
             data.id !== undefined &&
             data.id !== null
           ) {
+
             await AsyncStorage.setItem(
               "memberId",
               String(data.id)
             );
+
           }
+
 
           // --------------------------------------------------
           // SAVE MEMBER NAME
@@ -539,11 +521,11 @@ export default function LoginScreen() {
 
           await AsyncStorage.setItem(
             "memberName",
-            data.full_name ||
-              data.name ||
-              data.username ||
+            data.name ||
+              data.full_name ||
               username.trim()
           );
+
 
           // --------------------------------------------------
           // SAVE MEMBER USERNAME
@@ -555,24 +537,35 @@ export default function LoginScreen() {
               username.trim()
           );
 
+
           // --------------------------------------------------
           // SAVE MEMBER EMAIL
           // --------------------------------------------------
 
-          await AsyncStorage.setItem(
-            "memberEmail",
-            data.email
-              ? String(data.email)
-              : ""
-          );
+          if (data.email) {
+
+            await AsyncStorage.setItem(
+              "memberEmail",
+              String(data.email)
+            );
+
+          } else {
+
+            await AsyncStorage.setItem(
+              "memberEmail",
+              ""
+            );
+
+          }
+
 
           // --------------------------------------------------
           // SAVE MEMBER PHONE
           // --------------------------------------------------
 
           const memberPhone =
-            data.phone_number ||
             data.phone ||
+            data.phone_number ||
             data.contact_number ||
             "";
 
@@ -581,16 +574,18 @@ export default function LoginScreen() {
             String(memberPhone)
           );
 
+
           // --------------------------------------------------
-          // SAVE MEMBER STATUS
+          // SAVE MEMBERSHIP STATUS
           // --------------------------------------------------
 
           await AsyncStorage.setItem(
             "memberStatus",
             data.status
               ? String(data.status)
-              : ""
+              : "ACTIVE"
           );
+
 
           // --------------------------------------------------
           // SAVE MEMBERSHIP START
@@ -603,6 +598,7 @@ export default function LoginScreen() {
               : ""
           );
 
+
           // --------------------------------------------------
           // SAVE MEMBERSHIP END
           // --------------------------------------------------
@@ -614,52 +610,35 @@ export default function LoginScreen() {
               : ""
           );
 
+
           // --------------------------------------------------
-          // SAVE WORKSPACE ID
+          // SAVE MEMBER WORKSPACE ID
           // --------------------------------------------------
 
           if (
             data.workspace_id !== undefined &&
             data.workspace_id !== null
           ) {
+
             await AsyncStorage.setItem(
               "memberWorkspaceId",
               String(data.workspace_id)
             );
+
           }
 
+
           // --------------------------------------------------
-          // SAVE WORKSPACE NAME
+          // SAVE MEMBER WORKSPACE NAME
           // --------------------------------------------------
 
           await AsyncStorage.setItem(
             "memberWorkspaceName",
             data.workspace_name
               ? String(data.workspace_name)
-              : ""
+              : "Your Gym"
           );
 
-          // --------------------------------------------------
-          // SAVE MEMBER TOKEN
-          // --------------------------------------------------
-
-          if (data.member_token) {
-            await AsyncStorage.setItem(
-              "memberToken",
-              String(data.member_token)
-            );
-          }
-
-          // --------------------------------------------------
-          // SAVE PROFILE PICTURE
-          // --------------------------------------------------
-
-          await AsyncStorage.setItem(
-            "memberProfilePicture",
-            data.profile_picture
-              ? String(data.profile_picture)
-              : ""
-          );
 
           // --------------------------------------------------
           // DEBUG
@@ -674,23 +653,44 @@ export default function LoginScreen() {
           );
 
           console.log(
-            "NAME:",
-            data.full_name || data.name
-          );
-
-          console.log(
-            "USERNAME:",
-            data.username
-          );
-
-          console.log(
             "MEMBER ID:",
             data.id
           );
 
           console.log(
-            "ROLE:",
-            data.role
+            "MEMBER NAME:",
+            data.name ||
+              data.full_name
+          );
+
+          console.log(
+            "MEMBER USERNAME:",
+            data.username
+          );
+
+          console.log(
+            "MEMBER EMAIL:",
+            data.email
+          );
+
+          console.log(
+            "MEMBER PHONE:",
+            memberPhone
+          );
+
+          console.log(
+            "MEMBER STATUS:",
+            data.status
+          );
+
+          console.log(
+            "MEMBERSHIP START:",
+            data.membership_start
+          );
+
+          console.log(
+            "MEMBERSHIP END:",
+            data.membership_end
           );
 
           console.log(
@@ -707,6 +707,11 @@ export default function LoginScreen() {
             "================================"
           );
 
+
+          // --------------------------------------------------
+          // GO TO MEMBER DASHBOARD
+          // --------------------------------------------------
+
           router.replace(
             "/member/dashboard"
           );
@@ -714,174 +719,169 @@ export default function LoginScreen() {
           return;
         }
 
+
         // ====================================================
         // UNKNOWN ROLE
         // ====================================================
 
+        console.log(
+          "UNKNOWN ROLE RECEIVED:",
+          data.role
+        );
+
         Alert.alert(
           "Login Error",
-          "Unknown user role received from the server."
+          `Unknown account type received from server.\n\nRole: ${data.role || "Not provided"}`
         );
 
         return;
       }
+
 
       // ======================================================
       // LOGIN FAILED
       // ======================================================
 
       let errorMessage =
-        data.message ||
         data.detail ||
+        data.message ||
         "Invalid username or password.";
 
+
       if (
-        typeof data === "object"
+        typeof data === "object" &&
+        data !== null
       ) {
+
         if (data.non_field_errors) {
+
           errorMessage =
             Array.isArray(
               data.non_field_errors
             )
-              ? data.non_field_errors.join(
-                  "\n"
-                )
+              ? data.non_field_errors.join("\n")
               : String(
                   data.non_field_errors
                 );
+
         }
 
+
         if (data.username) {
+
           errorMessage =
             Array.isArray(data.username)
               ? data.username.join("\n")
               : String(data.username);
+
         }
 
+
         if (data.password) {
+
           errorMessage =
             Array.isArray(data.password)
               ? data.password.join("\n")
               : String(data.password);
+
         }
+
       }
+
 
       Alert.alert(
         "Login Failed",
         errorMessage
       );
+
+
     } catch (error) {
+
+      console.log(
+        "================================"
+      );
+
       console.log(
         "LOGIN ERROR:",
         error
       );
 
+      console.log(
+        "================================"
+      );
+
+
       Alert.alert(
         "Connection Error",
-        "Could not connect to GymRyt server.\n\nMake sure your phone and computer are connected to the same Wi-Fi and Django server is running."
+        "Could not connect to GymRyt server.\n\nMake sure Django is running and your phone is connected to the same Wi-Fi."
       );
+
+
     } finally {
+
       setLoading(false);
+
     }
+
   };
 
+
   // ==========================================================
-  // CREATE ACCOUNT
+  // CREATE ADMIN ACCOUNT
   // ==========================================================
 
   const handleCreateAccount = async () => {
-    if (!selectedRole) {
-      Alert.alert(
-        "Account Type Required",
-        "Please select an account type."
-      );
-
-      return;
-    }
-
-    if (!fullName.trim()) {
-      Alert.alert(
-        "Missing Information",
-        "Please enter your full name."
-      );
-
-      return;
-    }
-
-    if (!email.trim()) {
-      Alert.alert(
-        "Missing Information",
-        "Please enter your email address."
-      );
-
-      return;
-    }
-
-    if (!createUsername.trim()) {
-      Alert.alert(
-        "Missing Information",
-        "Please create a username."
-      );
-
-      return;
-    }
-
-    if (!createPassword.trim()) {
-      Alert.alert(
-        "Missing Information",
-        "Please create a password."
-      );
-
-      return;
-    }
-
-    if (createPassword.length < 6) {
-      Alert.alert(
-        "Weak Password",
-        "Password must be at least 6 characters long."
-      );
-
-      return;
-    }
-
-    if (!confirmPassword.trim()) {
-      Alert.alert(
-        "Missing Information",
-        "Please confirm your password."
-      );
-
-      return;
-    }
 
     if (
-      createPassword !==
-      confirmPassword
+      !fullName.trim() ||
+      !email.trim() ||
+      !createUsername.trim() ||
+      !createPassword ||
+      !confirmPassword
     ) {
+
       Alert.alert(
-        "Password Mismatch",
-        "Password and confirm password do not match."
+        "Missing Information",
+        "Please fill in all the required fields."
       );
 
       return;
     }
 
+
+    if (
+      createPassword !== confirmPassword
+    ) {
+
+      Alert.alert(
+        "Password Error",
+        "Passwords do not match."
+      );
+
+      return;
+    }
+
+
+    if (
+      createPassword.length < 6
+    ) {
+
+      Alert.alert(
+        "Password Error",
+        "Password must be at least 6 characters."
+      );
+
+      return;
+    }
+
+
     try {
+
       setLoading(true);
 
-      Keyboard.dismiss();
 
       // ======================================================
-      // ADMIN REGISTRATION REQUEST
-      // ======================================================
-      //
-      // IMPORTANT:
-      // This is NOT /register/
-      //
-      // Owner registration uses:
-      // /admin/register/
-      //
-      // This prevents the "Registration QR code is required"
-      // error that was appearing previously.
+      // CREATE ACCOUNT REQUEST
       // ======================================================
 
       const response = await fetch(
@@ -894,26 +894,15 @@ export default function LoginScreen() {
           },
 
           body: JSON.stringify({
-            full_name:
-              fullName.trim(),
-
-            email:
-              email.trim(),
-
-            username:
-              createUsername.trim(),
-
-            password:
-              createPassword,
-
-            confirm_password:
-              confirmPassword,
-
-            role:
-              selectedRole,
+            full_name: fullName.trim(),
+            email: email.trim(),
+            username: createUsername.trim(),
+            password: createPassword,
+            confirm_password: confirmPassword,
           }),
         }
       );
+
 
       // ======================================================
       // RESPONSE
@@ -922,13 +911,18 @@ export default function LoginScreen() {
       let data = {};
 
       try {
+
         data = await response.json();
+
       } catch (error) {
+
         console.log(
           "Could not parse registration response:",
           error
         );
+
       }
+
 
       console.log(
         "REGISTRATION STATUS:",
@@ -940,326 +934,287 @@ export default function LoginScreen() {
         data
       );
 
+
       // ======================================================
-      // REGISTRATION SUCCESS
+      // SUCCESS
       // ======================================================
 
       if (
         response.ok &&
         data.success
       ) {
-        const createdRole =
-          String(
-            data.role ||
-              selectedRole
-          ).toUpperCase();
+
+        const createdUsername =
+          createUsername.trim();
+
 
         Alert.alert(
           "Account Created",
-          data.message ||
-            "Your account has been created successfully.",
+          "Your GymRyt admin account has been created successfully. Please login to continue.",
           [
             {
-              text: "LOGIN NOW",
+              text: "LOGIN",
 
               onPress: () => {
-                // --------------------------------------------
-                // RESET CREATE ACCOUNT FORM
-                // --------------------------------------------
-
-                setFullName("");
-                setEmail("");
-                setCreateUsername("");
-                setCreatePassword("");
-                setConfirmPassword("");
-
-                setSelectedRole(null);
-                setCreateAccountStep(
-                  "select_role"
-                );
-
-                setShowCreatePassword(
-                  false
-                );
-
-                setShowConfirmPassword(
-                  false
-                );
-
-                // --------------------------------------------
-                // SWITCH TO LOGIN
-                // --------------------------------------------
-
-                setIsCreateAccount(
-                  false
-                );
-
-                // --------------------------------------------
-                // OPTIONAL:
-                // PRE-FILL USERNAME
-                // --------------------------------------------
 
                 setUsername(
-                  data.username ||
-                    createUsername.trim()
+                  createdUsername
                 );
 
                 setPassword("");
 
-                // --------------------------------------------
-                // DEBUG
-                // --------------------------------------------
+                setFullName("");
 
-                console.log(
-                  "================================"
-                );
+                setEmail("");
 
-                console.log(
-                  "ACCOUNT CREATED"
-                );
+                setCreateUsername("");
 
-                console.log(
-                  "USERNAME:",
-                  data.username
-                );
+                setCreatePassword("");
 
-                console.log(
-                  "ROLE:",
-                  createdRole
-                );
+                setConfirmPassword("");
 
-                console.log(
-                  "WORKSPACE:",
-                  data.workspace_name
-                );
+                setIsCreateAccount(false);
 
-                console.log(
-                  "================================"
-                );
-
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollTo(
-                    {
-                      y: 0,
-                      animated: false,
-                    }
-                  );
-                }, 100);
               },
             },
           ]
         );
 
+
         return;
       }
 
+
       // ======================================================
-      // REGISTRATION FAILED
+      // FAILED
       // ======================================================
-
-      let errorMessage =
-        data.message ||
-        data.detail ||
-        "Could not create the account.";
-
-      if (
-        typeof data === "object"
-      ) {
-        if (data.email) {
-          errorMessage =
-            Array.isArray(data.email)
-              ? data.email.join("\n")
-              : String(data.email);
-        }
-
-        if (data.username) {
-          errorMessage =
-            Array.isArray(
-              data.username
-            )
-              ? data.username.join("\n")
-              : String(data.username);
-        }
-
-        if (data.password) {
-          errorMessage =
-            Array.isArray(
-              data.password
-            )
-              ? data.password.join("\n")
-              : String(data.password);
-        }
-
-        if (data.non_field_errors) {
-          errorMessage =
-            Array.isArray(
-              data.non_field_errors
-            )
-              ? data.non_field_errors.join(
-                  "\n"
-                )
-              : String(
-                  data.non_field_errors
-                );
-        }
-      }
 
       Alert.alert(
-        "Registration Failed",
-        errorMessage
+        "Account Creation Failed",
+        data.detail ||
+          data.message ||
+          "Could not create the account."
       );
+
+
     } catch (error) {
+
       console.log(
         "REGISTRATION ERROR:",
         error
       );
 
+
       Alert.alert(
         "Connection Error",
-        "Could not connect to GymRyt server.\n\nMake sure your phone and computer are connected to the same Wi-Fi and Django server is running."
+        "Could not connect to GymRyt server.\n\nMake sure Django is running and your phone is connected to the same Wi-Fi."
       );
+
+
     } finally {
+
       setLoading(false);
+
     }
+
   };
 
-  // ==========================================================
-  // FORGOT PASSWORD
-  // ==========================================================
-
-  const handleForgotPassword = () => {
-    Alert.alert(
-      "Forgot Password",
-      "Please contact your gym administrator to reset your password."
-    );
-  };
 
   // ==========================================================
-  // RENDER
+  // UI
   // ==========================================================
 
   return (
+
     <ImageBackground
-      source={require("../assets/images/gymryt-bg.png")}
+      source={require(
+        "../assets/images/gymryt-bg.png"
+      )}
+
       style={styles.background}
+
       resizeMode="cover"
     >
-      <View style={styles.backgroundOverlay}>
+
+      <View
+        style={styles.backgroundOverlay}
+      >
+
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
-          behavior={
-            Platform.OS === "ios"
-              ? "padding"
-              : "height"
-          }
+
+          behavior="padding"
+
           keyboardVerticalOffset={
             Platform.OS === "ios"
               ? 0
               : 20
           }
         >
+
           <ScrollView
             ref={scrollViewRef}
+
             style={styles.scrollView}
+
             contentContainerStyle={[
               styles.scrollContainer,
+
               isCreateAccount &&
                 styles.createScrollContainer,
             ]}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            showsVerticalScrollIndicator={false}
-            automaticallyAdjustKeyboardInsets={
+
+            keyboardShouldPersistTaps="always"
+
+            keyboardDismissMode={
               Platform.OS === "ios"
+                ? "interactive"
+                : "on-drag"
             }
+
+            showsVerticalScrollIndicator={
+              false
+            }
+
+            automaticallyAdjustKeyboardInsets={
+              true
+            }
+
+            contentInsetAdjustmentBehavior="automatic"
+
+            nestedScrollEnabled={true}
           >
-            <View style={styles.content}>
+
+            <View
+              style={styles.content}
+            >
+
 
               {/* ==================================================
                   LOGO
               ================================================== */}
 
-              <View style={styles.logoContainer}>
+              <View
+                style={styles.logoContainer}
+              >
+
                 <Image
-                  source={require("../assets/images/gymryt-logo.png")}
+                  source={require(
+                    "../assets/images/gymryt-logo.png"
+                  )}
+
                   style={[
                     styles.logo,
+
                     isCreateAccount &&
                       styles.createLogo,
                   ]}
+
                   resizeMode="contain"
                 />
+
               </View>
 
+
               {/* ==================================================
-                  LOGIN / CREATE ACCOUNT SWITCH
+                  MODE SWITCH
               ================================================== */}
 
-              <View style={styles.modeSwitch}>
+              <View
+                style={styles.modeSwitch}
+              >
+
+                {/* LOGIN */}
+
                 <TouchableOpacity
                   style={[
                     styles.modeButton,
+
                     !isCreateAccount &&
                       styles.modeButtonActive,
                   ]}
+
                   onPress={() =>
                     switchMode(false)
                   }
+
                   disabled={loading}
+
                   activeOpacity={0.8}
                 >
+
                   <Text
                     style={[
                       styles.modeButtonText,
+
                       !isCreateAccount &&
                         styles.modeButtonTextActive,
                     ]}
                   >
                     LOGIN
                   </Text>
+
                 </TouchableOpacity>
+
+
+                {/* CREATE ACCOUNT */}
 
                 <TouchableOpacity
                   style={[
                     styles.modeButton,
+
                     isCreateAccount &&
                       styles.modeButtonActive,
                   ]}
+
                   onPress={() =>
                     switchMode(true)
                   }
+
                   disabled={loading}
+
                   activeOpacity={0.8}
                 >
+
                   <Text
                     style={[
                       styles.modeButtonText,
+
                       isCreateAccount &&
                         styles.modeButtonTextActive,
                     ]}
                   >
                     CREATE ACCOUNT
                   </Text>
+
                 </TouchableOpacity>
+
               </View>
+
 
               {/* ==================================================
                   LOGIN
               ================================================== */}
 
               {!isCreateAccount ? (
-                <View style={styles.loginCard}>
 
-                  {/* USERNAME */}
+                <View
+                  style={styles.loginCard}
+                >
+
+
+                  {/* ==================================================
+                      USERNAME
+                  ================================================== */}
 
                   <View
-                    style={
-                      styles.inputContainer
-                    }
+                    style={styles.inputContainer}
                   >
+
                     <Text
                       style={[
                         styles.floatingLabel,
+
                         usernameFocused &&
                           styles.floatingLabelFocused,
                       ]}
@@ -1267,54 +1222,61 @@ export default function LoginScreen() {
                       Username
                     </Text>
 
+
                     <TextInput
-                      ref={
-                        loginUsernameRef
-                      }
-                      value={username}
-                      onChangeText={
-                        setUsername
-                      }
                       style={[
                         styles.input,
+
                         usernameFocused &&
                           styles.inputFocused,
                       ]}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      returnKeyType="next"
-                      selectionColor="#9DBEFF"
-                      onFocus={() => {
-                        setUsernameFocused(
-                          true
-                        );
 
-                        handleInputFocus(
-                          loginUsernameRef,
-                          0
-                        );
-                      }}
+                      value={username}
+
+                      onChangeText={
+                        setUsername
+                      }
+
+                      autoCapitalize="none"
+
+                      autoCorrect={false}
+
+                      editable={!loading}
+
+                      placeholder=""
+
+                      placeholderTextColor="transparent"
+
+                      returnKeyType="next"
+
+                      onFocus={() =>
+                        setUsernameFocused(true)
+                      }
+
                       onBlur={() =>
-                        setUsernameFocused(
-                          false
-                        )
+                        setUsernameFocused(false)
                       }
-                      onSubmitEditing={() =>
-                        loginPasswordRef.current?.focus()
-                      }
+
+                      selectionColor="#9DBEFF"
+
+                      blurOnSubmit={false}
                     />
+
                   </View>
 
-                  {/* PASSWORD */}
+
+                  {/* ==================================================
+                      PASSWORD
+                  ================================================== */}
 
                   <View
-                    style={
-                      styles.inputContainer
-                    }
+                    style={styles.inputContainer}
                   >
+
                     <Text
                       style={[
                         styles.floatingLabel,
+
                         passwordFocused &&
                           styles.floatingLabelFocused,
                       ]}
@@ -1322,64 +1284,76 @@ export default function LoginScreen() {
                       Password
                     </Text>
 
+
                     <View
-                      style={
-                        styles.passwordWrapper
-                      }
+                      style={styles.passwordWrapper}
                     >
+
                       <TextInput
-                        ref={
-                          loginPasswordRef
-                        }
-                        value={password}
-                        onChangeText={
-                          setPassword
-                        }
                         style={[
                           styles.input,
                           styles.passwordInputDirect,
+
                           passwordFocused &&
                             styles.inputFocused,
                         ]}
+
+                        value={password}
+
+                        onChangeText={
+                          setPassword
+                        }
+
                         secureTextEntry={
                           !showPassword
                         }
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        selectionColor="#9DBEFF"
-                        returnKeyType="done"
-                        onFocus={() => {
-                          setPasswordFocused(
-                            true
-                          );
 
-                          handleInputFocus(
-                            loginPasswordRef,
-                            120
-                          );
-                        }}
-                        onBlur={() =>
-                          setPasswordFocused(
-                            false
-                          )
+                        autoCapitalize="none"
+
+                        autoCorrect={false}
+
+                        editable={!loading}
+
+                        placeholder=""
+
+                        placeholderTextColor="transparent"
+
+                        returnKeyType="done"
+
+                        onFocus={() =>
+                          setPasswordFocused(true)
                         }
+
+                        onBlur={() =>
+                          setPasswordFocused(false)
+                        }
+
+                        selectionColor="#9DBEFF"
+
                         onSubmitEditing={
                           handleLogin
                         }
                       />
 
+
+                      {/* SHOW / HIDE */}
+
                       <TouchableOpacity
                         style={
                           styles.showButton
                         }
+
                         onPress={() =>
                           setShowPassword(
                             !showPassword
                           )
                         }
+
                         disabled={loading}
+
                         activeOpacity={0.7}
                       >
+
                         <Text
                           style={
                             styles.showText
@@ -1389,22 +1363,28 @@ export default function LoginScreen() {
                             ? "HIDE"
                             : "SHOW"}
                         </Text>
+
                       </TouchableOpacity>
+
                     </View>
+
                   </View>
 
-                  {/* FORGOT PASSWORD */}
+
+                  {/* ==================================================
+                      FORGOT PASSWORD
+                  ================================================== */}
 
                   <TouchableOpacity
                     style={
                       styles.forgotButton
                     }
-                    onPress={
-                      handleForgotPassword
-                    }
+
                     disabled={loading}
+
                     activeOpacity={0.7}
                   >
+
                     <Text
                       style={
                         styles.forgotText
@@ -1412,28 +1392,40 @@ export default function LoginScreen() {
                     >
                       Forgot Password?
                     </Text>
+
                   </TouchableOpacity>
 
-                  {/* LOGIN BUTTON */}
+
+                  {/* ==================================================
+                      LOGIN BUTTON
+                  ================================================== */}
 
                   <TouchableOpacity
                     style={[
                       styles.loginButton,
+
                       loading &&
                         styles.loginButtonDisabled,
                     ]}
+
                     onPress={
                       handleLogin
                     }
+
                     disabled={loading}
+
                     activeOpacity={0.8}
                   >
+
                     {loading ? (
+
                       <ActivityIndicator
                         size="small"
                         color="#FFFFFF"
                       />
+
                     ) : (
+
                       <Text
                         style={
                           styles.loginButtonText
@@ -1441,23 +1433,32 @@ export default function LoginScreen() {
                       >
                         LOGIN
                       </Text>
+
                     )}
+
                   </TouchableOpacity>
 
-                  {/* QR SCANNER */}
+
+                  {/* ==================================================
+                      MEMBER QR SCANNER
+                  ================================================== */}
 
                   <TouchableOpacity
                     style={
                       styles.scannerButton
                     }
+
                     onPress={() =>
                       router.push(
-                        "/scanner"
+                        "/member/scanner"
                       )
                     }
+
                     disabled={loading}
+
                     activeOpacity={0.8}
                   >
+
                     <Text
                       style={
                         styles.scannerButtonText
@@ -1465,7 +1466,9 @@ export default function LoginScreen() {
                     >
                       +
                     </Text>
+
                   </TouchableOpacity>
+
 
                   <Text
                     style={
@@ -1474,600 +1477,530 @@ export default function LoginScreen() {
                   >
                     Scan gym QR to register
                   </Text>
+
                 </View>
+
               ) : (
-                <>
+
+
+                /* ==================================================
+                    CREATE ACCOUNT
+                ================================================== */
+
+                <View
+                  style={[
+                    styles.loginCard,
+                    styles.createAccountCard,
+                  ]}
+                >
+
+
                   {/* ==================================================
-                      ACCOUNT TYPE SELECTION
+                      FULL NAME
                   ================================================== */}
 
-                  {createAccountStep ===
-                  "select_role" ? (
-                    <View
-                      style={
-                        styles.roleCard
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.roleTitle
-                        }
-                      >
-                        ACCOUNT TYPE
-                      </Text>
+                  <View
+                    style={
+                      styles.inputContainer
+                    }
+                  >
 
-                      <Text
-                        style={
-                          styles.roleSubtitle
-                        }
-                      >
-                        Choose how you will
-                        use GymRyt
-                      </Text>
-
-                      {/* OWNER */}
-
-                      <TouchableOpacity
-                        style={
-                          styles.roleOption
-                        }
-                        onPress={() =>
-                          selectRole(
-                            "OWNER"
-                          )
-                        }
-                        disabled={loading}
-                        activeOpacity={0.8}
-                      >
-                        <View
-                          style={
-                            styles.roleIcon
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.roleIconText
-                            }
-                          >
-                            O
-                          </Text>
-                        </View>
-
-                        <View
-                          style={
-                            styles.roleContent
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.roleName
-                            }
-                          >
-                            Owner
-                          </Text>
-
-                          <Text
-                            style={
-                              styles.roleDescription
-                            }
-                          >
-                            Manage your gym,
-                            members, payments
-                            and reports.
-                          </Text>
-                        </View>
-
-                        <Text
-                          style={
-                            styles.roleArrow
-                          }
-                        >
-                          →
-                        </Text>
-                      </TouchableOpacity>
-
-                      {/* OWNER + TRAINER */}
-
-                      <TouchableOpacity
-                        style={
-                          styles.roleOption
-                        }
-                        onPress={() =>
-                          selectRole(
-                            "OWNER_TRAINER"
-                          )
-                        }
-                        disabled={loading}
-                        activeOpacity={0.8}
-                      >
-                        <View
-                          style={
-                            styles.roleIcon
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.roleIconText
-                            }
-                          >
-                            OT
-                          </Text>
-                        </View>
-
-                        <View
-                          style={
-                            styles.roleContent
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.roleName
-                            }
-                          >
-                            Owner + Trainer
-                          </Text>
-
-                          <Text
-                            style={
-                              styles.roleDescription
-                            }
-                          >
-                            Manage your gym
-                            and also train
-                            your members.
-                          </Text>
-                        </View>
-
-                        <Text
-                          style={
-                            styles.roleArrow
-                          }
-                        >
-                          →
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    /* ==================================================
-                       CREATE ACCOUNT FORM
-                    ================================================== */
-
-                    <View
+                    <Text
                       style={[
-                        styles.loginCard,
-                        styles.createAccountCard,
+                        styles.floatingLabel,
+
+                        fullNameFocused &&
+                          styles.floatingLabelFocused,
                       ]}
                     >
+                      Full Name
+                    </Text>
 
-                      {/* ACCOUNT TYPE */}
 
-                      <View
-                        style={
-                          styles.selectedRoleCard
+                    <TextInput
+                      ref={fullNameRef}
+
+                      style={[
+                        styles.input,
+
+                        fullNameFocused &&
+                          styles.inputFocused,
+                      ]}
+
+                      value={fullName}
+
+                      onChangeText={
+                        setFullName
+                      }
+
+                      autoCapitalize="words"
+
+                      autoCorrect={false}
+
+                      editable={!loading}
+
+                      placeholder=""
+
+                      placeholderTextColor="transparent"
+
+                      returnKeyType="next"
+
+                      onFocus={() =>
+                        setFullNameFocused(true)
+                      }
+
+                      onBlur={() =>
+                        setFullNameFocused(false)
+                      }
+
+                      selectionColor="#9DBEFF"
+
+                      onSubmitEditing={() =>
+                        emailRef.current?.focus()
+                      }
+
+                      blurOnSubmit={false}
+                    />
+
+                  </View>
+
+
+                  {/* ==================================================
+                      EMAIL
+                  ================================================== */}
+
+                  <View
+                    style={
+                      styles.inputContainer
+                    }
+                  >
+
+                    <Text
+                      style={[
+                        styles.floatingLabel,
+
+                        emailFocused &&
+                          styles.floatingLabelFocused,
+                      ]}
+                    >
+                      Email
+                    </Text>
+
+
+                    <TextInput
+                      ref={emailRef}
+
+                      style={[
+                        styles.input,
+
+                        emailFocused &&
+                          styles.inputFocused,
+                      ]}
+
+                      value={email}
+
+                      onChangeText={
+                        setEmail
+                      }
+
+                      keyboardType="email-address"
+
+                      autoCapitalize="none"
+
+                      autoCorrect={false}
+
+                      editable={!loading}
+
+                      placeholder=""
+
+                      placeholderTextColor="transparent"
+
+                      returnKeyType="next"
+
+                      onFocus={() =>
+                        setEmailFocused(true)
+                      }
+
+                      onBlur={() =>
+                        setEmailFocused(false)
+                      }
+
+                      selectionColor="#9DBEFF"
+
+                      onSubmitEditing={() =>
+                        createUsernameRef.current?.focus()
+                      }
+
+                      blurOnSubmit={false}
+                    />
+
+                  </View>
+
+
+                  {/* ==================================================
+                      USERNAME
+                  ================================================== */}
+
+                  <View
+                    style={
+                      styles.inputContainer
+                    }
+                  >
+
+                    <Text
+                      style={[
+                        styles.floatingLabel,
+
+                        createUsernameFocused &&
+                          styles.floatingLabelFocused,
+                      ]}
+                    >
+                      Username
+                    </Text>
+
+
+                    <TextInput
+                      ref={
+                        createUsernameRef
+                      }
+
+                      style={[
+                        styles.input,
+
+                        createUsernameFocused &&
+                          styles.inputFocused,
+                      ]}
+
+                      value={
+                        createUsername
+                      }
+
+                      onChangeText={
+                        setCreateUsername
+                      }
+
+                      autoCapitalize="none"
+
+                      autoCorrect={false}
+
+                      editable={!loading}
+
+                      placeholder=""
+
+                      placeholderTextColor="transparent"
+
+                      returnKeyType="next"
+
+                      onFocus={() =>
+                        setCreateUsernameFocused(
+                          true
+                        )
+                      }
+
+                      onBlur={() =>
+                        setCreateUsernameFocused(
+                          false
+                        )
+                      }
+
+                      selectionColor="#9DBEFF"
+
+                      onSubmitEditing={() =>
+                        createPasswordRef.current?.focus()
+                      }
+
+                      blurOnSubmit={false}
+                    />
+
+                  </View>
+
+
+                  {/* ==================================================
+                      CREATE PASSWORD
+                  ================================================== */}
+
+                  <View
+                    style={
+                      styles.inputContainer
+                    }
+                  >
+
+                    <Text
+                      style={[
+                        styles.floatingLabel,
+
+                        createPasswordFocused &&
+                          styles.floatingLabelFocused,
+                      ]}
+                    >
+                      Password
+                    </Text>
+
+
+                    <View
+                      style={
+                        styles.passwordWrapper
+                      }
+                    >
+
+                      <TextInput
+                        ref={
+                          createPasswordRef
                         }
-                      >
-                        <View>
-                          <Text
-                            style={
-                              styles.selectedRoleLabel
-                            }
-                          >
-                            ACCOUNT TYPE
-                          </Text>
 
-                          <Text
-                            style={
-                              styles.selectedRoleName
-                            }
-                          >
-                            {selectedRole ===
-                            "OWNER_TRAINER"
-                              ? "Owner + Trainer"
-                              : "Owner"}
-                          </Text>
-                        </View>
+                        style={[
+                          styles.input,
+                          styles.passwordInputDirect,
 
-                        <TouchableOpacity
-                          onPress={
-                            changeRole
-                          }
-                          disabled={loading}
-                          activeOpacity={
-                            0.7
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.changeRoleText
-                            }
-                          >
-                            CHANGE
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
+                          createPasswordFocused &&
+                            styles.inputFocused,
+                        ]}
 
-                      {/* FULL NAME */}
-
-                      <View
-                        style={
-                          styles.inputContainer
+                        value={
+                          createPassword
                         }
-                      >
-                        <Text
-                          style={[
-                            styles.floatingLabel,
-                            fullNameFocused &&
-                              styles.floatingLabelFocused,
-                          ]}
-                        >
-                          Full Name
-                        </Text>
 
-                        <TextInput
-                          ref={
-                            fullNameRef
-                          }
-                          value={fullName}
-                          onChangeText={
-                            setFullName
-                          }
-                          style={[
-                            styles.input,
-                            fullNameFocused &&
-                              styles.inputFocused,
-                          ]}
-                          autoCapitalize="words"
-                          autoCorrect={false}
-                          returnKeyType="next"
-                          selectionColor="#9DBEFF"
-                          onFocus={() => {
-                            setFullNameFocused(
-                              true
-                            );
-
-                            handleInputFocus(
-                              fullNameRef,
-                              0
-                            );
-                          }}
-                          onBlur={() =>
-                            setFullNameFocused(
-                              false
-                            )
-                          }
-                          onSubmitEditing={() =>
-                            emailRef.current?.focus()
-                          }
-                        />
-                      </View>
-
-                      {/* EMAIL */}
-
-                      <View
-                        style={
-                          styles.inputContainer
+                        onChangeText={
+                          setCreatePassword
                         }
-                      >
-                        <Text
-                          style={[
-                            styles.floatingLabel,
-                            emailFocused &&
-                              styles.floatingLabelFocused,
-                          ]}
-                        >
-                          Email
-                        </Text>
 
-                        <TextInput
-                          ref={
-                            emailRef
-                          }
-                          value={email}
-                          onChangeText={
-                            setEmail
-                          }
-                          style={[
-                            styles.input,
-                            emailFocused &&
-                              styles.inputFocused,
-                          ]}
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          returnKeyType="next"
-                          selectionColor="#9DBEFF"
-                          onFocus={() => {
-                            setEmailFocused(
-                              true
-                            );
-
-                            handleInputFocus(
-                              emailRef,
-                              100
-                            );
-                          }}
-                          onBlur={() =>
-                            setEmailFocused(
-                              false
-                            )
-                          }
-                          onSubmitEditing={() =>
-                            createUsernameRef.current?.focus()
-                          }
-                        />
-                      </View>
-
-                      {/* USERNAME */}
-
-                      <View
-                        style={
-                          styles.inputContainer
+                        secureTextEntry={
+                          !showCreatePassword
                         }
-                      >
-                        <Text
-                          style={[
-                            styles.floatingLabel,
-                            createUsernameFocused &&
-                              styles.floatingLabelFocused,
-                          ]}
-                        >
-                          Username
-                        </Text>
 
-                        <TextInput
-                          ref={
-                            createUsernameRef
-                          }
-                          value={
-                            createUsername
-                          }
-                          onChangeText={
-                            setCreateUsername
-                          }
-                          style={[
-                            styles.input,
-                            createUsernameFocused &&
-                              styles.inputFocused,
-                          ]}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          returnKeyType="next"
-                          selectionColor="#9DBEFF"
-                          onFocus={() => {
-                            setCreateUsernameFocused(
-                              true
-                            );
+                        autoCapitalize="none"
 
-                            handleInputFocus(
-                              createUsernameRef,
-                              220
-                            );
-                          }}
-                          onBlur={() =>
-                            setCreateUsernameFocused(
-                              false
-                            )
-                          }
-                          onSubmitEditing={() =>
-                            createPasswordRef.current?.focus()
-                          }
-                        />
-                      </View>
+                        autoCorrect={false}
 
-                      {/* PASSWORD */}
+                        editable={!loading}
 
-                      <View
-                        style={
-                          styles.inputContainer
+                        placeholder=""
+
+                        placeholderTextColor="transparent"
+
+                        returnKeyType="next"
+
+                        onFocus={() =>
+                          setCreatePasswordFocused(
+                            true
+                          )
                         }
-                      >
-                        <Text
-                          style={[
-                            styles.floatingLabel,
-                            createPasswordFocused &&
-                              styles.floatingLabelFocused,
-                          ]}
-                        >
-                          Password
-                        </Text>
 
-                        <View
-                          style={
-                            styles.passwordWrapper
-                          }
-                        >
-                          <TextInput
-                            ref={
-                              createPasswordRef
-                            }
-                            value={
-                              createPassword
-                            }
-                            onChangeText={
-                              setCreatePassword
-                            }
-                            style={[
-                              styles.input,
-                              styles.passwordInputDirect,
-                              createPasswordFocused &&
-                                styles.inputFocused,
-                            ]}
-                            secureTextEntry={
-                              !showCreatePassword
-                            }
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            returnKeyType="next"
-                            selectionColor="#9DBEFF"
-                            onFocus={() => {
-                              setCreatePasswordFocused(
-                                true
-                              );
-
-                              handleInputFocus(
-                                createPasswordRef,
-                                360
-                              );
-                            }}
-                            onBlur={() =>
-                              setCreatePasswordFocused(
-                                false
-                              )
-                            }
-                            onSubmitEditing={() =>
-                              confirmPasswordRef.current?.focus()
-                            }
-                          />
-
-                          <TouchableOpacity
-                            style={
-                              styles.showButton
-                            }
-                            onPress={() =>
-                              setShowCreatePassword(
-                                !showCreatePassword
-                              )
-                            }
-                            disabled={loading}
-                            activeOpacity={0.7}
-                          >
-                            <Text
-                              style={
-                                styles.showText
-                              }
-                            >
-                              {showCreatePassword
-                                ? "HIDE"
-                                : "SHOW"}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-
-                      {/* CONFIRM PASSWORD */}
-
-                      <View
-                        style={
-                          styles.inputContainer
+                        onBlur={() =>
+                          setCreatePasswordFocused(
+                            false
+                          )
                         }
-                      >
-                        <Text
-                          style={[
-                            styles.floatingLabel,
-                            confirmPasswordFocused &&
-                              styles.floatingLabelFocused,
-                          ]}
-                        >
-                          Confirm Password
-                        </Text>
 
-                        <View
-                          style={
-                            styles.passwordWrapper
-                          }
-                        >
-                          <TextInput
-                            ref={
-                              confirmPasswordRef
-                            }
-                            value={
-                              confirmPassword
-                            }
-                            onChangeText={
-                              setConfirmPassword
-                            }
-                            style={[
-                              styles.input,
-                              styles.passwordInputDirect,
-                              confirmPasswordFocused &&
-                                styles.inputFocused,
-                            ]}
-                            secureTextEntry={
-                              !showConfirmPassword
-                            }
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            returnKeyType="done"
-                            selectionColor="#9DBEFF"
-                            onFocus={() => {
-                              setConfirmPasswordFocused(
-                                true
-                              );
+                        selectionColor="#9DBEFF"
 
-                              handleInputFocus(
-                                confirmPasswordRef,
-                                500
-                              );
-                            }}
-                            onBlur={() =>
-                              setConfirmPasswordFocused(
-                                false
-                              )
-                            }
-                            onSubmitEditing={
-                              handleCreateAccount
-                            }
-                            blurOnSubmit={true}
-                          />
+                        onSubmitEditing={() =>
+                          confirmPasswordRef.current?.focus()
+                        }
 
-                          <TouchableOpacity
-                            style={
-                              styles.showButton
-                            }
-                            onPress={() =>
-                              setShowConfirmPassword(
-                                !showConfirmPassword
-                              )
-                            }
-                            disabled={loading}
-                            activeOpacity={0.7}
-                          >
-                            <Text
-                              style={
-                                styles.showText
-                              }
-                            >
-                              {showConfirmPassword
-                                ? "HIDE"
-                                : "SHOW"}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
+                        blurOnSubmit={false}
+                      />
 
-                      {/* CREATE ACCOUNT */}
 
                       <TouchableOpacity
+                        style={
+                          styles.showButton
+                        }
+
+                        onPress={() =>
+                          setShowCreatePassword(
+                            !showCreatePassword
+                          )
+                        }
+
+                        disabled={loading}
+
+                        activeOpacity={0.7}
+                      >
+
+                        <Text
+                          style={
+                            styles.showText
+                          }
+                        >
+                          {showCreatePassword
+                            ? "HIDE"
+                            : "SHOW"}
+                        </Text>
+
+                      </TouchableOpacity>
+
+                    </View>
+
+                  </View>
+
+
+                  {/* ==================================================
+                      CONFIRM PASSWORD
+                  ================================================== */}
+
+                  <View
+                    style={
+                      styles.inputContainer
+                    }
+                  >
+
+                    <Text
+                      style={[
+                        styles.floatingLabel,
+
+                        confirmPasswordFocused &&
+                          styles.floatingLabelFocused,
+                      ]}
+                    >
+                      Confirm Password
+                    </Text>
+
+
+                    <View
+                      style={
+                        styles.passwordWrapper
+                      }
+                    >
+
+                      <TextInput
+                        ref={
+                          confirmPasswordRef
+                        }
+
                         style={[
-                          styles.loginButton,
-                          loading &&
-                            styles.loginButtonDisabled,
+                          styles.input,
+                          styles.passwordInputDirect,
+
+                          confirmPasswordFocused &&
+                            styles.inputFocused,
                         ]}
-                        onPress={
+
+                        value={
+                          confirmPassword
+                        }
+
+                        onChangeText={
+                          setConfirmPassword
+                        }
+
+                        secureTextEntry={
+                          !showConfirmPassword
+                        }
+
+                        autoCapitalize="none"
+
+                        autoCorrect={false}
+
+                        editable={!loading}
+
+                        placeholder=""
+
+                        placeholderTextColor="transparent"
+
+                        returnKeyType="done"
+
+                        onFocus={() =>
+                          setConfirmPasswordFocused(
+                            true
+                          )
+                        }
+
+                        onBlur={() =>
+                          setConfirmPasswordFocused(
+                            false
+                          )
+                        }
+
+                        selectionColor="#9DBEFF"
+
+                        onSubmitEditing={
                           handleCreateAccount
                         }
+
+                        blurOnSubmit={true}
+                      />
+
+
+                      <TouchableOpacity
+                        style={
+                          styles.showButton
+                        }
+
+                        onPress={() =>
+                          setShowConfirmPassword(
+                            !showConfirmPassword
+                          )
+                        }
+
                         disabled={loading}
-                        activeOpacity={0.8}
+
+                        activeOpacity={0.7}
                       >
-                        {loading ? (
-                          <ActivityIndicator
-                            size="small"
-                            color="#FFFFFF"
-                          />
-                        ) : (
-                          <Text
-                            style={
-                              styles.loginButtonText
-                            }
-                          >
-                            CREATE ACCOUNT
-                          </Text>
-                        )}
+
+                        <Text
+                          style={
+                            styles.showText
+                          }
+                        >
+                          {showConfirmPassword
+                            ? "HIDE"
+                            : "SHOW"}
+                        </Text>
+
                       </TouchableOpacity>
+
                     </View>
-                  )}
-                </>
+
+                  </View>
+
+
+                  {/* ==================================================
+                      CREATE ACCOUNT BUTTON
+                  ================================================== */}
+
+                  <TouchableOpacity
+                    style={[
+                      styles.loginButton,
+
+                      loading &&
+                        styles.loginButtonDisabled,
+                    ]}
+
+                    onPress={
+                      handleCreateAccount
+                    }
+
+                    disabled={loading}
+
+                    activeOpacity={0.8}
+                  >
+
+                    {loading ? (
+
+                      <ActivityIndicator
+                        size="small"
+                        color="#FFFFFF"
+                      />
+
+                    ) : (
+
+                      <Text
+                        style={
+                          styles.loginButtonText
+                        }
+                      >
+                        CREATE ACCOUNT
+                      </Text>
+
+                    )}
+
+                  </TouchableOpacity>
+
+                </View>
+
               )}
+
 
               {/* ==================================================
                   FOOTER
@@ -2080,33 +2013,44 @@ export default function LoginScreen() {
               >
                 GYMRYT • TRAIN • TRACK • TRANSFORM
               </Text>
+
             </View>
+
           </ScrollView>
+
         </KeyboardAvoidingView>
+
       </View>
+
     </ImageBackground>
   );
 }
+
 
 // ============================================================
 // STYLES
 // ============================================================
 
 const styles = StyleSheet.create({
+
   // ==========================================================
   // BACKGROUND
   // ==========================================================
 
   background: {
     flex: 1,
-    backgroundColor: "#050816",
+
+    backgroundColor:
+      "#050816",
   },
 
   backgroundOverlay: {
     flex: 1,
+
     backgroundColor:
       "rgba(2, 8, 23, 0.34)",
   },
+
 
   // ==========================================================
   // KEYBOARD
@@ -2115,6 +2059,7 @@ const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
   },
+
 
   // ==========================================================
   // SCROLL
@@ -2126,17 +2071,31 @@ const styles = StyleSheet.create({
 
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    paddingBottom: 100,
+
+    justifyContent:
+      "center",
+
+    paddingHorizontal:
+      24,
+
+    paddingVertical:
+      20,
+
+    paddingBottom:
+      80,
   },
 
   createScrollContainer: {
-    justifyContent: "flex-start",
-    paddingTop: 20,
-    paddingBottom: 160,
+    justifyContent:
+      "center",
+
+    paddingTop:
+      20,
+
+    paddingBottom:
+      80,
   },
+
 
   // ==========================================================
   // CONTENT
@@ -2144,78 +2103,132 @@ const styles = StyleSheet.create({
 
   content: {
     width: "100%",
-    alignItems: "stretch",
-    justifyContent: "center",
+
+    alignItems:
+      "stretch",
+
+    justifyContent:
+      "center",
   },
+
 
   // ==========================================================
   // LOGO
   // ==========================================================
 
   logoContainer: {
-    alignItems: "center",
-    marginBottom: 6,
+    alignItems:
+      "center",
+
+    marginBottom:
+      6,
   },
 
   logo: {
-    width: 190,
-    height: 190,
+    width:
+      190,
+
+    height:
+      190,
   },
 
   createLogo: {
-    width: 120,
-    height: 120,
+    width:
+      120,
+
+    height:
+      120,
   },
+
 
   // ==========================================================
   // MODE SWITCH
   // ==========================================================
 
   modeSwitch: {
-    height: 46,
-    flexDirection: "row",
+    height:
+      46,
+
+    flexDirection:
+      "row",
+
     backgroundColor:
       "rgba(5, 15, 30, 0.45)",
-    borderRadius: 14,
-    padding: 3,
-    marginBottom: 10,
-    borderWidth: 1,
+
+    borderRadius:
+      14,
+
+    padding:
+      3,
+
+    marginBottom:
+      10,
+
+    borderWidth:
+      1,
+
     borderColor:
       "rgba(157, 190, 255, 0.25)",
   },
 
   modeButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 11,
+    flex:
+      1,
+
+    alignItems:
+      "center",
+
+    justifyContent:
+      "center",
+
+    borderRadius:
+      11,
   },
 
   modeButtonActive: {
-    backgroundColor: "#2563EB",
+    backgroundColor:
+      "#2563EB",
 
-    shadowColor: "#2563EB",
+    shadowColor:
+      "#2563EB",
 
     shadowOffset: {
-      width: 0,
-      height: 4,
+      width:
+        0,
+
+      height:
+        4,
     },
 
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity:
+      0.25,
+
+    shadowRadius:
+      8,
+
+    elevation:
+      4,
   },
 
   modeButtonText: {
-    color: "#94A3B8",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.6,
+    color:
+      "#94A3B8",
+
+    fontSize:
+      10,
+
+    fontWeight:
+      "800",
+
+    letterSpacing:
+      0.6,
   },
 
   modeButtonTextActive: {
-    color: "#FFFFFF",
+    color:
+      "#FFFFFF",
   },
+
 
   // ==========================================================
   // CARD
@@ -2224,462 +2237,413 @@ const styles = StyleSheet.create({
   loginCard: {
     backgroundColor:
       "rgba(5, 15, 30, 0.40)",
-    borderRadius: 22,
-    padding: 18,
 
-    shadowColor: "#006EFF",
+    borderRadius:
+      22,
+
+    padding:
+      18,
+
+    shadowColor:
+      "#006EFF",
 
     shadowOffset: {
-      width: 0,
-      height: 5,
+      width:
+        0,
+
+      height:
+        5,
     },
 
-    shadowOpacity: 0.20,
-    shadowRadius: 15,
-    elevation: 6,
+    shadowOpacity:
+      0.20,
+
+    shadowRadius:
+      15,
+
+    elevation:
+      6,
   },
 
   createAccountCard: {
-    padding: 16,
-    borderRadius: 20,
+    padding:
+      16,
+
+    borderRadius:
+      20,
   },
 
-  // ==========================================================
-  // ACCOUNT TYPE SELECTION
-  // ==========================================================
-
-  roleCard: {
-    backgroundColor:
-      "rgba(5, 15, 30, 0.48)",
-
-    borderRadius: 22,
-
-    padding: 18,
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(157, 190, 255, 0.20)",
-
-    shadowColor: "#006EFF",
-
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-
-    shadowOpacity: 0.20,
-
-    shadowRadius: 15,
-
-    elevation: 6,
-  },
-
-  roleTitle: {
-    color: "#9DBEFF",
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-  },
-
-  roleSubtitle: {
-    color: "#64748B",
-    fontSize: 11,
-    marginTop: 6,
-    marginBottom: 18,
-  },
-
-  roleOption: {
-    minHeight: 88,
-
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    backgroundColor:
-      "rgba(15, 30, 55, 0.55)",
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(157, 190, 255, 0.22)",
-
-    borderRadius: 16,
-
-    paddingHorizontal: 14,
-
-    paddingVertical: 13,
-
-    marginBottom: 12,
-  },
-
-  roleIcon: {
-    width: 46,
-    height: 46,
-
-    borderRadius: 23,
-
-    backgroundColor:
-      "rgba(37, 99, 235, 0.20)",
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(157, 190, 255, 0.40)",
-
-    alignItems: "center",
-    justifyContent: "center",
-
-    marginRight: 13,
-  },
-
-  roleIconText: {
-    color: "#9DBEFF",
-    fontSize: 11,
-    fontWeight: "900",
-  },
-
-  roleContent: {
-    flex: 1,
-  },
-
-  roleName: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "800",
-  },
-
-  roleDescription: {
-    color: "#64748B",
-    fontSize: 10,
-    lineHeight: 15,
-    marginTop: 4,
-  },
-
-  roleArrow: {
-    color: "#9DBEFF",
-    fontSize: 22,
-    marginLeft: 8,
-  },
-
-  // ==========================================================
-  // SELECTED ROLE
-  // ==========================================================
-
-  selectedRoleCard: {
-    minHeight: 78,
-
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    justifyContent: "space-between",
-
-    backgroundColor:
-      "rgba(15, 30, 55, 0.50)",
-
-    borderRadius: 16,
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(157, 190, 255, 0.22)",
-
-    paddingHorizontal: 15,
-
-    paddingVertical: 12,
-
-    marginBottom: 20,
-  },
-
-  selectedRoleLabel: {
-    color: "#64748B",
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.3,
-  },
-
-  selectedRoleName: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "900",
-    marginTop: 5,
-  },
-
-  changeRoleText: {
-    color: "#60A5FA",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 0.8,
-  },
 
   // ==========================================================
   // INPUT CONTAINER
   // ==========================================================
 
   inputContainer: {
-    position: "relative",
-    marginBottom: 20,
+    position:
+      "relative",
+
+    marginBottom:
+      20,
   },
+
 
   // ==========================================================
   // LABEL
   // ==========================================================
 
   floatingLabel: {
-    position: "absolute",
+    position:
+      "absolute",
 
-    left: 16,
+    left:
+      16,
 
-    top: -8,
+    top:
+      -8,
 
-    zIndex: 10,
+    zIndex:
+      10,
 
     backgroundColor:
       "rgba(4, 14, 28, 0.90)",
 
-    paddingHorizontal: 5,
+    paddingHorizontal:
+      5,
 
-    color: "#9DBEFF",
+    color:
+      "#9DBEFF",
 
-    fontSize: 13,
+    fontSize:
+      13,
 
-    fontWeight: "500",
+    fontWeight:
+      "500",
   },
 
   floatingLabelFocused: {
-    color: "#A8C7FF",
+    color:
+      "#A8C7FF",
   },
 
+
   // ==========================================================
-  // INPUT
+  // NORMAL INPUT
   // ==========================================================
 
   input: {
-    height: 54,
+    height:
+      54,
 
     backgroundColor:
       "rgba(0, 0, 0, 0.08)",
 
-    borderWidth: 2,
+    borderWidth:
+      2,
 
-    borderColor: "#64748B",
+    borderColor:
+      "#64748B",
 
-    borderRadius: 5,
+    borderRadius:
+      5,
 
-    paddingHorizontal: 16,
+    paddingHorizontal:
+      16,
 
-    color: "#FFFFFF",
+    color:
+      "#FFFFFF",
 
-    fontSize: 15,
+    fontSize:
+      15,
   },
 
   inputFocused: {
-    borderColor: "#9DBEFF",
+    borderColor:
+      "#9DBEFF",
 
     backgroundColor:
       "rgba(0, 0, 0, 0.04)",
 
-    shadowColor: "#258DFF",
+    shadowColor:
+      "#258DFF",
 
     shadowOffset: {
-      width: 0,
-      height: 0,
+      width:
+        0,
+
+      height:
+        0,
     },
 
-    shadowOpacity: 0.25,
+    shadowOpacity:
+      0.25,
 
-    shadowRadius: 6,
+    shadowRadius:
+      6,
 
-    elevation: 3,
+    elevation:
+      3,
   },
 
+
   // ==========================================================
-  // PASSWORD
+  // PASSWORD WRAPPER
   // ==========================================================
 
   passwordWrapper: {
-    position: "relative",
+    position:
+      "relative",
 
-    width: "100%",
+    width:
+      "100%",
 
-    height: 54,
+    height:
+      54,
   },
 
   passwordInputDirect: {
-    width: "100%",
+    width:
+      "100%",
 
-    height: 54,
+    height:
+      54,
 
-    paddingRight: 75,
+    paddingRight:
+      75,
   },
 
+
   // ==========================================================
-  // SHOW / HIDE
+  // SHOW / HIDE BUTTON
   // ==========================================================
 
   showButton: {
-    position: "absolute",
+    position:
+      "absolute",
 
-    right: 0,
+    right:
+      0,
 
-    top: 0,
+    top:
+      0,
 
-    height: 54,
+    height:
+      54,
 
-    width: 68,
+    width:
+      68,
 
-    alignItems: "center",
+    alignItems:
+      "center",
 
-    justifyContent: "center",
+    justifyContent:
+      "center",
 
-    zIndex: 50,
+    zIndex:
+      50,
 
-    elevation: 10,
+    elevation:
+      10,
   },
 
   showText: {
-    color: "#9DBEFF",
+    color:
+      "#9DBEFF",
 
-    fontSize: 10,
+    fontSize:
+      10,
 
-    fontWeight: "800",
+    fontWeight:
+      "800",
 
-    letterSpacing: 0.8,
+    letterSpacing:
+      0.8,
   },
+
 
   // ==========================================================
   // FORGOT PASSWORD
   // ==========================================================
 
   forgotButton: {
-    alignSelf: "flex-end",
+    alignSelf:
+      "flex-end",
 
-    marginTop: -1,
+    marginTop:
+      -1,
 
-    marginBottom: 18,
+    marginBottom:
+      18,
   },
 
   forgotText: {
-    color: "#60A5FA",
+    color:
+      "#60A5FA",
 
-    fontSize: 11,
+    fontSize:
+      11,
 
-    fontWeight: "600",
+    fontWeight:
+      "600",
   },
 
+
   // ==========================================================
-  // BUTTON
+  // LOGIN BUTTON
   // ==========================================================
 
   loginButton: {
-    height: 54,
+    height:
+      54,
 
-    backgroundColor: "#2563EB",
+    backgroundColor:
+      "#2563EB",
 
-    borderRadius: 14,
+    borderRadius:
+      14,
 
-    flexDirection: "row",
+    flexDirection:
+      "row",
 
-    alignItems: "center",
+    alignItems:
+      "center",
 
-    justifyContent: "center",
+    justifyContent:
+      "center",
 
-    shadowColor: "#2563EB",
+    shadowColor:
+      "#2563EB",
 
     shadowOffset: {
-      width: 0,
-      height: 6,
+      width:
+        0,
+
+      height:
+        6,
     },
 
-    shadowOpacity: 0.30,
+    shadowOpacity:
+      0.30,
 
-    shadowRadius: 10,
+    shadowRadius:
+      10,
 
-    elevation: 6,
+    elevation:
+      6,
   },
 
   loginButtonDisabled: {
-    opacity: 0.7,
+    opacity:
+      0.7,
   },
 
   loginButtonText: {
-    color: "#FFFFFF",
+    color:
+      "#FFFFFF",
 
-    fontSize: 15,
+    fontSize:
+      15,
 
-    fontWeight: "800",
+    fontWeight:
+      "800",
 
-    letterSpacing: 0.8,
+    letterSpacing:
+      0.8,
   },
 
+
   // ==========================================================
-  // QR SCANNER
+  // QR SCANNER BUTTON
   // ==========================================================
 
   scannerButton: {
-    width: 48,
+    width:
+      48,
 
-    height: 48,
+    height:
+      48,
 
-    borderRadius: 24,
+    borderRadius:
+      24,
 
-    alignSelf: "center",
+    alignSelf:
+      "center",
 
-    marginTop: 18,
+    marginTop:
+      18,
 
-    alignItems: "center",
+    alignItems:
+      "center",
 
-    justifyContent: "center",
+    justifyContent:
+      "center",
 
     backgroundColor:
       "rgba(37, 99, 235, 0.18)",
 
-    borderWidth: 1,
+    borderWidth:
+      1,
 
     borderColor:
       "rgba(157, 190, 255, 0.45)",
   },
 
   scannerButtonText: {
-    color: "#9DBEFF",
+    color:
+      "#9DBEFF",
 
-    fontSize: 30,
+    fontSize:
+      30,
 
-    fontWeight: "300",
+    fontWeight:
+      "300",
 
-    lineHeight: 32,
+    lineHeight:
+      32,
   },
 
   scannerHint: {
-    textAlign: "center",
+    textAlign:
+      "center",
 
-    color: "#64748B",
+    color:
+      "#64748B",
 
-    fontSize: 9,
+    fontSize:
+      9,
 
-    fontWeight: "600",
+    fontWeight:
+      "600",
 
-    marginTop: 7,
+    marginTop:
+      7,
   },
+
 
   // ==========================================================
   // FOOTER
   // ==========================================================
 
   footer: {
-    textAlign: "center",
+    textAlign:
+      "center",
 
-    color: "#64748B",
+    color:
+      "#64748B",
 
-    fontSize: 9,
+    fontSize:
+      9,
 
-    fontWeight: "700",
+    fontWeight:
+      "700",
 
-    letterSpacing: 1.5,
+    letterSpacing:
+      1.5,
 
-    marginTop: 18,
+    marginTop:
+      18,
 
-    marginBottom: 10,
+    marginBottom:
+      2,
   },
+
 });

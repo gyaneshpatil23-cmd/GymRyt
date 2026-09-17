@@ -26,6 +26,7 @@ from rest_framework.parsers import (
 
 from .models import (
     Member,
+    Notification,
     Payment,
     RegistrationQR,
     UserProfile,
@@ -41,6 +42,7 @@ from .serializers import (
     WorkspaceSerializer,
     TrainerSerializer,
     WorkoutPlanSerializer,
+    NotificationSerializer,
 )
 
 
@@ -85,9 +87,17 @@ def add_months(original_date, months):
 
 def get_or_create_profile(user):
     """
-    Get the UserProfile for a user.
+    Get the UserProfile for a user and keep the role flags
+    synchronized.
 
-    If the profile doesn't exist, create it.
+    Roles:
+        OWNER
+        OWNER_TRAINER
+        TRAINER
+
+    Important:
+        OWNER and OWNER_TRAINER must have is_owner=True.
+        TRAINER must NOT be converted into an owner.
     """
 
     profile, created = UserProfile.objects.get_or_create(
@@ -96,10 +106,306 @@ def get_or_create_profile(user):
             "role": "OWNER" if user.is_staff else "MEMBER",
             "is_owner": user.is_staff,
             "is_trainer": False,
-        }
+        },
     )
 
+    # ========================================================
+    # SYNCHRONIZE ROLE FLAGS
+    # ========================================================
+
+    role = str(
+        getattr(profile, "role", "") or ""
+    ).strip().upper()
+
+    new_is_owner = profile.is_owner
+    new_is_trainer = profile.is_trainer
+
+    # --------------------------------------------------------
+    # OWNER
+    # --------------------------------------------------------
+
+    if role == "OWNER":
+        new_is_owner = True
+        new_is_trainer = False
+
+    # --------------------------------------------------------
+    # OWNER + TRAINER
+    # --------------------------------------------------------
+
+    elif role == "OWNER_TRAINER":
+        new_is_owner = True
+        new_is_trainer = True
+
+    # --------------------------------------------------------
+    # TRAINER
+    # --------------------------------------------------------
+
+    elif role == "TRAINER":
+        new_is_owner = False
+        new_is_trainer = True
+
+    # --------------------------------------------------------
+    # MEMBER / OTHER
+    # --------------------------------------------------------
+
+    elif role == "MEMBER":
+        new_is_owner = False
+        new_is_trainer = False
+
+    # --------------------------------------------------------
+    # LEGACY STAFF ACCOUNTS
+    # --------------------------------------------------------
+
+    elif user.is_staff:
+        new_is_owner = True
+
+        # Do not automatically make staff a trainer.
+        new_is_trainer = False
+
+    # ========================================================
+    # UPDATE ONLY WHEN NECESSARY
+    # ========================================================
+
+    if (
+        profile.is_owner != new_is_owner
+        or profile.is_trainer != new_is_trainer
+    ):
+
+        profile.is_owner = new_is_owner
+        profile.is_trainer = new_is_trainer
+
+        profile.save(
+            update_fields=[
+                "is_owner",
+                "is_trainer",
+                "updated_at",
+            ]
+        )
+
     return profile
+
+# ============================================================
+# NOTIFICATIONS
+# ============================================================
+
+
+class NotificationListView(APIView):
+    """
+    Return notifications belonging only to the authenticated
+    owner/trainer in their active workspace.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        workspace = get_user_workspace(request.user)
+
+        if not workspace:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Active workspace not found.",
+                    "notifications": [],
+                    "unread_count": 0,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        notifications = (
+            Notification.objects
+            .filter(
+                recipient=request.user,
+                workspace=workspace,
+            )
+            .order_by("-created_at")
+        )
+
+        unread_count = notifications.filter(
+            is_read=False
+        ).count()
+
+        serializer = NotificationSerializer(
+            notifications,
+            many=True,
+        )
+
+        return Response(
+            {
+                "success": True,
+                "count": notifications.count(),
+                "unread_count": unread_count,
+                "notifications": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+# ============================================================
+# NOTIFICATION UNREAD COUNT
+# ============================================================
+
+
+class NotificationUnreadCountView(APIView):
+    """
+    Return only the unread notification count.
+
+    This endpoint will be called by dashboard headers
+    to display the red/blue unread badge on the bell.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        workspace = get_user_workspace(request.user)
+
+        if not workspace:
+            return Response(
+                {
+                    "success": True,
+                    "unread_count": 0,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        unread_count = (
+            Notification.objects
+            .filter(
+                recipient=request.user,
+                workspace=workspace,
+                is_read=False,
+            )
+            .count()
+        )
+
+        return Response(
+            {
+                "success": True,
+                "unread_count": unread_count,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+# ============================================================
+# MARK SINGLE NOTIFICATION AS READ
+# ============================================================
+
+
+class NotificationReadView(APIView):
+    """
+    Mark one notification as read.
+
+    Users can only modify notifications belonging to
+    themselves and their active workspace.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+
+        workspace = get_user_workspace(request.user)
+
+        if not workspace:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Active workspace not found.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+
+            notification = (
+                Notification.objects
+                .get(
+                    pk=pk,
+                    recipient=request.user,
+                    workspace=workspace,
+                )
+            )
+
+        except Notification.DoesNotExist:
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "Notification not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not notification.is_read:
+
+            notification.is_read = True
+
+            notification.save(
+                update_fields=[
+                    "is_read",
+                ]
+            )
+
+        return Response(
+            {
+                "success": True,
+                "message": "Notification marked as read.",
+                "notification": NotificationSerializer(
+                    notification
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+# ============================================================
+# MARK ALL NOTIFICATIONS AS READ
+# ============================================================
+
+
+class NotificationMarkAllReadView(APIView):
+    """
+    Mark all unread notifications for the authenticated
+    user/workspace as read.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+
+        workspace = get_user_workspace(request.user)
+
+        if not workspace:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Active workspace not found.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_count = (
+            Notification.objects
+            .filter(
+                recipient=request.user,
+                workspace=workspace,
+                is_read=False,
+            )
+            .update(
+                is_read=True,
+            )
+        )
+
+        return Response(
+            {
+                "success": True,
+                "message": "All notifications marked as read.",
+                "updated_count": updated_count,
+                "unread_count": 0,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 # ============================================================
@@ -151,6 +457,137 @@ def get_user_workspace(user):
         return trainer_profile.workspace
 
     return None
+
+
+
+# ============================================================
+# HELPER - MEMBERSHIP EXPIRING NOTIFICATION
+# ============================================================
+
+def create_membership_expiring_notifications(member):
+    """Create one expiring notification per membership expiry date."""
+    if (
+        not member
+        or member.is_deleted
+        or not member.membership_end
+        or not member.workspace
+    ):
+        return
+
+    today = timezone.localdate()
+    days_remaining = (member.membership_end - today).days
+
+    if days_remaining < 0 or days_remaining > 7:
+        return
+
+    workspace = member.workspace
+    expiry_marker = f"member_expiring_{member.membership_end.isoformat()}"
+
+    if days_remaining == 0:
+        message = f"{member.name}'s membership expires today."
+    elif days_remaining == 1:
+        message = f"{member.name}'s membership expires tomorrow."
+    else:
+        message = (
+            f"{member.name}'s membership expires in "
+            f"{days_remaining} days."
+        )
+
+    recipients = []
+    if workspace.owner:
+        recipients.append(("user", workspace.owner))
+    if member.trainer and member.trainer != workspace.owner:
+        recipients.append(("user", member.trainer))
+    recipients.append(("member", member))
+
+    for recipient_type, recipient in recipients:
+        filters = {
+            "workspace": workspace,
+            "notification_type": "MEMBERSHIP_EXPIRING",
+            "related_id": member.id,
+            "related_type": expiry_marker,
+        }
+        if recipient_type == "user":
+            filters["recipient"] = recipient
+        else:
+            filters["recipient_member"] = recipient
+
+        if Notification.objects.filter(**filters).exists():
+            continue
+
+        create_kwargs = dict(
+            workspace=workspace,
+            notification_type="MEMBERSHIP_EXPIRING",
+            title="Membership Expiring",
+            message=message,
+            related_id=member.id,
+            related_type=expiry_marker,
+        )
+        if recipient_type == "user":
+            create_kwargs["recipient"] = recipient
+        else:
+            create_kwargs["recipient_member"] = recipient
+        Notification.objects.create(**create_kwargs)
+
+
+def create_membership_expired_notifications(member):
+    """Create one expired notification per membership expiry date."""
+    if (
+        not member
+        or member.is_deleted
+        or not member.membership_end
+        or not member.workspace
+    ):
+        return
+
+    today = timezone.localdate()
+    days_remaining = (member.membership_end - today).days
+
+    if days_remaining >= 0:
+        return
+
+    workspace = member.workspace
+    expiry_marker = f"member_expired_{member.membership_end.isoformat()}"
+    message = (
+        f"{member.name}'s membership expired on "
+        f"{member.membership_end.strftime('%d %b %Y')}."
+    )
+
+    recipients = []
+    if workspace.owner:
+        recipients.append(("user", workspace.owner))
+    if member.trainer and member.trainer != workspace.owner:
+        recipients.append(("user", member.trainer))
+    recipients.append(("member", member))
+
+    for recipient_type, recipient in recipients:
+        filters = {
+            "workspace": workspace,
+            "notification_type": "MEMBERSHIP_EXPIRED",
+            "related_id": member.id,
+            "related_type": expiry_marker,
+        }
+        if recipient_type == "user":
+            filters["recipient"] = recipient
+        else:
+            filters["recipient_member"] = recipient
+
+        if Notification.objects.filter(**filters).exists():
+            continue
+
+        create_kwargs = dict(
+            workspace=workspace,
+            notification_type="MEMBERSHIP_EXPIRED",
+            title="Membership Expired",
+            message=message,
+            related_id=member.id,
+            related_type=expiry_marker,
+        )
+        if recipient_type == "user":
+            create_kwargs["recipient"] = recipient
+        else:
+            create_kwargs["recipient_member"] = recipient
+        Notification.objects.create(**create_kwargs)
 
 
 # ============================================================
@@ -273,6 +710,134 @@ def get_authenticated_member(request):
         .filter(id=member_id, is_deleted=False)
         .first()
     )
+
+
+# ============================================================
+# MEMBER NOTIFICATIONS
+# ============================================================
+
+class MemberNotificationListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        member = get_authenticated_member(request)
+
+        if not member:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Invalid or expired member session.",
+                    "notifications": [],
+                    "unread_count": 0,
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        notifications = Notification.objects.filter(
+            recipient_member=member,
+            workspace=member.workspace,
+        ).order_by("-created_at")
+
+        unread_count = notifications.filter(is_read=False).count()
+
+        return Response(
+            {
+                "success": True,
+                "count": notifications.count(),
+                "unread_count": unread_count,
+                "notifications": NotificationSerializer(
+                    notifications,
+                    many=True,
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MemberNotificationReadView(APIView):
+    permission_classes = [AllowAny]
+
+    def patch(self, request, pk):
+        member = get_authenticated_member(request)
+
+        if not member:
+            return Response(
+                {"success": False, "message": "Invalid or expired member session."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        notification = Notification.objects.filter(
+            pk=pk,
+            recipient_member=member,
+            workspace=member.workspace,
+        ).first()
+
+        if not notification:
+            return Response(
+                {"success": False, "message": "Notification not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+
+        return Response(
+            {"success": True, "message": "Notification marked as read."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class MemberNotificationMarkAllReadView(APIView):
+    permission_classes = [AllowAny]
+
+    def patch(self, request):
+        member = get_authenticated_member(request)
+
+        if not member:
+            return Response(
+                {"success": False, "message": "Invalid or expired member session."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        updated_count = Notification.objects.filter(
+            recipient_member=member,
+            workspace=member.workspace,
+            is_read=False,
+        ).update(is_read=True)
+
+        return Response(
+            {
+                "success": True,
+                "message": "All notifications marked as read.",
+                "updated_count": updated_count,
+                "unread_count": 0,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MemberNotificationUnreadCountView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        member = get_authenticated_member(request)
+
+        if not member:
+            return Response(
+                {"success": False, "message": "Invalid or expired member session.", "unread_count": 0},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        unread_count = Notification.objects.filter(
+            recipient_member=member,
+            workspace=member.workspace,
+            is_read=False,
+        ).count()
+
+        return Response(
+            {"success": True, "unread_count": unread_count},
+            status=status.HTTP_200_OK,
+        )
 
 
 # ============================================================
@@ -611,16 +1176,178 @@ class LoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # ====================================================
-        # ADMIN / TRAINER LOGIN
-        # ====================================================
+
+        # ========================================================
+        # MEMBER LOGIN FIRST
+        # ========================================================
+        #
+        # IMPORTANT:
+        # Members are stored in the Member model.
+        #
+        # We check Member BEFORE Django User authentication.
+        # This prevents a Member account from accidentally being
+        # treated as an OWNER/TRAINER when the same username
+        # exists in the Django User table.
+        # ========================================================
+
+        try:
+
+            member = Member.objects.select_related(
+                "workspace",
+                "trainer"
+            ).get(
+                username=username,
+                is_deleted=False
+            )
+
+        except Member.DoesNotExist:
+
+            member = None
+
+
+        # ========================================================
+        # MEMBER FOUND
+        # ========================================================
+
+        if member is not None:
+
+            # ----------------------------------------------------
+            # Check member password
+            # ----------------------------------------------------
+
+            if not check_password(
+                password,
+                member.password
+            ):
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Invalid username or "
+                            "password."
+                        )
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+
+            # ----------------------------------------------------
+            # Trainer information
+            # ----------------------------------------------------
+
+            trainer_name = None
+            trainer_username = None
+
+            if member.trainer:
+
+                trainer_username = (
+                    member.trainer.username
+                )
+
+                trainer_name = (
+                    f"{member.trainer.first_name} "
+                    f"{member.trainer.last_name}"
+                ).strip()
+
+                if not trainer_name:
+
+                    trainer_name = (
+                        member.trainer.username
+                    )
+
+
+            # ----------------------------------------------------
+            # MEMBER LOGIN SUCCESS
+            # ----------------------------------------------------
+
+            return Response(
+                {
+                    "success": True,
+
+                    "message": (
+                        "Member login successful."
+                    ),
+
+                    "role": "MEMBER",
+
+                    "member_token": (
+                        create_member_token(member)
+                    ),
+
+                    "id": member.id,
+
+                    "username": member.username,
+
+                    "name": member.name,
+
+                    "phone": member.phone,
+
+                    "email": member.email,
+
+                    "profile_picture": (
+                        request.build_absolute_uri(
+                            member.profile_picture.url
+                        )
+                        if member.profile_picture
+                        else None
+                    ),
+
+                    "membership_start": (
+                        member.membership_start
+                    ),
+
+                    "membership_end": (
+                        member.membership_end
+                    ),
+
+                    "status": member.status,
+
+                    "workspace_id": (
+                        member.workspace.id
+                        if member.workspace
+                        else None
+                    ),
+
+                    "workspace_name": (
+                        member.workspace.name
+                        if member.workspace
+                        else None
+                    ),
+
+                    "trainer_id": (
+                        member.trainer.id
+                        if member.trainer
+                        else None
+                    ),
+
+                    "trainer_username": (
+                        trainer_username
+                    ),
+
+                    "trainer_name": (
+                        trainer_name
+                    ),
+                },
+                status=status.HTTP_200_OK
+            )
+
+
+        # ========================================================
+        # OWNER / TRAINER LOGIN
+        # ========================================================
 
         user = authenticate(
             username=username,
             password=password
         )
 
+
         if user is not None:
+
+            # ----------------------------------------------------
+            # Account active check
+            # ----------------------------------------------------
 
             if not user.is_active:
 
@@ -634,25 +1361,32 @@ class LoginView(APIView):
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
-            # ------------------------------------------------
+
+            # ----------------------------------------------------
             # Get/create profile
-            # ------------------------------------------------
+            # ----------------------------------------------------
 
             profile = get_or_create_profile(
                 user
             )
 
-            # ------------------------------------------------
-            # Determine capabilities
-            # ------------------------------------------------
+
+            # ----------------------------------------------------
+            # Capabilities
+            # ----------------------------------------------------
 
             is_owner = profile.is_owner
             is_trainer = profile.is_trainer
 
-            # Existing staff accounts are owners by default.
+
+            # ----------------------------------------------------
+            # Existing staff accounts
+            # ----------------------------------------------------
+
             if user.is_staff and not is_owner:
 
                 profile.is_owner = True
+
                 profile.save(
                     update_fields=[
                         "is_owner",
@@ -662,61 +1396,95 @@ class LoginView(APIView):
 
                 is_owner = True
 
-            # ------------------------------------------------
-            # Determine role response
-            # ------------------------------------------------
 
-            if hasattr(user, "role") and user.role:
-                role = user.role
-            elif hasattr(profile, "role") and profile.role:
-                role = profile.role
-            elif is_owner and is_trainer:
+            # ----------------------------------------------------
+            # Determine role
+            # ----------------------------------------------------
+
+            if (
+                profile.is_owner
+                and profile.is_trainer
+            ):
+
                 role = "OWNER_TRAINER"
-            elif is_owner:
+
+            elif profile.is_owner:
+
                 role = "OWNER"
-            elif is_trainer:
+
+            elif profile.is_trainer:
+
                 role = "TRAINER"
+
             else:
-                role = "MEMBER"
 
-            # ------------------------------------------------
+                role = (
+                    getattr(
+                        profile,
+                        "role",
+                        "OWNER"
+                    )
+                    or "OWNER"
+                )
+
+
+            # ----------------------------------------------------
             # Token
-            # ------------------------------------------------
+            # ----------------------------------------------------
 
-            token, created = Token.objects.get_or_create(
-                user=user
+            token, created = (
+                Token.objects.get_or_create(
+                    user=user
+                )
             )
 
-            # ------------------------------------------------
+
+            # ----------------------------------------------------
             # Workspace
-            # ------------------------------------------------
+            # ----------------------------------------------------
 
             workspace = get_user_workspace(
                 user
             )
 
+
+            # ----------------------------------------------------
+            # STAFF LOGIN SUCCESS
+            # ----------------------------------------------------
+
             return Response(
                 {
                     "success": True,
-                    "message": "Login successful.",
 
-                    "role": role,
+                    "message":
+                        "Login successful.",
 
-                    "token": token.key,
+                    "role":
+                        role,
 
-                    "id": user.id,
+                    "token":
+                        token.key,
 
-                    "username": user.username,
+                    "id":
+                        user.id,
 
-                    "email": user.email,
+                    "username":
+                        user.username,
 
-                    "first_name": user.first_name,
+                    "email":
+                        user.email,
 
-                    "last_name": user.last_name,
+                    "first_name":
+                        user.first_name,
 
-                    "is_owner": is_owner,
+                    "last_name":
+                        user.last_name,
 
-                    "is_trainer": is_trainer,
+                    "is_owner":
+                        is_owner,
+
+                    "is_trainer":
+                        is_trainer,
 
                     "workspace_id": (
                         workspace.id
@@ -733,140 +1501,20 @@ class LoginView(APIView):
                 status=status.HTTP_200_OK
             )
 
-        # ====================================================
-        # MEMBER LOGIN
-        # ====================================================
 
-        try:
-
-            member = Member.objects.select_related(
-                "workspace",
-                "trainer"
-            ).get(
-                username=username,
-                is_deleted=False
-            )
-
-        except Member.DoesNotExist:
-
-            return Response(
-                {
-                    "success": False,
-                    "message": (
-                        "Invalid username or "
-                        "password."
-                    )
-                },
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        # ----------------------------------------------------
-        # Password
-        # ----------------------------------------------------
-
-        if not check_password(
-            password,
-            member.password
-        ):
-
-            return Response(
-                {
-                    "success": False,
-                    "message": (
-                        "Invalid username or "
-                        "password."
-                    )
-                },
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        # ----------------------------------------------------
-        # Trainer information
-        # ----------------------------------------------------
-
-        trainer_name = None
-        trainer_username = None
-
-        if member.trainer:
-
-            trainer_username = (
-                member.trainer.username
-            )
-
-            trainer_name = (
-                f"{member.trainer.first_name} "
-                f"{member.trainer.last_name}"
-            ).strip()
-
-            if not trainer_name:
-
-                trainer_name = (
-                    member.trainer.username
-                )
+        # ========================================================
+        # INVALID LOGIN
+        # ========================================================
 
         return Response(
             {
-                "success": True,
-
+                "success": False,
                 "message": (
-                    "Member login successful."
-                ),
-
-                "role": "MEMBER",
-
-                "member_token": create_member_token(member),
-
-                "id": member.id,
-
-                "username": member.username,
-
-                "name": member.name,
-
-                "phone": member.phone,
-
-                "email": member.email,
-
-                "profile_picture": (
-                    request.build_absolute_uri(member.profile_picture.url)
-                    if member.profile_picture
-                    else None
-                ),
-
-                "membership_start": (
-                    member.membership_start
-                ),
-
-                "membership_end": (
-                    member.membership_end
-                ),
-
-                "status": (
-                    member.calculate_status()
-                ),
-
-                "workspace_id": (
-                    member.workspace.id
-                    if member.workspace
-                    else None
-                ),
-
-                "workspace_name": (
-                    member.workspace.name
-                    if member.workspace
-                    else None
-                ),
-
-                "trainer_id": (
-                    member.trainer.id
-                    if member.trainer
-                    else None
-                ),
-
-                "trainer_username": trainer_username,
-
-                "trainer_name": trainer_name,
+                    "Invalid username or "
+                    "password."
+                )
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_401_UNAUTHORIZED
         )
 
 
@@ -1024,6 +1672,22 @@ class MemberListCreateView(APIView):
 
                 member.status = calculated_status
 
+            # ------------------------------------------------
+            # MEMBERSHIP EXPIRING NOTIFICATION
+            # ------------------------------------------------
+
+            create_membership_expiring_notifications(
+                member
+            )
+
+            # ------------------------------------------------
+            # MEMBERSHIP EXPIRED NOTIFICATION
+            # ------------------------------------------------
+
+            create_membership_expired_notifications(
+                member
+            )
+
         serializer = MemberSerializer(
             members,
             many=True,
@@ -1141,6 +1805,72 @@ class MemberListCreateView(APIView):
             workspace=workspace,
             trainer=trainer
         )
+
+        # ----------------------------------------------------
+        # TRAINER ASSIGNED NOTIFICATION
+        # ----------------------------------------------------
+        if (
+            trainer is not None
+            and trainer != request.user
+        ):
+            Notification.objects.create(
+                recipient=trainer,
+                workspace=workspace,
+                notification_type="TRAINER_ASSIGNED",
+                title="New Member Assigned",
+                message=(
+                    f"{member.name} has been assigned to you."
+                ),
+                related_id=member.id,
+                related_type="member",
+            )
+
+        # ----------------------------------------------------
+        # NEW MEMBER NOTIFICATION - OWNER
+        # ----------------------------------------------------
+        if workspace.owner:
+            Notification.objects.create(
+                recipient=workspace.owner,
+                workspace=workspace,
+                notification_type="NEW_MEMBER",
+                title="New Member Added",
+                message=f"{member.name} has joined the gym.",
+                related_id=member.id,
+                related_type="member",
+            )
+
+        # ----------------------------------------------------
+        # WELCOME NOTIFICATION - MEMBER
+        # ----------------------------------------------------
+        Notification.objects.create(
+            recipient_member=member,
+            workspace=workspace,
+            notification_type="WELCOME",
+            title="Welcome to GymRyt",
+            message=(
+                f"Welcome to {workspace.name}, {member.name}! "
+                "Your member account is ready."
+            ),
+            related_id=member.id,
+            related_type="member",
+        )
+
+        # ----------------------------------------------------
+        # TRAINER ASSIGNED NOTIFICATION - MEMBER
+        # ----------------------------------------------------
+        if trainer is not None:
+            Notification.objects.create(
+                recipient_member=member,
+                workspace=workspace,
+                notification_type="TRAINER_ASSIGNED",
+                title="Trainer Assigned",
+                message=(
+                    f"{trainer.get_full_name() or trainer.username} "
+                    "has been assigned as your trainer."
+                ),
+                related_id=member.id,
+                related_type="member",
+            )
 
         return Response(
             MemberSerializer(member).data,
@@ -1334,6 +2064,11 @@ class MemberDetailView(APIView):
                 # Trainer cannot assign someone else.
                 data["trainer"] = request.user.id
 
+        # ----------------------------------------------------
+        # Track trainer before update
+        # ----------------------------------------------------
+        previous_trainer = member.trainer
+
         serializer = MemberSerializer(
             member,
             data=data
@@ -1342,6 +2077,28 @@ class MemberDetailView(APIView):
         if serializer.is_valid():
 
             serializer.save()
+
+            # ----------------------------------------------------
+            # TRAINER ASSIGNED NOTIFICATION
+            # ----------------------------------------------------
+            current_trainer = member.trainer
+
+            if (
+                current_trainer is not None
+                and current_trainer != previous_trainer
+                and current_trainer != request.user
+            ):
+                Notification.objects.create(
+                    recipient=current_trainer,
+                    workspace=workspace,
+                    notification_type="TRAINER_ASSIGNED",
+                    title="New Member Assigned",
+                    message=(
+                        f"{member.name} has been assigned to you."
+                    ),
+                    related_id=member.id,
+                    related_type="member",
+                )
 
             return Response(
                 MemberSerializer(member).data,
@@ -1429,6 +2186,11 @@ class MemberDetailView(APIView):
 
                 data["trainer"] = request.user.id
 
+        # ----------------------------------------------------
+        # Track trainer before update
+        # ----------------------------------------------------
+        previous_trainer = member.trainer
+
         serializer = MemberSerializer(
             member,
             data=data,
@@ -1438,6 +2200,40 @@ class MemberDetailView(APIView):
         if serializer.is_valid():
 
             serializer.save()
+
+            # ----------------------------------------------------
+            # TRAINER ASSIGNED NOTIFICATION
+            # ----------------------------------------------------
+            current_trainer = member.trainer
+
+            if (
+                current_trainer is not None
+                and current_trainer != previous_trainer
+                and current_trainer != request.user
+            ):
+                Notification.objects.create(
+                    recipient=current_trainer,
+                    workspace=member.workspace,
+                    notification_type="TRAINER_ASSIGNED",
+                    title="New Member Assigned",
+                    message=(
+                        f"{member.name} has been assigned to you."
+                    ),
+                    related_id=member.id,
+                    related_type="member",
+                )
+
+                Notification.objects.create(
+                    recipient_member=member,
+                    workspace=member.workspace,
+                    notification_type="TRAINER_ASSIGNED",
+                    title="Trainer Assigned",
+                    message=(
+                        f"{current_trainer.get_full_name() or current_trainer.username} has been assigned as your trainer."
+                    ),
+                    related_id=member.id,
+                    related_type="member",
+                )
 
             return Response(
                 MemberSerializer(member).data,
@@ -1468,6 +2264,17 @@ class MemberDetailView(APIView):
                     "message": "Member not found."
                 },
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+        if member.trainer:
+            Notification.objects.create(
+                recipient=member.trainer,
+                workspace=member.workspace,
+                notification_type="MEMBER_REMOVED",
+                title="Member Removed",
+                message=f"{member.name} has been removed from your assigned members.",
+                related_id=member.id,
+                related_type="member",
             )
 
         member.is_deleted = True
@@ -1573,19 +2380,37 @@ class DashboardStatsView(APIView):
         # --------------------------------------------------------
         # calculate_status() also handles members whose dates are
         # missing, so PENDING members remain PENDING.
-        for member in members.only(
-            "id",
-            "status",
-            "membership_start",
-            "membership_end",
-        ):
-            calculated_status = member.calculate_status()
+        for member in members:
+
+            calculated_status = (
+                member.calculate_status()
+            )
 
             if member.status != calculated_status:
-                Member.objects.filter(pk=member.pk).update(
+
+                Member.objects.filter(
+                    pk=member.pk
+                ).update(
                     status=calculated_status
                 )
+
                 member.status = calculated_status
+
+            # ------------------------------------------------
+            # MEMBERSHIP EXPIRING NOTIFICATION
+            # ------------------------------------------------
+
+            create_membership_expiring_notifications(
+                member
+            )
+
+            # ------------------------------------------------
+            # MEMBERSHIP EXPIRED NOTIFICATION
+            # ------------------------------------------------
+
+            create_membership_expired_notifications(
+                member
+            )
 
         # --------------------------------------------------------
         # MEMBER STATISTICS
@@ -1875,56 +2700,89 @@ class PaymentListCreateView(APIView):
             )
 
         # ----------------------------------------------------
-        # Extend membership
+        # Payment status
         # ----------------------------------------------------
+        # The Payment model supports PAID, PENDING and FAILED.
+        # A FAILED payment must never extend the member's
+        # membership.
 
-        today = timezone.localdate()
-
-        if (
-            member.membership_end is None
-            or member.membership_end < today
-        ):
-
-            base_date = today
-
-        else:
-
-            base_date = member.membership_end
-
-        if plan == "Monthly":
-
-            new_end_date = add_months(
-                base_date,
-                1
+        payment_status = str(
+            request.data.get(
+                "status",
+                "PAID"
             )
+        ).strip().upper()
 
-        elif plan == "Quarterly":
+        allowed_payment_statuses = [
+            "PAID",
+            "PENDING",
+            "FAILED"
+        ]
 
-            new_end_date = add_months(
-                base_date,
-                3
-            )
+        if payment_status not in allowed_payment_statuses:
 
-        else:
-
-            new_end_date = add_months(
-                base_date,
-                12
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Invalid payment status."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         # ----------------------------------------------------
-        # Membership start
+        # Extend membership only for successful payments
         # ----------------------------------------------------
 
-        if member.membership_start is None:
+        if payment_status == "PAID":
 
-            member.membership_start = today
+            today = timezone.localdate()
 
-        member.membership_end = new_end_date
+            if (
+                member.membership_end is None
+                or member.membership_end < today
+            ):
 
-        member.status = member.calculate_status()
+                base_date = today
 
-        member.save()
+            else:
+
+                base_date = member.membership_end
+
+            if plan == "Monthly":
+
+                new_end_date = add_months(
+                    base_date,
+                    1
+                )
+
+            elif plan == "Quarterly":
+
+                new_end_date = add_months(
+                    base_date,
+                    3
+                )
+
+            else:
+
+                new_end_date = add_months(
+                    base_date,
+                    12
+                )
+
+            # ------------------------------------------------
+            # Membership start
+            # ------------------------------------------------
+
+            if member.membership_start is None:
+
+                member.membership_start = today
+
+            member.membership_end = new_end_date
+            member.status = member.calculate_status()
+
+            member.save()
 
         # ----------------------------------------------------
         # Create payment
@@ -1935,6 +2793,66 @@ class PaymentListCreateView(APIView):
             admin=request.user,
             workspace=workspace
         )
+
+        # ====================================================
+        # PAYMENT RECEIVED NOTIFICATION
+        # ====================================================
+
+        if payment.status == "PAID":
+
+            Notification.objects.create(
+                recipient=workspace.owner,
+                workspace=workspace,
+                notification_type="PAYMENT_RECEIVED",
+                title="Payment Received",
+                message=(
+                    f"Payment received from {member.name}."
+                ),
+                related_id=payment.id,
+                related_type="payment",
+            )
+
+            Notification.objects.create(
+                recipient_member=member,
+                workspace=workspace,
+                notification_type="PAYMENT_RECEIVED",
+                title="Payment Successful",
+                message=(
+                    f"Your payment of ₹{payment.amount} was received successfully."
+                ),
+                related_id=payment.id,
+                related_type="payment",
+            )
+
+        # ====================================================
+        # PAYMENT FAILED NOTIFICATION
+        # ====================================================
+
+        elif payment.status == "FAILED":
+
+            Notification.objects.create(
+                recipient=workspace.owner,
+                workspace=workspace,
+                notification_type="PAYMENT_FAILED",
+                title="Payment Failed",
+                message=(
+                    f"Payment failed for {member.name}."
+                ),
+                related_id=payment.id,
+                related_type="payment",
+            )
+
+            Notification.objects.create(
+                recipient_member=member,
+                workspace=workspace,
+                notification_type="PAYMENT_FAILED",
+                title="Payment Failed",
+                message=(
+                    f"Your payment of ₹{payment.amount} could not be completed."
+                ),
+                related_id=payment.id,
+                related_type="payment",
+            )
 
         return Response(
             PaymentSerializer(payment).data,
@@ -2079,15 +2997,66 @@ class RevenueStatsView(APIView):
 
     def get(self, request):
 
+        # ========================================================
+        # GET USER PROFILE
+        # ========================================================
+
         profile = get_or_create_profile(
             request.user
         )
 
-        # ----------------------------------------------------
-        # Revenue is OWNER-ONLY
-        # ----------------------------------------------------
+        # ========================================================
+        # DETERMINE ROLE
+        # ========================================================
 
-        if not profile.is_owner:
+        role = str(
+            getattr(profile, "role", "") or ""
+        ).strip().upper()
+
+        is_owner_account = (
+            role in ["OWNER", "OWNER_TRAINER"]
+            or profile.is_owner is True
+        )
+
+        print(
+            "========================================"
+        )
+        print(
+            "REVENUE STATS DEBUG"
+        )
+        print(
+            "USERNAME:",
+            request.user.username
+        )
+        print(
+            "PROFILE ROLE:",
+            profile.role
+        )
+        print(
+            "PROFILE is_owner:",
+            profile.is_owner
+        )
+        print(
+            "PROFILE is_trainer:",
+            profile.is_trainer
+        )
+        print(
+            "USER is_staff:",
+            request.user.is_staff
+        )
+        print(
+            "OWNER ACCOUNT:",
+            is_owner_account
+        )
+        print(
+            "========================================"
+        )
+
+        # ========================================================
+        # OWNER / OWNER + TRAINER ONLY
+        # ========================================================
+
+        if not is_owner_account:
 
             return Response(
                 {
@@ -2095,10 +3064,14 @@ class RevenueStatsView(APIView):
                     "message": (
                         "Only workspace owners "
                         "can view revenue."
-                    )
+                    ),
                 },
                 status=status.HTTP_403_FORBIDDEN
             )
+
+        # ========================================================
+        # GET WORKSPACE
+        # ========================================================
 
         workspace = get_user_workspace(
             request.user
@@ -2108,16 +3081,25 @@ class RevenueStatsView(APIView):
 
             return Response(
                 {
+                    "success": True,
                     "total_revenue": 0,
                     "total_payments": 0,
                 },
                 status=status.HTTP_200_OK
             )
 
+        # ========================================================
+        # GET PAID PAYMENTS
+        # ========================================================
+
         paid_payments = Payment.objects.filter(
             workspace=workspace,
             status="PAID"
         )
+
+        # ========================================================
+        # TOTAL REVENUE
+        # ========================================================
 
         total_revenue = (
             paid_payments.aggregate(
@@ -2126,12 +3108,21 @@ class RevenueStatsView(APIView):
             or 0
         )
 
+        # ========================================================
+        # TOTAL PAYMENTS
+        # ========================================================
+
         total_payments = (
             paid_payments.count()
         )
 
+        # ========================================================
+        # RESPONSE
+        # ========================================================
+
         return Response(
             {
+                "success": True,
                 "total_revenue": total_revenue,
                 "total_payments": total_payments,
             },
@@ -2893,6 +3884,20 @@ class TrainerApplicationCreateView(APIView):
                     **data
                 )
             )
+
+            # ====================================================
+            # CREATE OWNER NOTIFICATION
+            # ====================================================
+
+            Notification.objects.create(
+                recipient=qr.admin,
+                workspace=workspace,
+                notification_type="TRAINER_APPLICATION",
+                title="New Trainer Application",
+                message=f"{name} has submitted a trainer application.",
+                related_id=application.id,
+                related_type="trainer_application",
+                )
 
             # ====================================================
             # SUCCESS
@@ -4023,70 +5028,215 @@ class TrainerDetailView(APIView):
 # ============================================================
 
 class TrainerAssignmentView(APIView):
-    """Assign or unassign a member to an active trainer in the owner's workspace."""
+    """Assign, change, or unassign a member's trainer."""
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        profile = get_or_create_profile(request.user)
+
+        # ====================================================
+        # GET OWNER PROFILE
+        # ====================================================
+
+        profile = get_or_create_profile(
+            request.user
+        )
 
         if not profile.is_owner:
             return Response(
                 {
                     "success": False,
-                    "message": "Only workspace owners can assign trainers.",
+                    "message": (
+                        "Only workspace owners "
+                        "can assign trainers."
+                    ),
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        workspace = get_user_workspace(request.user)
+        # ====================================================
+        # GET WORKSPACE
+        # ====================================================
+
+        workspace = get_user_workspace(
+            request.user
+        )
+
         if not workspace:
             return Response(
-                {"success": False, "message": "Workspace not found."},
+                {
+                    "success": False,
+                    "message": "Workspace not found.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        member_id = request.data.get("member_id")
-        trainer_id = request.data.get("trainer_id")
+        # ====================================================
+        # GET REQUEST DATA
+        # ====================================================
+
+        member_id = request.data.get(
+            "member_id"
+        )
+
+        trainer_id = request.data.get(
+            "trainer_id"
+        )
 
         if not member_id:
             return Response(
-                {"success": False, "message": "member_id is required."},
+                {
+                    "success": False,
+                    "message": (
+                        "member_id is required."
+                    ),
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # ====================================================
+        # GET MEMBER
+        # ====================================================
+
         try:
-            member = Member.objects.select_related("workspace", "trainer").get(
-                pk=member_id,
-                workspace=workspace,
-                is_deleted=False,
+            member = (
+                Member.objects
+                .select_related(
+                    "workspace",
+                    "trainer",
+                )
+                .get(
+                    pk=member_id,
+                    workspace=workspace,
+                    is_deleted=False,
+                )
             )
-        except (Member.DoesNotExist, ValueError, TypeError):
+
+        except (
+            Member.DoesNotExist,
+            ValueError,
+            TypeError,
+        ):
+
             return Response(
-                {"success": False, "message": "Member not found."},
+                {
+                    "success": False,
+                    "message": "Member not found.",
+                },
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        # ====================================================
+        # TRACK PREVIOUS TRAINER
+        # ====================================================
+
+        previous_trainer = member.trainer
+
+        # ====================================================
+        # FIND NEW TRAINER
+        # ====================================================
+
         trainer_user = None
 
-        # Empty / null trainer_id means unassign.
-        if trainer_id not in (None, "", 0, "null"):
+        # Empty / null trainer_id means UNASSIGN.
+        if trainer_id not in (
+            None,
+            "",
+            0,
+            "null",
+        ):
+
             try:
-                trainer_profile = TrainerProfile.objects.select_related("user").get(
-                    pk=trainer_id,
-                    workspace=workspace,
-                    is_active=True,
+                trainer_profile = (
+                    TrainerProfile.objects
+                    .select_related("user")
+                    .get(
+                        pk=trainer_id,
+                        workspace=workspace,
+                        is_active=True,
+                    )
                 )
-            except (TrainerProfile.DoesNotExist, ValueError, TypeError):
+
+            except (
+                TrainerProfile.DoesNotExist,
+                ValueError,
+                TypeError,
+            ):
+
                 return Response(
-                    {"success": False, "message": "Invalid trainer for this workspace."},
+                    {
+                        "success": False,
+                        "message": (
+                            "Invalid trainer for this workspace."
+                        ),
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
             trainer_user = trainer_profile.user
 
+        # ====================================================
+        # ASSIGN / UNASSIGN TRAINER
+        # ====================================================
+
         member.trainer = trainer_user
-        member.save(update_fields=["trainer", "updated_at"])
+
+        member.save(
+            update_fields=[
+                "trainer",
+                "updated_at",
+            ]
+        )
+
         member.refresh_from_db()
+
+        # ====================================================
+        # TRAINER ASSIGNED NOTIFICATIONS
+        # ====================================================
+
+        # Create notifications only when the trainer actually
+        # changes to a new trainer.
+        if (
+            trainer_user is not None
+            and trainer_user != previous_trainer
+        ):
+
+            # ------------------------------------------------
+            # NOTIFICATION FOR TRAINER
+            # ------------------------------------------------
+
+            Notification.objects.create(
+                recipient=trainer_user,
+                workspace=workspace,
+                notification_type="TRAINER_ASSIGNED",
+                title="New Member Assigned",
+                message=(
+                    f"{member.name} has been assigned to you."
+                ),
+                related_id=member.id,
+                related_type="member",
+            )
+
+            # ------------------------------------------------
+            # NOTIFICATION FOR MEMBER
+            # ------------------------------------------------
+
+            Notification.objects.create(
+                recipient_member=member,
+                workspace=workspace,
+                notification_type="TRAINER_ASSIGNED",
+                title="Trainer Assigned",
+                message=(
+                    f"{trainer_user.get_full_name() or trainer_user.username} "
+                    "has been assigned as your trainer."
+                ),
+                related_id=member.id,
+                related_type="member",
+            )
+
+        # ====================================================
+        # RESPONSE
+        # ====================================================
 
         return Response(
             {
@@ -4098,7 +5248,9 @@ class TrainerAssignmentView(APIView):
                 ),
                 "member": MemberSerializer(
                     member,
-                    context={"request": request},
+                    context={
+                        "request": request,
+                    },
                 ).data,
             },
             status=status.HTTP_200_OK,
@@ -5228,6 +6380,18 @@ class WorkoutPlanListCreateView(APIView):
             member=member,
         )
 
+        Notification.objects.create(
+            recipient_member=member,
+            workspace=trainer_profile.workspace,
+            notification_type="WORKOUT_UPLOADED",
+            title="New Workout Plan",
+            message=(
+                f"{request.user.get_full_name() or request.user.username} uploaded a new workout plan: {workout.title}."
+            ),
+            related_id=workout.id,
+            related_type="workout",
+        )
+
         return Response(
             {
                 "success": True,
@@ -5385,11 +6549,38 @@ class WorkoutPlanDetailView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        old_member = plan.member
+
         workout = serializer.save(
             trainer=request.user,
             workspace=trainer_profile.workspace,
             member=new_member,
         )
+
+        Notification.objects.create(
+            recipient_member=new_member,
+            workspace=trainer_profile.workspace,
+            notification_type="WORKOUT_UPLOADED",
+            title="Workout Plan Updated",
+            message=(
+                f"{request.user.get_full_name() or request.user.username} updated your workout plan: {workout.title}."
+            ),
+            related_id=workout.id,
+            related_type="workout",
+        )
+
+        if old_member.id != new_member.id:
+            Notification.objects.create(
+                recipient_member=old_member,
+                workspace=trainer_profile.workspace,
+                notification_type="WORKOUT_UPLOADED",
+                title="Workout Plan Updated",
+                message=(
+                    f"Your workout plan '{workout.title}' is no longer assigned to you."
+                ),
+                related_id=workout.id,
+                related_type="workout",
+            )
 
         return Response(
             {
