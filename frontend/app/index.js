@@ -405,14 +405,41 @@ export default function LoginScreen() {
 
 
           // --------------------------------------------------
-          // ADMIN DASHBOARD
-          // --------------------------------------------------
+         // ROLE-BASED DASHBOARD
+        // --------------------------------------------------
 
+        if (normalizedRole === "OWNER_TRAINER") {
+          
+          router.replace(
+            "/owner-trainer/dashboard"
+          );
+        
+        } else if (normalizedRole === "TRAINER") {
+          router.replace(
+            "/trainer/dashboard"
+          );
+        
+        } else if (
+          normalizedRole === "OWNER" ||
+          normalizedRole === "ADMIN"
+        ) {
+          
           router.replace(
             "/admin/dashboard"
           );
-
+        
+        } else {
+          
+          Alert.alert(
+            "Login Error",
+            `Unknown staff role: ${normalizedRole}`
+          );
+          
           return;
+        }
+        
+        return;
+
         }
 
 
@@ -1450,7 +1477,7 @@ export default function LoginScreen() {
 
                     onPress={() =>
                       router.push(
-                        "/member/scanner"
+                        "/scanner"
                       )
                     }
 

@@ -1,4 +1,10 @@
-import React, { useCallback, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
 import {
   View,
   Text,
@@ -7,13 +13,21 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Animated,
   RefreshControl,
   Image,
   Platform,
 } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+
+import {
+  router,
+  useFocusEffect,
+} from "expo-router";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../context/ThemeContext";
 
 /* =========================================================
@@ -32,7 +46,7 @@ const MEMBERS_API =
 const PROFILE_API =
   `${BASE_URL}/trainer/profile/`;
 
-const NOTIFICATION_UNREAD_API =
+const NOTIFICATIONS_COUNT_API =
   `${BASE_URL}/notifications/unread-count/`;
 
 /* =========================================================
@@ -60,10 +74,13 @@ const getDaysRemaining = (date) => {
   today.setHours(0, 0, 0, 0);
   endDate.setHours(0, 0, 0, 0);
 
-  const difference = endDate - today;
+  const difference =
+    endDate - today;
 
   return Math.max(
-    Math.ceil(difference / 86400000),
+    Math.ceil(
+      difference / 86400000
+    ),
     0
   );
 };
@@ -73,12 +90,18 @@ const getStatus = (member) => {
     return member.status.toUpperCase();
   }
 
-  const days = getDaysRemaining(
-    member.membership_end
-  );
+  const days =
+    getDaysRemaining(
+      member.membership_end
+    );
 
-  if (days <= 0) return "EXPIRED";
-  if (days <= 7) return "EXPIRING";
+  if (days <= 0) {
+    return "EXPIRED";
+  }
+
+  if (days <= 7) {
+    return "EXPIRING";
+  }
 
   return "ACTIVE";
 };
@@ -88,329 +111,415 @@ const getStatus = (member) => {
 ========================================================= */
 
 export default function TrainerDashboard() {
-  const { colors } = useTheme();
 
-  const [stats, setStats] = useState({
-    total_members: 0,
-    active_members: 0,
-    expiring_members: 0,
-    expired_members: 0,
-  });
+  /* =======================================================
+     THEME
+  ======================================================= */
 
-  const [members, setMembers] = useState([]);
-  const [trainer, setTrainer] = useState(null);
+  const {
+    isDark,
+    colors,
+    toggleTheme,
+  } = useTheme();
 
-  const [unreadNotificationCount, setUnreadNotificationCount] =
-    useState(0);
+  /* =======================================================
+     THEME ANIMATION
+  ======================================================= */
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const themeAnimation = useRef(
+    new Animated.Value(
+      isDark ? 1 : 0
+    )
+  ).current;
+
+  useEffect(() => {
+    Animated.spring(
+      themeAnimation,
+      {
+        toValue:
+          isDark ? 1 : 0,
+
+        useNativeDriver: true,
+
+        friction: 7,
+
+        tension: 80,
+      }
+    ).start();
+  }, [isDark]);
+
+  /* =======================================================
+     STATE
+  ======================================================= */
+
+  const [stats, setStats] =
+    useState({
+      total_members: 0,
+      active_members: 0,
+      expiring_members: 0,
+      expired_members: 0,
+    });
+
+  const [members, setMembers] =
+    useState([]);
+
+  const [trainer, setTrainer] =
+    useState(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [refreshing, setRefreshing] =
+    useState(false);
+
+  const [
+    unreadNotificationCount,
+    setUnreadNotificationCount,
+  ] = useState(0);
 
   /* =======================================================
      SESSION EXPIRATION
   ======================================================= */
 
-  const expireSession = async () => {
-    await AsyncStorage.multiRemove([
-      "adminToken",
-      "adminUsername",
-      "adminId",
-      "userRole",
-      "workspaceId",
-      "workspaceName",
-    ]);
+  const expireSession =
+    async () => {
 
-    Alert.alert(
-      "Session Expired",
-      "Please login again.",
-      [
-        {
-          text: "OK",
-          onPress: () => router.replace("/"),
-        },
-      ]
-    );
-  };
+      await AsyncStorage.multiRemove([
+        "adminToken",
+        "adminUsername",
+        "adminId",
+        "userRole",
+        "workspaceId",
+        "workspaceName",
+      ]);
+
+      Alert.alert(
+        "Session Expired",
+        "Please login again.",
+        [
+          {
+            text: "OK",
+
+            onPress: () =>
+              router.replace("/"),
+          },
+        ]
+      );
+    };
 
   /* =======================================================
-     LOAD UNREAD NOTIFICATION COUNT
+     LOAD NOTIFICATION COUNT
   ======================================================= */
 
-  const loadUnreadNotificationCount = async () => {
-    try {
-      const token =
-        await AsyncStorage.getItem("adminToken");
+  const loadNotificationCount =
+    async () => {
 
-      if (!token) {
-        return;
-      }
+      try {
 
-      const response = await fetch(
-        NOTIFICATION_UNREAD_API,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Token ${token}`,
-          },
+        const token =
+          await AsyncStorage.getItem(
+            "adminToken"
+          );
+
+        if (!token) {
+          return;
         }
-      );
 
-      console.log(
-        "TRAINER NOTIFICATION COUNT STATUS:",
-        response.status
-      );
+        const response =
+          await fetch(
+            NOTIFICATIONS_COUNT_API,
+            {
+              method: "GET",
 
-      if (response.status === 401) {
-        return;
-      }
+              headers: {
+                Accept:
+                  "application/json",
 
-      if (!response.ok) {
+                Authorization:
+                  `Token ${token}`,
+              },
+            }
+          );
+
         console.log(
-          "TRAINER NOTIFICATION COUNT FAILED:",
+          "TRAINER NOTIFICATION COUNT STATUS:",
           response.status
         );
-        return;
+
+        if (
+          response.status === 401
+        ) {
+          return;
+        }
+
+        if (!response.ok) {
+
+          console.log(
+            "TRAINER NOTIFICATION COUNT ERROR:",
+            await response.text()
+          );
+
+          return;
+        }
+
+        const data =
+          await response.json();
+
+        console.log(
+          "TRAINER NOTIFICATION COUNT:",
+          data
+        );
+
+        setUnreadNotificationCount(
+          Number(
+            data.unread_count || 0
+          )
+        );
+
+      } catch (error) {
+
+        console.log(
+          "TRAINER NOTIFICATION COUNT ERROR:",
+          error
+        );
       }
-
-      const data = await response.json();
-
-      console.log(
-        "TRAINER NOTIFICATION COUNT:",
-        data
-      );
-
-      const unreadCount = Number(
-        data.unread_count ??
-        data.count ??
-        data.unread ??
-        0
-      );
-
-      setUnreadNotificationCount(
-        Math.max(unreadCount, 0)
-      );
-
-    } catch (error) {
-      console.log(
-        "UNREAD NOTIFICATION COUNT ERROR:",
-        error
-      );
-    }
-  };
+    };
 
   /* =======================================================
      LOAD DASHBOARD
   ======================================================= */
 
-  const loadDashboard = async (
-    initialLoad = true
-  ) => {
-    try {
-      if (initialLoad) {
-        setLoading(true);
-      }
+  const loadDashboard =
+    async (
+      initialLoad = true
+    ) => {
 
-      const token =
-        await AsyncStorage.getItem("adminToken");
+      try {
 
-      if (!token) {
-        return expireSession();
-      }
+        if (initialLoad) {
+          setLoading(true);
+        }
 
-      const headers = {
-        Accept: "application/json",
-        Authorization: `Token ${token}`,
-      };
+        const token =
+          await AsyncStorage.getItem(
+            "adminToken"
+          );
 
-      const [
-        statsResponse,
-        membersResponse,
-        profileResponse,
-      ] = await Promise.all([
-        fetch(DASHBOARD_API, {
-          headers,
-        }),
+        if (!token) {
+          return expireSession();
+        }
 
-        fetch(MEMBERS_API, {
-          headers,
-        }),
+        const headers = {
+          Accept:
+            "application/json",
 
-        fetch(PROFILE_API, {
-          headers,
-        }),
-      ]);
+          Authorization:
+            `Token ${token}`,
+        };
 
-      /* ===================================================
-         AUTHORIZATION CHECK
-      =================================================== */
+        const [
+          statsResponse,
+          membersResponse,
+          profileResponse,
+        ] =
+          await Promise.all([
+            fetch(
+              DASHBOARD_API,
+              {
+                headers,
+              }
+            ),
 
-      if (
-        statsResponse.status === 401 ||
-        membersResponse.status === 401 ||
-        profileResponse.status === 401
-      ) {
-        return expireSession();
-      }
+            fetch(
+              MEMBERS_API,
+              {
+                headers,
+              }
+            ),
 
-      /* ===================================================
-         STATS
-      =================================================== */
+            fetch(
+              PROFILE_API,
+              {
+                headers,
+              }
+            ),
+          ]);
 
-      if (!statsResponse.ok) {
-        throw new Error(
-          "Unable to load dashboard statistics."
-        );
-      }
+        /* ===================================================
+           AUTHORIZATION CHECK
+        =================================================== */
 
-      const statsData =
-        await statsResponse.json();
+        if (
+          statsResponse.status === 401 ||
+          membersResponse.status === 401 ||
+          profileResponse.status === 401
+        ) {
 
-      setStats({
-        total_members: Number(
-          statsData.total_members || 0
-        ),
+          return expireSession();
+        }
 
-        active_members: Number(
-          statsData.active_members || 0
-        ),
+        /* ===================================================
+           STATS
+        =================================================== */
 
-        expiring_members: Number(
-          statsData.expiring_members || 0
-        ),
+        if (statsResponse.ok) {
 
-        expired_members: Number(
-          statsData.expired_members || 0
-        ),
-      });
+          const statsData =
+            await statsResponse.json();
 
-      /* ===================================================
-         MEMBERS
-      =================================================== */
+          console.log(
+            "TRAINER DASHBOARD STATS:",
+            statsData
+          );
 
-      if (!membersResponse.ok) {
-        throw new Error(
-          "Unable to load assigned members."
-        );
-      }
+          setStats({
+            total_members:
+              Number(
+                statsData.total_members ||
+                0
+              ),
 
-      const memberData =
-        await membersResponse.json();
+            active_members:
+              Number(
+                statsData.active_members ||
+                0
+              ),
 
-      const memberList =
-        Array.isArray(memberData)
-          ? memberData
-          : memberData.results ||
-            memberData.members ||
-            [];
+            expiring_members:
+              Number(
+                statsData.expiring_members ||
+                0
+              ),
 
-      setMembers(memberList);
+            expired_members:
+              Number(
+                statsData.expired_members ||
+                0
+              ),
+          });
+        }
 
-      /* ===================================================
-         TRAINER PROFILE
-      =================================================== */
+        /* ===================================================
+           MEMBERS
+        =================================================== */
 
-      if (profileResponse.ok) {
-        const profileData =
-          await profileResponse.json();
+        if (membersResponse.ok) {
 
-        setTrainer(
-          profileData.trainer ||
+          const membersData =
+            await membersResponse.json();
+
+          console.log(
+            "TRAINER MEMBERS:",
+            membersData
+          );
+
+          let memberList = [];
+
+          if (
+            Array.isArray(
+              membersData
+            )
+          ) {
+
+            memberList =
+              membersData;
+
+          } else if (
+            Array.isArray(
+              membersData.results
+            )
+          ) {
+
+            memberList =
+              membersData.results;
+
+          } else if (
+            Array.isArray(
+              membersData.members
+            )
+          ) {
+
+            memberList =
+              membersData.members;
+          }
+
+          setMembers(
+            memberList
+          );
+        }
+
+        /* ===================================================
+           TRAINER PROFILE
+        =================================================== */
+
+        if (profileResponse.ok) {
+
+          const profileData =
+            await profileResponse.json();
+
+          console.log(
+            "TRAINER PROFILE:",
+            profileData
+          );
+
+          const trainerData =
+            profileData.trainer ||
             profileData.profile ||
-            null
+            profileData;
+
+          setTrainer(
+            trainerData
+          );
+        }
+
+      } catch (error) {
+
+        console.log(
+          "TRAINER DASHBOARD ERROR:",
+          error
         );
+
+        Alert.alert(
+          "Error",
+          "Unable to load trainer dashboard."
+        );
+
+      } finally {
+
+        setLoading(false);
+
+        setRefreshing(false);
       }
-
-    } catch (error) {
-      console.log(
-        "TRAINER DASHBOARD ERROR:",
-        error
-      );
-
-      Alert.alert(
-        "Connection Error",
-        "Could not load your trainer dashboard. Make sure Django is running."
-      );
-
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+    };
 
   /* =======================================================
-     REFRESH WHEN SCREEN OPENS
+     FOCUS EFFECT
   ======================================================= */
 
   useFocusEffect(
     useCallback(() => {
+
       loadDashboard(true);
-      loadUnreadNotificationCount();
+
+      loadNotificationCount();
+
     }, [])
   );
 
   /* =======================================================
-     OPEN MEMBER DETAILS
+     REFRESH
   ======================================================= */
 
-  const openMember = (member) => {
-    router.push({
-      pathname: "/admin/memberdetails",
+  const onRefresh =
+    async () => {
 
-      params: {
-        id: String(member.id || ""),
-        name: member.name || "",
-        phone: member.phone || "",
-        email: member.email || "",
-        username: member.username || "",
-        membership_start:
-          member.membership_start || "",
-        membership_end:
-          member.membership_end || "",
-        status: member.status || "",
-        id_verified:
-          member.id_verified
-            ? "true"
-            : "false",
-        trainer_name:
-          member.trainer_name || "",
-      },
-    });
-  };
+      setRefreshing(true);
 
-  /* =======================================================
-     LOADING SCREEN
-  ======================================================= */
-
-  if (loading) {
-    return (
-      <View
-        style={[
-          styles.loadingContainer,
-          {
-            backgroundColor:
-              colors.background,
-          },
-        ]}
-      >
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-        />
-
-        <Text
-          style={[
-            styles.loadingText,
-            {
-              color: colors.mutedText,
-            },
-          ]}
-        >
-          Loading trainer dashboard...
-        </Text>
-      </View>
-    );
-  }
+      await Promise.all([
+        loadDashboard(false),
+        loadNotificationCount(),
+      ]);
+    };
 
   /* =======================================================
      TRAINER DATA
@@ -435,6 +544,46 @@ export default function TrainerDashboard() {
     null;
 
   /* =======================================================
+     LOADING
+  ======================================================= */
+
+  if (loading) {
+
+    return (
+      <View
+        style={[
+          styles.loadingContainer,
+          {
+            backgroundColor:
+              colors.background,
+          },
+        ]}
+      >
+
+        <ActivityIndicator
+          size="large"
+          color={
+            colors.primary
+          }
+        />
+
+        <Text
+          style={[
+            styles.loadingText,
+            {
+              color:
+                colors.secondaryText,
+            },
+          ]}
+        >
+          Loading dashboard...
+        </Text>
+
+      </View>
+    );
+  }
+
+  /* =======================================================
      MAIN UI
   ======================================================= */
 
@@ -448,21 +597,29 @@ export default function TrainerDashboard() {
         },
       ]}
     >
+
       <ScrollView
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={
+          false
+        }
+
         contentContainerStyle={
           styles.scrollContent
         }
+
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
+            refreshing={
+              refreshing
+            }
 
-              loadDashboard(false);
-              loadUnreadNotificationCount();
-            }}
-            tintColor={colors.primary}
+            onRefresh={
+              onRefresh
+            }
+
+            tintColor={
+              colors.primary
+            }
           />
         }
       >
@@ -471,7 +628,9 @@ export default function TrainerDashboard() {
             HEADER
         ================================================= */}
 
-        <View style={styles.header}>
+        <View
+          style={styles.header}
+        >
 
           {/* PROFILE PHOTO */}
 
@@ -483,6 +642,7 @@ export default function TrainerDashboard() {
               )
             }
           >
+
             <View
               style={[
                 styles.profilePhotoWrapper,
@@ -495,16 +655,22 @@ export default function TrainerDashboard() {
                 },
               ]}
             >
+
               {profilePicture ? (
+
                 <Image
                   source={{
-                    uri: profilePicture,
+                    uri:
+                      profilePicture,
                   }}
+
                   style={
                     styles.profilePhoto
                   }
                 />
+
               ) : (
+
                 <Text
                   style={[
                     styles.profileInitials,
@@ -518,13 +684,21 @@ export default function TrainerDashboard() {
                     trainerName
                   )}
                 </Text>
+
               )}
+
             </View>
+
           </TouchableOpacity>
 
           {/* TRAINER INFORMATION */}
 
-          <View style={styles.headerInfo}>
+          <View
+            style={
+              styles.headerInfo
+            }
+          >
+
             <Text
               style={[
                 styles.eyebrow,
@@ -541,9 +715,11 @@ export default function TrainerDashboard() {
               style={[
                 styles.trainerName,
                 {
-                  color: colors.text,
+                  color:
+                    colors.text,
                 },
               ]}
+
               numberOfLines={1}
             >
               {trainerName} 👋
@@ -557,14 +733,18 @@ export default function TrainerDashboard() {
                     colors.secondaryText,
                 },
               ]}
+
               numberOfLines={1}
             >
               {specialization}
             </Text>
 
             <View
-              style={styles.locationRow}
+              style={
+                styles.locationRow
+              }
             >
+
               <Ionicons
                 name="location"
                 size={15}
@@ -581,71 +761,171 @@ export default function TrainerDashboard() {
                       colors.secondaryText,
                   },
                 ]}
+
                 numberOfLines={1}
               >
                 {workspaceName}
               </Text>
+
             </View>
+
           </View>
 
           {/* =================================================
-              NOTIFICATION BUTTON
+              HEADER ACTIONS
           ================================================= */}
 
-          <TouchableOpacity
-            style={[
-              styles.notificationButton,
-              {
-                backgroundColor:
-                  colors.card,
-
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            activeOpacity={0.8}
-            onPress={() =>
-              router.push(
-                "/admin/notifications"
-              )
+          <View
+            style={
+              styles.headerActions
             }
           >
-            <Ionicons
-              name={
-                unreadNotificationCount > 0
-                  ? "notifications"
-                  : "notifications-outline"
+
+            {/* =================================================
+                LIGHT / DARK THEME SWITCH
+            ================================================= */}
+
+            <TouchableOpacity
+              style={[
+                styles.themeSwitch,
+                {
+                  backgroundColor:
+                    isDark
+                      ? "#111827"
+                      : "#E2E8F0",
+                },
+              ]}
+
+              onPress={
+                toggleTheme
               }
-              size={25}
-              color={colors.text}
-            />
 
-            {/* UNREAD BADGE */}
+              activeOpacity={0.8}
+            >
 
-            {unreadNotificationCount >
-              0 && (
-              <View
+              <Text
+                style={
+                  styles.themeIcon
+                }
+              >
+                🌙
+              </Text>
+
+              <Text
+                style={
+                  styles.themeIcon
+                }
+              >
+                ☀️
+              </Text>
+
+              <Animated.View
                 style={[
-                  styles.notificationBadge,
+                  styles.themeKnob,
                   {
                     backgroundColor:
-                      "#EF4444",
+                      isDark
+                        ? "#1E293B"
+                        : "#FFFFFF",
+
+                    transform: [
+                      {
+                        translateX:
+                          themeAnimation.interpolate(
+                            {
+                              inputRange:
+                                [0, 1],
+
+                              outputRange:
+                                [30, 0],
+                            }
+                          ),
+                      },
+                    ],
                   },
                 ]}
               >
+
                 <Text
                   style={
-                    styles.notificationBadgeText
+                    styles.knobIcon
                   }
                 >
-                  {unreadNotificationCount >
-                  9
-                    ? "9+"
-                    : unreadNotificationCount}
+                  {isDark
+                    ? "🌙"
+                    : "☀️"}
                 </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+
+              </Animated.View>
+
+            </TouchableOpacity>
+
+            {/* =================================================
+                NOTIFICATIONS
+            ================================================= */}
+
+            <TouchableOpacity
+              style={[
+                styles.notificationButton,
+                {
+                  backgroundColor:
+                    colors.card,
+
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+
+              activeOpacity={0.8}
+
+              onPress={() => {
+                router.push(
+                  "/admin/notifications"
+                );
+              }}
+            >
+
+              <Ionicons
+                name="notifications-outline"
+                size={25}
+                color={
+                  colors.text
+                }
+              />
+
+              {unreadNotificationCount >
+                0 && (
+
+                <View
+                  style={[
+                    styles.notificationBadge,
+                    {
+                      backgroundColor:
+                        "#FF3B5C",
+                    },
+                  ]}
+                >
+
+                  <Text
+                    style={
+                      styles.notificationBadgeText
+                    }
+                  >
+                    {
+                      unreadNotificationCount >
+                      99
+                        ? "99+"
+                        : unreadNotificationCount
+                    }
+                  </Text>
+
+                </View>
+              )}
+
+            </TouchableOpacity>
+
+          </View>
+
         </View>
 
         {/* =================================================
@@ -664,166 +944,325 @@ export default function TrainerDashboard() {
             },
           ]}
         >
+
           <View
             style={
               styles.overviewHeader
             }
           >
-            <Text
-              style={[
-                styles.overviewTitle,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              TRAINER OVERVIEW
-            </Text>
 
-            <View
-              style={[
-                styles.todayBadge,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-
-                  borderColor:
-                    colors.border,
-                },
-              ]}
-            >
-              <Ionicons
-                name="calendar-outline"
-                size={14}
-                color={
-                  colors.secondaryText
-                }
-              />
+            <View>
 
               <Text
                 style={[
-                  styles.todayText,
+                  styles.overviewTitle,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                TRAINER OVERVIEW
+              </Text>
+
+              <Text
+                style={[
+                  styles.overviewSubtitle,
                   {
                     color:
                       colors.secondaryText,
                   },
                 ]}
               >
-                Today
+                Your assigned members
               </Text>
+
             </View>
+
+            <Ionicons
+              name="bar-chart-outline"
+              size={25}
+              color={
+                colors.primaryLight
+              }
+            />
+
           </View>
 
           <View
-            style={styles.statsGrid}
+            style={
+              styles.statsGrid
+            }
           >
 
-            {/* TOTAL MEMBERS */}
+            {/* TOTAL */}
 
-            <OverviewStat
-              value={
-                stats.total_members
-              }
-              label="TOTAL MEMBERS"
-              icon="people"
-              colors={colors}
-              iconColor="#36B7FF"
-            />
+            <View
+              style={[
+                styles.statCard,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+            >
 
-            {/* ACTIVE MEMBERS */}
+              <Ionicons
+                name="people-outline"
+                size={23}
+                color={
+                  colors.primaryLight
+                }
+              />
 
-            <OverviewStat
-              value={
-                stats.active_members
-              }
-              label="ACTIVE MEMBERS"
-              icon="person"
-              colors={colors}
-              iconColor="#45E0A5"
-            />
+              <Text
+                style={[
+                  styles.statValue,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                {
+                  stats.total_members
+                }
+              </Text>
+
+              <Text
+                style={[
+                  styles.statLabel,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
+              >
+                TOTAL
+              </Text>
+
+            </View>
+
+            {/* ACTIVE */}
+
+            <View
+              style={[
+                styles.statCard,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+            >
+
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={23}
+                color="#22C55E"
+              />
+
+              <Text
+                style={[
+                  styles.statValue,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                {
+                  stats.active_members
+                }
+              </Text>
+
+              <Text
+                style={[
+                  styles.statLabel,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
+              >
+                ACTIVE
+              </Text>
+
+            </View>
 
             {/* EXPIRING */}
 
-            <OverviewStat
-              value={
-                stats.expiring_members
-              }
-              label="EXPIRING SOON"
-              icon="time"
-              colors={colors}
-              iconColor="#FFB21C"
-            />
+            <View
+              style={[
+                styles.statCard,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+            >
+
+              <Ionicons
+                name="time-outline"
+                size={23}
+                color="#F59E0B"
+              />
+
+              <Text
+                style={[
+                  styles.statValue,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                {
+                  stats.expiring_members
+                }
+              </Text>
+
+              <Text
+                style={[
+                  styles.statLabel,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
+              >
+                EXPIRING
+              </Text>
+
+            </View>
 
             {/* EXPIRED */}
 
-            <OverviewStat
-              value={
-                stats.expired_members
-              }
-              label="EXPIRED MEMBERS"
-              icon="person-remove"
-              colors={colors}
-              iconColor="#FF5870"
-            />
+            <View
+              style={[
+                styles.statCard,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+            >
+
+              <Ionicons
+                name="close-circle-outline"
+                size={23}
+                color="#EF4444"
+              />
+
+              <Text
+                style={[
+                  styles.statValue,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                {
+                  stats.expired_members
+                }
+              </Text>
+
+              <Text
+                style={[
+                  styles.statLabel,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
+              >
+                EXPIRED
+              </Text>
+
+            </View>
 
           </View>
+
         </View>
 
         {/* =================================================
-            MY MEMBERS HEADER
+            MEMBERS SECTION
         ================================================= */}
 
         <View
-          style={styles.membersHeader}
+          style={
+            styles.sectionHeader
+          }
         >
-          <Text
-            style={[
-              styles.sectionTitle,
-              {
-                color: colors.text,
-              },
-            ]}
-          >
-            MY MEMBERS
-          </Text>
+
+          <View>
+
+            <Text
+              style={[
+                styles.sectionTitle,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+            >
+              MY MEMBERS
+            </Text>
+
+            <Text
+              style={[
+                styles.sectionSubtitle,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              Members assigned to you
+            </Text>
+
+          </View>
 
           <TouchableOpacity
-            style={
-              styles.membersCountContainer
-            }
             onPress={() =>
               router.push(
                 "/trainer/members"
               )
             }
+
+            activeOpacity={0.8}
           >
+
             <Text
               style={[
-                styles.membersCount,
+                styles.viewAllText,
                 {
-                  color: colors.text,
+                  color:
+                    colors.primaryLight,
                 },
               ]}
             >
-              {members.length}
+              View All
             </Text>
 
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={
-                colors.secondaryText
-              }
-            />
           </TouchableOpacity>
+
         </View>
 
         {/* =================================================
-            MEMBERS LIST
+            MEMBER LIST
         ================================================= */}
 
         {members.length === 0 ? (
+
           <View
             style={[
               styles.emptyCard,
@@ -836,23 +1275,14 @@ export default function TrainerDashboard() {
               },
             ]}
           >
-            <View
-              style={[
-                styles.emptyIconContainer,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
-              <Ionicons
-                name="people-outline"
-                size={30}
-                color={
-                  colors.primaryLight
-                }
-              />
-            </View>
+
+            <Ionicons
+              name="people-outline"
+              size={42}
+              color={
+                colors.secondaryText
+              }
+            />
 
             <Text
               style={[
@@ -863,54 +1293,321 @@ export default function TrainerDashboard() {
                 },
               ]}
             >
-              No members assigned
+              No Members Assigned
             </Text>
 
             <Text
               style={[
-                styles.emptyText,
+                styles.emptySubtitle,
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
               Members assigned to you
               will appear here.
             </Text>
+
           </View>
+
         ) : (
-          members.map((member) => (
-            <MemberCard
-              key={member.id}
-              member={member}
-              colors={colors}
-              onPress={() =>
-                openMember(member)
+
+          members
+            .slice(0, 5)
+            .map(
+              (
+                member,
+                index
+              ) => {
+
+                const name =
+                  member.name ||
+                  member.full_name ||
+                  member.username ||
+                  "Member";
+
+                const days =
+                  getDaysRemaining(
+                    member.membership_end
+                  );
+
+                const status =
+                  getStatus(
+                    member
+                  );
+
+                const memberProfilePicture =
+                  member.profile_picture ||
+                  member.profile_image ||
+                  null;
+
+                return (
+
+                  <TouchableOpacity
+                    key={
+                      member.id ||
+                      index
+                    }
+
+                    activeOpacity={
+                      0.85
+                    }
+
+                    onPress={() =>
+                      router.push({
+                        pathname:
+                          "/trainer/members",
+                        params: {
+                          memberId:
+                            member.id,
+                        },
+                      })
+                    }
+
+                    style={[
+                      styles.memberCard,
+                      {
+                        backgroundColor:
+                          colors.card,
+
+                        borderColor:
+                          colors.border,
+                      },
+                    ]}
+                  >
+
+                    {/* MEMBER AVATAR */}
+
+                    <View
+                      style={[
+                        styles.memberAvatar,
+                        {
+                          backgroundColor:
+                            colors.iconBackground,
+
+                          borderColor:
+                            colors.primary,
+                        },
+                      ]}
+                    >
+
+                      {memberProfilePicture ? (
+
+                        <Image
+                          source={{
+                            uri:
+                              memberProfilePicture,
+                          }}
+
+                          style={
+                            styles.memberAvatarImage
+                          }
+                        />
+
+                      ) : (
+
+                        <Text
+                          style={[
+                            styles.memberAvatarText,
+                            {
+                              color:
+                                colors.primaryLight,
+                            },
+                          ]}
+                        >
+                          {getInitials(
+                            name
+                          )}
+                        </Text>
+
+                      )}
+
+                    </View>
+
+                    {/* MEMBER INFO */}
+
+                    <View
+                      style={
+                        styles.memberInfo
+                      }
+                    >
+
+                      <Text
+                        style={[
+                          styles.memberName,
+                          {
+                            color:
+                              colors.text,
+                          },
+                        ]}
+
+                        numberOfLines={
+                          1
+                        }
+                      >
+                        {name}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.memberUsername,
+                          {
+                            color:
+                              colors.secondaryText,
+                          },
+                        ]}
+
+                        numberOfLines={
+                          1
+                        }
+                      >
+                        {member.username ||
+                          member.email ||
+                          "GymRyt Member"}
+                      </Text>
+
+                      <View
+                        style={
+                          styles.memberMetaRow
+                        }
+                      >
+
+                        <Ionicons
+                          name="calendar-outline"
+                          size={13}
+                          color={
+                            colors.secondaryText
+                          }
+                        />
+
+                        <Text
+                          style={[
+                            styles.memberMetaText,
+                            {
+                              color:
+                                colors.secondaryText,
+                            },
+                          ]}
+                        >
+                          {days} days
+                          remaining
+                        </Text>
+
+                      </View>
+
+                    </View>
+
+                    {/* STATUS */}
+
+                    <View
+                      style={
+                        styles.memberRight
+                      }
+                    >
+
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          {
+                            backgroundColor:
+                              status ===
+                              "ACTIVE"
+                                ? "rgba(34,197,94,0.15)"
+                                : status ===
+                                  "EXPIRING"
+                                ? "rgba(245,158,11,0.15)"
+                                : "rgba(239,68,68,0.15)",
+                          },
+                        ]}
+                      >
+
+                        <Text
+                          style={[
+                            styles.statusText,
+                            {
+                              color:
+                                status ===
+                                "ACTIVE"
+                                  ? "#22C55E"
+                                  : status ===
+                                    "EXPIRING"
+                                  ? "#F59E0B"
+                                  : "#EF4444",
+                            },
+                          ]}
+                        >
+                          {status}
+                        </Text>
+
+                      </View>
+
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={
+                          colors.secondaryText
+                        }
+                      />
+
+                    </View>
+
+                  </TouchableOpacity>
+
+                );
               }
-            />
-          ))
+            )
+
         )}
 
         {/* =================================================
-            TRAINER PROFILE CARD
+            QUICK ACTION
         ================================================= */}
+
+        <View
+          style={[
+            styles.quickActionsTitleRow,
+            {
+              marginTop: 28,
+            },
+          ]}
+        >
+
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            QUICK ACTIONS
+          </Text>
+
+        </View>
 
         <TouchableOpacity
           activeOpacity={0.85}
+
           onPress={() =>
             router.push(
               "/trainer/profile"
             )
           }
+
           style={[
             styles.profileActionCard,
             {
+              backgroundColor:
+                colors.card,
+
               borderColor:
                 colors.border,
             },
           ]}
         >
+
           <View
             style={[
               styles.profileActionIcon,
@@ -920,13 +1617,15 @@ export default function TrainerDashboard() {
               },
             ]}
           >
+
             <Ionicons
               name="person-outline"
-              size={30}
+              size={28}
               color={
                 colors.primaryLight
               }
             />
+
           </View>
 
           <View
@@ -934,6 +1633,7 @@ export default function TrainerDashboard() {
               styles.profileActionInfo
             }
           >
+
             <Text
               style={[
                 styles.profileActionTitle,
@@ -943,7 +1643,7 @@ export default function TrainerDashboard() {
                 },
               ]}
             >
-              MY TRAINER PROFILE
+              Trainer Profile
             </Text>
 
             <Text
@@ -955,15 +1655,20 @@ export default function TrainerDashboard() {
                 },
               ]}
             >
-              View and manage your profile
+              View and manage your
+              profile
             </Text>
+
           </View>
 
           <Ionicons
             name="chevron-forward"
-            size={27}
-            color={colors.text}
+            size={21}
+            color={
+              colors.secondaryText
+            }
           />
+
         </TouchableOpacity>
 
       </ScrollView>
@@ -972,255 +1677,12 @@ export default function TrainerDashboard() {
           BOTTOM NAVIGATION
       =================================================== */}
 
-      <TrainerBottomNav
-        colors={colors}
+      <TrainerBottomNavigation
         active="home"
+        colors={colors}
       />
+
     </View>
-  );
-}
-
-/* =========================================================
-   OVERVIEW STAT COMPONENT
-========================================================= */
-
-function OverviewStat({
-  value,
-  label,
-  icon,
-  colors,
-  iconColor,
-}) {
-  return (
-    <View
-      style={[
-        styles.overviewStat,
-        {
-          backgroundColor:
-            colors.background,
-
-          borderColor:
-            colors.border,
-        },
-      ]}
-    >
-      <View
-        style={[
-          styles.statIconCircle,
-          {
-            backgroundColor:
-              `${iconColor}18`,
-          },
-        ]}
-      >
-        <Ionicons
-          name={icon}
-          size={29}
-          color={iconColor}
-        />
-      </View>
-
-      <View
-        style={styles.statContent}
-      >
-        <Text
-          style={[
-            styles.statValue,
-            {
-              color: colors.text,
-            },
-          ]}
-        >
-          {value}
-        </Text>
-
-        <Text
-          style={[
-            styles.statLabel,
-            {
-              color:
-                colors.secondaryText,
-            },
-          ]}
-        >
-          {label}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-/* =========================================================
-   MEMBER CARD COMPONENT
-========================================================= */
-
-function MemberCard({
-  member,
-  colors,
-  onPress,
-}) {
-  const status =
-    getStatus(member);
-
-  const days =
-    getDaysRemaining(
-      member.membership_end
-    );
-
-  const isExpired =
-    status === "EXPIRED";
-
-  const isExpiring =
-    status === "EXPIRING";
-
-  const statusColor =
-    isExpired
-      ? "#FF5870"
-      : isExpiring
-      ? "#FFB21C"
-      : "#45E0A5";
-
-  const memberName =
-    member.name ||
-    member.username ||
-    "Unknown Member";
-
-  const profilePicture =
-    member.profile_picture ||
-    member.profile_image ||
-    null;
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.82}
-      onPress={onPress}
-      style={[
-        styles.memberCard,
-        {
-          backgroundColor:
-            colors.card,
-
-          borderColor:
-            colors.border,
-        },
-      ]}
-    >
-
-      {/* MEMBER AVATAR */}
-
-      <View
-        style={[
-          styles.memberAvatarContainer,
-          {
-            backgroundColor:
-              colors.iconBackground,
-
-            borderColor:
-              `${statusColor}55`,
-          },
-        ]}
-      >
-        {profilePicture ? (
-          <Image
-            source={{
-              uri: profilePicture,
-            }}
-            style={
-              styles.memberAvatarImage
-            }
-          />
-        ) : (
-          <Text
-            style={[
-              styles.memberAvatarText,
-              {
-                color:
-                  statusColor,
-              },
-            ]}
-          >
-            {getInitials(
-              memberName
-            )}
-          </Text>
-        )}
-      </View>
-
-      {/* MEMBER INFORMATION */}
-
-      <View
-        style={styles.memberInfo}
-      >
-        <Text
-          style={[
-            styles.memberName,
-            {
-              color: colors.text,
-            },
-          ]}
-          numberOfLines={1}
-        >
-          {memberName}
-        </Text>
-
-        <Text
-          style={[
-            styles.memberDays,
-            {
-              color: isExpired
-                ? "#FF5870"
-                : isExpiring
-                ? "#FFB21C"
-                : colors.secondaryText,
-            },
-          ]}
-        >
-          {isExpired
-            ? "Membership expired"
-            : `${days} days remaining`}
-        </Text>
-      </View>
-
-      {/* STATUS */}
-
-      <View
-        style={[
-          styles.statusBadge,
-          {
-            backgroundColor:
-              `${statusColor}18`,
-
-            borderColor:
-              `${statusColor}55`,
-          },
-        ]}
-      >
-        <Text
-          style={[
-            styles.statusText,
-            {
-              color:
-                statusColor,
-            },
-          ]}
-        >
-          {status}
-        </Text>
-      </View>
-
-      {/* ARROW */}
-
-      <Ionicons
-        name="chevron-forward"
-        size={23}
-        color={
-          colors.secondaryText
-        }
-        style={
-          styles.memberArrow
-        }
-      />
-    </TouchableOpacity>
   );
 }
 
@@ -1228,40 +1690,57 @@ function MemberCard({
    BOTTOM NAVIGATION
 ========================================================= */
 
-function TrainerBottomNav({
-  colors,
+function TrainerBottomNavigation({
   active,
+  colors,
 }) {
-  const goTo = (screen) => {
-    if (screen === "home") {
-      router.replace(
-        "/trainer/dashboard"
-      );
-      return;
-    }
 
-    if (screen === "members") {
-      router.push(
-        "/trainer/members"
-      );
-      return;
-    }
+  const goTo =
+    (screen) => {
 
-    if (screen === "workouts") {
-      router.push(
-        "/trainer/workouts"
-      );
-      return;
-    }
+      if (
+        screen === "home"
+      ) {
+        router.push(
+          "/trainer/dashboard"
+        );
 
-    if (screen === "profile") {
-      router.push(
-        "/trainer/profile"
-      );
-    }
-  };
+        return;
+      }
+
+      if (
+        screen === "members"
+      ) {
+        router.push(
+          "/trainer/members"
+        );
+
+        return;
+      }
+
+      if (
+        screen === "workouts"
+      ) {
+        router.push(
+          "/trainer/workout"
+        );
+
+        return;
+      }
+
+      if (
+        screen === "profile"
+      ) {
+        router.push(
+          "/trainer/profile"
+        );
+
+        return;
+      }
+    };
 
   return (
+
     <View
       style={[
         styles.bottomNav,
@@ -1269,13 +1748,14 @@ function TrainerBottomNav({
           backgroundColor:
             colors.card,
 
-          borderColor:
+          borderTopColor:
             colors.border,
         },
       ]}
     >
-      <BottomNavItem
-        icon="home"
+
+      <TrainerNavItem
+        icon="home-outline"
         label="Home"
         active={
           active === "home"
@@ -1286,7 +1766,7 @@ function TrainerBottomNav({
         }
       />
 
-      <BottomNavItem
+      <TrainerNavItem
         icon="people-outline"
         label="Members"
         active={
@@ -1298,7 +1778,7 @@ function TrainerBottomNav({
         }
       />
 
-      <BottomNavItem
+      <TrainerNavItem
         icon="barbell-outline"
         label="Workouts"
         active={
@@ -1310,7 +1790,7 @@ function TrainerBottomNav({
         }
       />
 
-      <BottomNavItem
+      <TrainerNavItem
         icon="person-outline"
         label="Profile"
         active={
@@ -1321,29 +1801,35 @@ function TrainerBottomNav({
           goTo("profile")
         }
       />
+
     </View>
   );
 }
 
 /* =========================================================
-   BOTTOM NAV ITEM
+   NAV ITEM
 ========================================================= */
 
-function BottomNavItem({
+function TrainerNavItem({
   icon,
   label,
   active,
   colors,
   onPress,
 }) {
+
   return (
+
     <TouchableOpacity
-      activeOpacity={0.75}
-      onPress={onPress}
       style={
         styles.bottomNavItem
       }
+
+      activeOpacity={0.8}
+
+      onPress={onPress}
     >
+
       <View
         style={[
           styles.bottomIconContainer,
@@ -1353,6 +1839,7 @@ function BottomNavItem({
           },
         ]}
       >
+
         <Ionicons
           name={icon}
           size={27}
@@ -1362,15 +1849,17 @@ function BottomNavItem({
               : colors.secondaryText
           }
         />
+
       </View>
 
       <Text
         style={[
           styles.bottomLabel,
           {
-            color: active
-              ? colors.primaryLight
-              : colors.secondaryText,
+            color:
+              active
+                ? colors.primaryLight
+                : colors.secondaryText,
           },
         ]}
       >
@@ -1378,6 +1867,7 @@ function BottomNavItem({
       </Text>
 
       {active && (
+
         <View
           style={[
             styles.activeIndicator,
@@ -1387,7 +1877,9 @@ function BottomNavItem({
             },
           ]}
         />
+
       )}
+
     </TouchableOpacity>
   );
 }
@@ -1405,8 +1897,10 @@ const styles =
 
     loadingContainer: {
       flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
     },
 
     loadingText: {
@@ -1424,13 +1918,17 @@ const styles =
       paddingBottom: 145,
     },
 
-    /* =======================================================
+    /* =====================================================
        HEADER
-    ======================================================= */
+    ===================================================== */
 
     header: {
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
       marginBottom: 27,
     },
 
@@ -1439,9 +1937,12 @@ const styles =
       height: 82,
       borderRadius: 41,
       borderWidth: 2,
-      alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden",
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+      overflow:
+        "hidden",
     },
 
     profilePhoto: {
@@ -1458,6 +1959,16 @@ const styles =
       flex: 1,
       marginLeft: 15,
       marginRight: 8,
+    },
+
+    headerActions: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      gap: 8,
     },
 
     eyebrow: {
@@ -1479,8 +1990,12 @@ const styles =
     },
 
     locationRow: {
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
       marginTop: 6,
     },
 
@@ -1490,43 +2005,138 @@ const styles =
       flex: 1,
     },
 
+    /* =====================================================
+       THEME SWITCH
+    ===================================================== */
+
+    themeSwitch: {
+      width: 66,
+      height: 34,
+      borderRadius: 18,
+
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "space-around",
+
+      paddingHorizontal: 4,
+
+      position:
+        "relative",
+    },
+
+    themeIcon: {
+      fontSize: 13,
+      width: 24,
+      textAlign:
+        "center",
+    },
+
+    themeKnob: {
+      position:
+        "absolute",
+
+      left: 4,
+      top: 3,
+
+      width: 28,
+      height: 28,
+
+      borderRadius: 14,
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+
+      shadowColor:
+        "#000000",
+
+      shadowOffset: {
+        width: 0,
+        height: 1,
+      },
+
+      shadowOpacity:
+        0.2,
+
+      shadowRadius:
+        3,
+
+      elevation: 3,
+    },
+
+    knobIcon: {
+      fontSize: 13,
+    },
+
+    /* =====================================================
+       NOTIFICATIONS
+    ===================================================== */
+
     notificationButton: {
       width: 43,
       height: 43,
       borderRadius: 15,
       borderWidth: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      position: "relative",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+
+      position:
+        "relative",
     },
 
-    /* =======================================================
-       NOTIFICATION BADGE
-    ======================================================= */
-
     notificationBadge: {
-      position: "absolute",
-      right: -4,
+      position:
+        "absolute",
+
       top: -5,
-      minWidth: 18,
-      height: 18,
-      paddingHorizontal: 4,
-      borderRadius: 9,
-      alignItems: "center",
-      justifyContent: "center",
+      right: -5,
+
+      minWidth: 20,
+      height: 20,
+
+      paddingHorizontal: 5,
+
+      borderRadius: 10,
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+
       borderWidth: 2,
-      borderColor: "#050816",
+
+      borderColor:
+        "#020617",
     },
 
     notificationBadgeText: {
-      color: "#FFFFFF",
-      fontSize: 8,
-      fontWeight: "900",
+      color:
+        "#FFFFFF",
+
+      fontSize: 9,
+
+      fontWeight:
+        "900",
+
+      textAlign:
+        "center",
     },
 
-    /* =======================================================
+    /* =====================================================
        OVERVIEW
-    ======================================================= */
+    ===================================================== */
 
     overviewCard: {
       borderWidth: 1,
@@ -1536,9 +2146,15 @@ const styles =
     },
 
     overviewHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "space-between",
+
       marginBottom: 17,
     },
 
@@ -1548,72 +2164,66 @@ const styles =
       letterSpacing: 1,
     },
 
-    todayBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      borderWidth: 1,
-      borderRadius: 15,
-      paddingHorizontal: 10,
-      paddingVertical: 7,
-    },
-
-    todayText: {
-      fontSize: 9,
-      fontWeight: "700",
-      marginLeft: 5,
+    overviewSubtitle: {
+      fontSize: 11,
+      marginTop: 4,
     },
 
     statsGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      justifyContent: "space-between",
+      flexDirection:
+        "row",
+
+      flexWrap:
+        "wrap",
+
+      justifyContent:
+        "space-between",
+
+      gap: 10,
     },
 
-    overviewStat: {
-      width: "48.4%",
-      minHeight: 116,
+    statCard: {
+      width: "48%",
+      minHeight: 110,
+
       borderWidth: 1,
+
       borderRadius: 18,
-      padding: 13,
-      marginBottom: 10,
-      flexDirection: "row",
-      alignItems: "center",
-    },
 
-    statIconCircle: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      alignItems: "center",
-      justifyContent: "center",
-    },
+      padding: 14,
 
-    statContent: {
-      flex: 1,
-      marginLeft: 10,
+      justifyContent:
+        "center",
     },
 
     statValue: {
       fontSize: 27,
       fontWeight: "900",
+      marginTop: 7,
     },
 
     statLabel: {
-      fontSize: 8,
-      fontWeight: "900",
-      marginTop: 4,
-      lineHeight: 11,
+      fontSize: 9,
+      fontWeight: "800",
+      letterSpacing: 1,
+      marginTop: 2,
     },
 
-    /* =======================================================
-       MEMBERS HEADER
-    ======================================================= */
+    /* =====================================================
+       SECTION
+    ===================================================== */
 
-    membersHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 13,
+    sectionHeader: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "space-between",
+
+      marginBottom: 14,
     },
 
     sectionTitle: {
@@ -1622,41 +2232,54 @@ const styles =
       letterSpacing: 1,
     },
 
-    membersCountContainer: {
-      flexDirection: "row",
-      alignItems: "center",
+    sectionSubtitle: {
+      fontSize: 11,
+      marginTop: 4,
     },
 
-    membersCount: {
-      fontSize: 18,
+    viewAllText: {
+      fontSize: 11,
       fontWeight: "900",
-      marginRight: 4,
     },
 
-    /* =======================================================
+    /* =====================================================
        MEMBER CARD
-    ======================================================= */
+    ===================================================== */
 
     memberCard: {
-      minHeight: 88,
+      minHeight: 91,
+
       borderWidth: 1,
-      borderRadius: 18,
-      paddingVertical: 11,
-      paddingLeft: 11,
-      paddingRight: 9,
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 10,
+
+      borderRadius: 19,
+
+      paddingHorizontal: 13,
+
+      marginBottom: 11,
+
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
     },
 
-    memberAvatarContainer: {
-      width: 58,
-      height: 58,
-      borderRadius: 18,
-      borderWidth: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden",
+    memberAvatar: {
+      width: 53,
+      height: 53,
+
+      borderRadius: 27,
+
+      borderWidth: 1.5,
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+
+      overflow:
+        "hidden",
     },
 
     memberAvatarImage: {
@@ -1665,63 +2288,82 @@ const styles =
     },
 
     memberAvatarText: {
-      fontSize: 18,
+      fontSize: 17,
       fontWeight: "900",
     },
 
     memberInfo: {
       flex: 1,
-      marginLeft: 12,
-      marginRight: 7,
+      marginLeft: 13,
+      marginRight: 8,
     },
 
     memberName: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: "900",
     },
 
-    memberDays: {
+    memberUsername: {
       fontSize: 10,
-      fontWeight: "600",
-      marginTop: 5,
+      marginTop: 3,
+    },
+
+    memberMetaRow: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      marginTop: 6,
+    },
+
+    memberMetaText: {
+      fontSize: 9,
+      marginLeft: 4,
+      fontWeight: "700",
+    },
+
+    memberRight: {
+      alignItems:
+        "flex-end",
+
+      justifyContent:
+        "center",
+
+      gap: 8,
     },
 
     statusBadge: {
-      borderWidth: 1,
-      borderRadius: 16,
-      paddingHorizontal: 10,
-      paddingVertical: 7,
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      borderRadius: 8,
     },
 
     statusText: {
       fontSize: 8,
       fontWeight: "900",
-      letterSpacing: 0.4,
+      letterSpacing: 0.5,
     },
 
-    memberArrow: {
-      marginLeft: 7,
-    },
-
-    /* =======================================================
-       EMPTY MEMBERS
-    ======================================================= */
+    /* =====================================================
+       EMPTY STATE
+    ===================================================== */
 
     emptyCard: {
-      borderWidth: 1,
-      borderRadius: 19,
-      paddingVertical: 30,
-      paddingHorizontal: 20,
-      alignItems: "center",
-      marginBottom: 10,
-    },
+      minHeight: 190,
 
-    emptyIconContainer: {
-      width: 58,
-      height: 58,
-      borderRadius: 18,
-      alignItems: "center",
-      justifyContent: "center",
+      borderWidth: 1,
+
+      borderRadius: 20,
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+
+      padding: 25,
     },
 
     emptyTitle: {
@@ -1730,35 +2372,56 @@ const styles =
       marginTop: 12,
     },
 
-    emptyText: {
-      fontSize: 10,
-      marginTop: 5,
-      textAlign: "center",
+    emptySubtitle: {
+      fontSize: 11,
+      marginTop: 6,
+      textAlign:
+        "center",
     },
 
-    /* =======================================================
-       PROFILE ACTION
-    ======================================================= */
+    /* =====================================================
+       QUICK ACTION
+    ===================================================== */
+
+    quickActionsTitleRow: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+    },
 
     profileActionCard: {
       minHeight: 110,
+
       borderWidth: 1,
+
       borderRadius: 20,
+
       paddingHorizontal: 18,
+
       marginTop: 10,
+
       marginBottom: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor:
-        "rgba(90, 65, 180, 0.22)",
+
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
     },
 
     profileActionIcon: {
       width: 61,
       height: 61,
+
       borderRadius: 17,
-      alignItems: "center",
-      justifyContent: "center",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
     },
 
     profileActionInfo: {
@@ -1777,22 +2440,34 @@ const styles =
       marginTop: 5,
     },
 
-    /* =======================================================
+    /* =====================================================
        BOTTOM NAVIGATION
-    ======================================================= */
+    ===================================================== */
 
     bottomNav: {
-      position: "absolute",
+      position:
+        "absolute",
+
       left: 0,
       right: 0,
       bottom: 0,
+
       height: 91,
+
       borderTopWidth: 1,
+
       borderTopLeftRadius: 30,
       borderTopRightRadius: 30,
-      flexDirection: "row",
-      alignItems: "flex-start",
-      justifyContent: "space-around",
+
+      flexDirection:
+        "row",
+
+      alignItems:
+        "flex-start",
+
+      justifyContent:
+        "space-around",
+
       paddingTop: 10,
 
       shadowOffset: {
@@ -1801,6 +2476,7 @@ const styles =
       },
 
       shadowOpacity: 0.15,
+
       shadowRadius: 15,
 
       elevation: 20,
@@ -1809,17 +2485,28 @@ const styles =
     bottomNavItem: {
       width: "25%",
       height: 76,
-      alignItems: "center",
-      justifyContent: "flex-start",
-      position: "relative",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "flex-start",
+
+      position:
+        "relative",
     },
 
     bottomIconContainer: {
       width: 48,
       height: 39,
+
       borderRadius: 14,
-      alignItems: "center",
-      justifyContent: "center",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
     },
 
     bottomLabel: {
@@ -1831,7 +2518,10 @@ const styles =
     activeIndicator: {
       width: 32,
       height: 4,
+
       borderRadius: 4,
+
       marginTop: 6,
     },
+
   });
