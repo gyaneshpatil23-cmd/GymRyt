@@ -1,6 +1,5 @@
 import React, {
     useCallback,
-    useEffect,
     useState,
 } from "react";
 
@@ -169,9 +168,70 @@ export default function TrainerWorkout() {
 
 
 
+        if (!text) {
+            return {};
+        }
+
+
+
         throw new Error(
             `Server returned HTTP ${response.status}`
         );
+    };
+
+
+
+    // ========================================================
+    // NORMALIZE LIST
+    // ========================================================
+
+    const normalizeList = (
+        data
+    ) => {
+
+        if (
+            Array.isArray(data)
+        ) {
+
+            return data;
+        }
+
+
+
+        if (
+            Array.isArray(
+                data?.results
+            )
+        ) {
+
+            return data.results;
+        }
+
+
+
+        if (
+            Array.isArray(
+                data?.workouts
+            )
+        ) {
+
+            return data.workouts;
+        }
+
+
+
+        if (
+            Array.isArray(
+                data?.members
+            )
+        ) {
+
+            return data.members;
+        }
+
+
+
+        return [];
     };
 
 
@@ -201,6 +261,7 @@ export default function TrainerWorkout() {
                     [
                         {
                             text: "OK",
+
                             onPress: () =>
                                 router.replace("/"),
                         },
@@ -353,61 +414,6 @@ export default function TrainerWorkout() {
 
 
     // ========================================================
-    // NORMALIZE LIST
-    // ========================================================
-
-    const normalizeList = (
-        data
-    ) => {
-
-        if (
-            Array.isArray(data)
-        ) {
-
-            return data;
-        }
-
-
-
-        if (
-            Array.isArray(
-                data?.results
-            )
-        ) {
-
-            return data.results;
-        }
-
-
-
-        if (
-            Array.isArray(
-                data?.workouts
-            )
-        ) {
-
-            return data.workouts;
-        }
-
-
-
-        if (
-            Array.isArray(
-                data?.members
-            )
-        ) {
-
-            return data.members;
-        }
-
-
-
-        return [];
-    };
-
-
-
-    // ========================================================
     // REFRESH
     // ========================================================
 
@@ -421,7 +427,7 @@ export default function TrainerWorkout() {
 
 
     // ========================================================
-    // OPEN CREATE
+    // OPEN CREATE WORKOUT
     // ========================================================
 
     const openCreateWorkout = () => {
@@ -487,6 +493,10 @@ export default function TrainerWorkout() {
 
     const createWorkout = async () => {
 
+        // ----------------------------------------------------
+        // VALIDATE WORKOUT NAME
+        // ----------------------------------------------------
+
         if (!title.trim()) {
 
             Alert.alert(
@@ -498,6 +508,10 @@ export default function TrainerWorkout() {
         }
 
 
+
+        // ----------------------------------------------------
+        // VALIDATE MEMBER SELECTION
+        // ----------------------------------------------------
 
         if (
             selectedMemberIds.length === 0
@@ -519,6 +533,10 @@ export default function TrainerWorkout() {
 
 
 
+            // ------------------------------------------------
+            // GET TOKEN
+            // ------------------------------------------------
+
             const token =
                 await getToken();
 
@@ -537,10 +555,58 @@ export default function TrainerWorkout() {
 
 
             // ------------------------------------------------
-            // Workout payload
+            // NORMALIZE MEMBER IDS
             // ------------------------------------------------
 
-            const payload = {
+            const selectedIds =
+                selectedMemberIds
+                    .map(
+                        (id) =>
+                            Number(id)
+                    )
+                    .filter(
+                        (id) =>
+                            Number.isFinite(id)
+                    );
+
+
+
+            if (
+                selectedIds.length === 0
+            ) {
+
+                Alert.alert(
+                    "Invalid Member",
+                    "Please select a valid member."
+                );
+
+                return;
+            }
+
+
+
+            console.log(
+                "SELECTED MEMBER IDS:",
+                selectedIds
+            );
+
+
+
+            // ------------------------------------------------
+            // COMMON WORKOUT DATA
+            // ------------------------------------------------
+            //
+            // IMPORTANT:
+            // reps is kept as TEXT.
+            //
+            // Example:
+            // "8-10"
+            //
+            // Number("8-10") gives NaN,
+            // which was the second problem in your log.
+            // ------------------------------------------------
+
+            const basePayload = {
 
                 title:
                     title.trim(),
@@ -567,75 +633,140 @@ export default function TrainerWorkout() {
 
                 reps:
                     reps
-                        ? Number(
-                            reps
-                        )
+                        ? reps.trim()
                         : null,
-
-                member_ids:
-                    selectedMemberIds,
-
             };
 
 
 
             console.log(
-                "CREATE WORKOUT:",
-                payload
+                "CREATE WORKOUT BASE DATA:",
+                basePayload
             );
 
 
 
-            const response =
-                await fetch(
-                    `${API_BASE_URL}/trainer/workouts/`,
-                    {
-                        method: "POST",
+            // ------------------------------------------------
+            // CREATE WORKOUT FOR EACH MEMBER
+            // ------------------------------------------------
+            //
+            // The backend WorkoutPlan currently has ONE
+            // member ForeignKey.
+            //
+            // Therefore:
+            //
+            // selectedMemberIds = [4, 7, 9]
+            //
+            // becomes three POST requests:
+            //
+            // { member: 4 }
+            // { member: 7 }
+            // { member: 9 }
+            //
+            // This matches the current Django API.
+            // ------------------------------------------------
 
-                        headers: {
-                            Accept:
-                                "application/json",
+            const results = [];
 
-                            "Content-Type":
-                                "application/json",
 
-                            Authorization:
-                                `Token ${token}`,
-                        },
 
-                        body:
-                            JSON.stringify(
-                                payload
-                            ),
-                    }
+            for (
+                const memberId
+                of selectedIds
+            ) {
+
+                const payload = {
+
+                    ...basePayload,
+
+                    // IMPORTANT:
+                    // Backend expects "member".
+                    //
+                    // NOT:
+                    // member_ids
+
+                    member:
+                        memberId,
+                };
+
+
+
+                console.log(
+                    "CREATE WORKOUT:",
+                    payload
                 );
 
 
 
-            const data =
-                await parseResponse(
-                    response
+                const response =
+                    await fetch(
+                        `${API_BASE_URL}/trainer/workouts/`,
+                        {
+                            method: "POST",
+
+                            headers: {
+
+                                Accept:
+                                    "application/json",
+
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Token ${token}`,
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                ),
+                        }
+                    );
+
+
+
+                const data =
+                    await parseResponse(
+                        response
+                    );
+
+
+
+                console.log(
+                    "CREATE WORKOUT RESPONSE:",
+                    data
                 );
 
 
 
-            console.log(
-                "CREATE WORKOUT RESPONSE:",
-                data
-            );
+                if (!response.ok) {
+
+                    throw new Error(
+                        data?.detail ||
+                        data?.message ||
+                        data?.error ||
+                        JSON.stringify(data) ||
+                        `Unable to create workout for member ${memberId}.`
+                    );
+                }
 
 
 
-            if (!response.ok) {
-
-                throw new Error(
-                    data?.detail ||
-                    data?.message ||
-                    data?.error ||
-                    JSON.stringify(data) ||
-                    "Unable to create workout."
+                results.push(
+                    data
                 );
             }
+
+
+
+            // ------------------------------------------------
+            // SUCCESS
+            // ------------------------------------------------
+
+            console.log(
+                "ALL WORKOUTS CREATED:",
+                results
+            );
 
 
 
@@ -645,14 +776,55 @@ export default function TrainerWorkout() {
 
 
 
-            Alert.alert(
-                "Workout Created",
-                "Workout has been created successfully."
+            // ------------------------------------------------
+            // CLEAR FORM
+            // ------------------------------------------------
+
+            setTitle(
+                ""
+            );
+
+            setDescription(
+                ""
+            );
+
+            setDuration(
+                ""
+            );
+
+            setSets(
+                ""
+            );
+
+            setReps(
+                ""
+            );
+
+            setSelectedMemberIds(
+                []
+            );
+
+            setSelectedWorkout(
+                null
             );
 
 
 
-            loadData();
+            // ------------------------------------------------
+            // RELOAD WORKOUTS
+            // ------------------------------------------------
+
+            await loadData();
+
+
+
+            Alert.alert(
+                "Workout Created",
+
+                selectedIds.length === 1
+                    ? "Workout has been created and assigned successfully."
+                    : `Workout has been created and assigned to ${selectedIds.length} members.`
+            );
 
 
 
@@ -687,6 +859,7 @@ export default function TrainerWorkout() {
 
         Alert.alert(
             "Delete Workout",
+
             `Delete "${getWorkoutName(workout)}"?`,
 
             [
@@ -697,6 +870,7 @@ export default function TrainerWorkout() {
 
                 {
                     text: "Delete",
+
                     style: "destructive",
 
                     onPress: () =>
@@ -763,6 +937,8 @@ export default function TrainerWorkout() {
                         await parseResponse(
                             response
                         );
+
+
 
                     if (
                         !response.ok
@@ -877,6 +1053,16 @@ export default function TrainerWorkout() {
         ) {
 
             return workout.assigned_members_count;
+        }
+
+
+
+        // Current backend returns a single member.
+        if (
+            workout?.member
+        ) {
+
+            return 1;
         }
 
 
@@ -996,9 +1182,11 @@ export default function TrainerWorkout() {
                     style={
                         styles.addButton
                     }
+
                     onPress={
                         openCreateWorkout
                     }
+
                     activeOpacity={0.85}
                 >
 
@@ -1022,6 +1210,7 @@ export default function TrainerWorkout() {
                 showsVerticalScrollIndicator={
                     false
                 }
+
                 contentContainerStyle={
                     styles.scrollContent
                 }
@@ -1035,9 +1224,11 @@ export default function TrainerWorkout() {
                     style={
                         styles.createCard
                     }
+
                     onPress={
                         openCreateWorkout
                     }
+
                     activeOpacity={0.85}
                 >
 
@@ -1230,14 +1421,17 @@ export default function TrainerWorkout() {
                                         workout.id ||
                                         index
                                     }
+
                                     style={
                                         styles.workoutRow
                                     }
+
                                     onPress={() =>
                                         setSelectedWorkout(
                                             workout
                                         )
                                     }
+
                                     activeOpacity={
                                         0.8
                                     }
@@ -1246,6 +1440,7 @@ export default function TrainerWorkout() {
                                     <View
                                         style={[
                                             styles.workoutIcon,
+
                                             index %
                                                 3 ===
                                                 0 &&
@@ -1269,9 +1464,11 @@ export default function TrainerWorkout() {
                                                     index
                                                 )
                                             }
+
                                             size={
                                                 27
                                             }
+
                                             color={
                                                 "#FFFFFF"
                                             }
@@ -1291,6 +1488,7 @@ export default function TrainerWorkout() {
                                             style={
                                                 styles.workoutName
                                             }
+
                                             numberOfLines={
                                                 1
                                             }
@@ -1306,6 +1504,7 @@ export default function TrainerWorkout() {
                                             style={
                                                 styles.workoutDescription
                                             }
+
                                             numberOfLines={
                                                 2
                                             }
@@ -1480,6 +1679,7 @@ export default function TrainerWorkout() {
                                             member.id ||
                                             index
                                         }
+
                                         style={
                                             styles.memberRow
                                         }
@@ -1578,8 +1778,11 @@ export default function TrainerWorkout() {
                     selectedWorkout !==
                     null
                 }
+
                 transparent
+
                 animationType="slide"
+
                 onRequestClose={() =>
                     setSelectedWorkout(
                         null
@@ -1743,6 +1946,7 @@ export default function TrainerWorkout() {
                             style={
                                 styles.deleteButton
                             }
+
                             onPress={() => {
 
                                 const workout =
@@ -1793,8 +1997,11 @@ export default function TrainerWorkout() {
                 visible={
                     showCreateModal
                 }
+
                 transparent
+
                 animationType="slide"
+
                 onRequestClose={() =>
                     setShowCreateModal(
                         false
@@ -1870,7 +2077,9 @@ export default function TrainerWorkout() {
 
 
 
-                            {/* WORKOUT NAME */}
+                            {/* ==================================================
+                                WORKOUT NAME
+                            ================================================== */}
 
                             <Text
                                 style={
@@ -1886,19 +2095,27 @@ export default function TrainerWorkout() {
                                 style={
                                     styles.input
                                 }
+
                                 value={
                                     title
                                 }
+
                                 onChangeText={
                                     setTitle
                                 }
+
                                 placeholder="e.g. Chest & Triceps"
+
                                 placeholderTextColor="#66758C"
+
+                                autoCapitalize="sentences"
                             />
 
 
 
-                            {/* DESCRIPTION */}
+                            {/* ==================================================
+                                DESCRIPTION
+                            ================================================== */}
 
                             <Text
                                 style={
@@ -1915,20 +2132,27 @@ export default function TrainerWorkout() {
                                     styles.input,
                                     styles.textArea,
                                 ]}
+
                                 value={
                                     description
                                 }
+
                                 onChangeText={
                                     setDescription
                                 }
+
                                 placeholder="Describe the workout..."
+
                                 placeholderTextColor="#66758C"
+
                                 multiline
                             />
 
 
 
-                            {/* DURATION */}
+                            {/* ==================================================
+                                DURATION
+                            ================================================== */}
 
                             <Text
                                 style={
@@ -1944,20 +2168,27 @@ export default function TrainerWorkout() {
                                 style={
                                     styles.input
                                 }
+
                                 value={
                                     duration
                                 }
+
                                 onChangeText={
                                     setDuration
                                 }
+
                                 placeholder="60"
+
                                 placeholderTextColor="#66758C"
+
                                 keyboardType="numeric"
                             />
 
 
 
-                            {/* SETS */}
+                            {/* ==================================================
+                                SETS
+                            ================================================== */}
 
                             <Text
                                 style={
@@ -1973,20 +2204,27 @@ export default function TrainerWorkout() {
                                 style={
                                     styles.input
                                 }
+
                                 value={
                                     sets
                                 }
+
                                 onChangeText={
                                     setSets
                                 }
+
                                 placeholder="4"
+
                                 placeholderTextColor="#66758C"
+
                                 keyboardType="numeric"
                             />
 
 
 
-                            {/* REPS */}
+                            {/* ==================================================
+                                REPS
+                            ================================================== */}
 
                             <Text
                                 style={
@@ -2002,20 +2240,40 @@ export default function TrainerWorkout() {
                                 style={
                                     styles.input
                                 }
+
                                 value={
                                     reps
                                 }
+
                                 onChangeText={
                                     setReps
                                 }
-                                placeholder="12"
+
+                                placeholder="8-10"
+
                                 placeholderTextColor="#66758C"
-                                keyboardType="numeric"
+
+                                /*
+                                 * IMPORTANT:
+                                 * Reps may be:
+                                 *
+                                 * 8-10
+                                 * 10-12
+                                 * 15
+                                 *
+                                 * Therefore don't force
+                                 * numeric keyboard here.
+                                 */
+                                keyboardType="default"
+
+                                autoCapitalize="none"
                             />
 
 
 
-                            {/* MEMBERS */}
+                            {/* ==================================================
+                                ASSIGN MEMBERS
+                            ================================================== */}
 
                             <Text
                                 style={
@@ -2080,16 +2338,20 @@ export default function TrainerWorkout() {
                                                         memberId ||
                                                         index
                                                     }
+
                                                     style={[
                                                         styles.selectMemberRow,
+
                                                         selected &&
                                                             styles.selectMemberRowActive,
                                                     ]}
+
                                                     onPress={() =>
                                                         toggleMember(
                                                             memberId
                                                         )
                                                     }
+
                                                     activeOpacity={
                                                         0.8
                                                     }
@@ -2156,6 +2418,7 @@ export default function TrainerWorkout() {
                                                     <View
                                                         style={[
                                                             styles.checkbox,
+
                                                             selected &&
                                                                 styles.checkboxActive,
                                                         ]}
@@ -2183,18 +2446,23 @@ export default function TrainerWorkout() {
 
 
 
-                            {/* SAVE */}
+                            {/* ==================================================
+                                SAVE
+                            ================================================== */}
 
                             <TouchableOpacity
                                 style={
                                     styles.saveButton
                                 }
+
                                 onPress={
                                     createWorkout
                                 }
+
                                 disabled={
                                     saving
                                 }
+
                                 activeOpacity={
                                     0.85
                                 }
@@ -2372,6 +2640,7 @@ function TrainerBottomNav({
             router.replace(
                 "/trainer/profile"
             );
+
         }
     };
 
@@ -2462,8 +2731,14 @@ function NavItem({
             style={
                 styles.navItem
             }
-            onPress={onPress}
-            activeOpacity={0.8}
+
+            onPress={
+                onPress
+            }
+
+            activeOpacity={
+                0.8
+            }
         >
 
             <View
@@ -2522,1239 +2797,1315 @@ function NavItem({
 // STYLES
 // ============================================================
 
-const styles = StyleSheet.create({
+const styles =
+    StyleSheet.create({
 
-    // ========================================================
-    // MAIN
-    // ========================================================
+        // ====================================================
+        // MAIN
+        // ====================================================
 
-    container: {
-        flex: 1,
-        backgroundColor: "#020617",
-    },
+        container: {
 
+            flex: 1,
 
-
-    // ========================================================
-    // HEADER
-    // ========================================================
-
-    header: {
-
-        height: 112,
-
-        paddingHorizontal: 24,
-
-        paddingTop: 25,
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        justifyContent:
-            "space-between",
-
-        borderBottomWidth: 1,
-
-        borderBottomColor:
-            "#102044",
-    },
-
-
-
-    headerEyebrow: {
-
-        color: "#4D9AFF",
-
-        fontSize: 11,
-
-        fontWeight: "900",
-
-        letterSpacing: 2.4,
-
-        marginBottom: 4,
-    },
-
-
-
-    headerTitle: {
-
-        color: "#FFFFFF",
-
-        fontSize: 29,
-
-        fontWeight: "900",
-    },
-
-
-
-    addButton: {
-
-        width: 58,
-
-        height: 58,
-
-        borderRadius: 18,
-
-        backgroundColor:
-            "#1264E8",
-
-        alignItems:
-            "center",
-
-        justifyContent:
-            "center",
-
-        elevation: 5,
-
-        shadowColor:
-            "#1264E8",
-
-        shadowOpacity: 0.3,
-
-        shadowRadius: 8,
-
-        shadowOffset: {
-            width: 0,
-            height: 4,
+            backgroundColor:
+                "#020617",
         },
-    },
 
 
 
-    // ========================================================
-    // CONTENT
-    // ========================================================
+        // ====================================================
+        // HEADER
+        // ====================================================
 
-    scrollContent: {
+        header: {
 
-        paddingHorizontal: 24,
+            height: 112,
 
-        paddingTop: 24,
+            paddingHorizontal: 24,
 
-        paddingBottom: 30,
-    },
+            paddingTop: 25,
 
+            flexDirection:
+                "row",
 
+            alignItems:
+                "center",
 
-    // ========================================================
-    // CREATE CARD
-    // ========================================================
+            justifyContent:
+                "space-between",
 
-    createCard: {
+            borderBottomWidth: 1,
 
-        minHeight: 130,
+            borderBottomColor:
+                "#102044",
+        },
 
-        backgroundColor:
-            "#071321",
 
-        borderRadius: 21,
 
-        borderWidth: 1,
+        headerEyebrow: {
 
-        borderColor:
-            "#124783",
+            color:
+                "#4D9AFF",
 
-        paddingHorizontal: 18,
+            fontSize: 11,
 
-        paddingVertical: 18,
+            fontWeight: "900",
 
-        flexDirection: "row",
+            letterSpacing: 2.4,
 
-        alignItems: "center",
-    },
+            marginBottom: 4,
+        },
 
 
 
-    createIcon: {
+        headerTitle: {
 
-        width: 70,
+            color:
+                "#FFFFFF",
 
-        height: 70,
+            fontSize: 29,
 
-        borderRadius: 19,
+            fontWeight: "900",
+        },
 
-        backgroundColor:
-            "#102F69",
 
-        alignItems:
-            "center",
 
-        justifyContent:
-            "center",
+        addButton: {
 
-        marginRight: 15,
-    },
+            width: 58,
 
+            height: 58,
 
+            borderRadius: 18,
 
-    createText: {
+            backgroundColor:
+                "#1264E8",
 
-        flex: 1,
-    },
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
 
+            elevation: 5,
 
-    createTitle: {
+            shadowColor:
+                "#1264E8",
 
-        color: "#FFFFFF",
+            shadowOpacity: 0.3,
 
-        fontSize: 18,
+            shadowRadius: 8,
 
-        fontWeight: "800",
+            shadowOffset: {
+                width: 0,
+                height: 4,
+            },
+        },
 
-        marginBottom: 5,
-    },
 
 
+        // ====================================================
+        // CONTENT
+        // ====================================================
 
-    createSubtitle: {
+        scrollContent: {
 
-        color: "#A4B4CA",
+            paddingHorizontal: 24,
 
-        fontSize: 12,
+            paddingTop: 24,
 
-        lineHeight: 18,
-    },
+            paddingBottom: 30,
+        },
 
 
 
-    // ========================================================
-    // SECTION
-    // ========================================================
+        // ====================================================
+        // CREATE CARD
+        // ====================================================
 
-    sectionHeader: {
+        createCard: {
 
-        marginTop: 28,
+            minHeight: 130,
 
-        marginBottom: 13,
+            backgroundColor:
+                "#071321",
 
-        flexDirection: "row",
+            borderRadius: 21,
 
-        alignItems: "center",
+            borderWidth: 1,
 
-        justifyContent:
-            "space-between",
-    },
+            borderColor:
+                "#124783",
 
+            paddingHorizontal: 18,
 
+            paddingVertical: 18,
 
-    sectionTitle: {
+            flexDirection:
+                "row",
 
-        color: "#FFFFFF",
+            alignItems:
+                "center",
+        },
 
-        fontSize: 18,
 
-        fontWeight: "900",
 
-        letterSpacing: 0.5,
-    },
+        createIcon: {
 
+            width: 70,
 
+            height: 70,
 
-    sectionCountContainer: {
+            borderRadius: 19,
 
-        flexDirection: "row",
+            backgroundColor:
+                "#102F69",
 
-        alignItems: "center",
-    },
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
 
+            marginRight: 15,
+        },
 
-    sectionCount: {
 
-        color: "#FFFFFF",
 
-        fontSize: 20,
+        createText: {
 
-        fontWeight: "900",
+            flex: 1,
+        },
 
-        marginRight: 5,
-    },
 
 
+        createTitle: {
 
-    // ========================================================
-    // WORKOUT LIST
-    // ========================================================
+            color:
+                "#FFFFFF",
 
-    workoutList: {
+            fontSize: 18,
 
-        backgroundColor:
-            "#071321",
+            fontWeight: "800",
 
-        borderRadius: 21,
+            marginBottom: 5,
+        },
 
-        borderWidth: 1,
 
-        borderColor:
-            "#102D56",
 
-        paddingHorizontal: 14,
+        createSubtitle: {
 
-        paddingVertical: 4,
-    },
+            color:
+                "#A4B4CA",
 
+            fontSize: 12,
 
+            lineHeight: 18,
+        },
 
-    workoutRow: {
 
-        minHeight: 105,
 
-        flexDirection: "row",
+        // ====================================================
+        // SECTION
+        // ====================================================
 
-        alignItems: "center",
+        sectionHeader: {
 
-        borderBottomWidth: 1,
+            marginTop: 28,
 
-        borderBottomColor:
-            "#102344",
-    },
+            marginBottom: 13,
 
+            flexDirection:
+                "row",
 
+            alignItems:
+                "center",
 
-    workoutIcon: {
+            justifyContent:
+                "space-between",
+        },
 
-        width: 57,
 
-        height: 57,
 
-        borderRadius: 18,
+        sectionTitle: {
 
-        alignItems:
-            "center",
+            color:
+                "#FFFFFF",
 
-        justifyContent:
-            "center",
+            fontSize: 18,
 
-        marginRight: 13,
-    },
+            fontWeight: "900",
 
+            letterSpacing: 0.5,
+        },
 
 
-    workoutIconBlue: {
 
-        backgroundColor:
-            "#173C91",
-    },
+        sectionCountContainer: {
 
+            flexDirection:
+                "row",
 
+            alignItems:
+                "center",
+        },
 
-    workoutIconGreen: {
 
-        backgroundColor:
-            "#075746",
-    },
 
+        sectionCount: {
 
+            color:
+                "#FFFFFF",
 
-    workoutIconOrange: {
+            fontSize: 20,
 
-        backgroundColor:
-            "#744300",
-    },
+            fontWeight: "900",
 
+            marginRight: 5,
+        },
 
 
-    workoutInfo: {
 
-        flex: 1,
+        // ====================================================
+        // WORKOUT LIST
+        // ====================================================
 
-        paddingRight: 10,
-    },
+        workoutList: {
 
+            backgroundColor:
+                "#071321",
 
+            borderRadius: 21,
 
-    workoutName: {
+            borderWidth: 1,
 
-        color: "#FFFFFF",
+            borderColor:
+                "#102D56",
 
-        fontSize: 16,
+            paddingHorizontal: 14,
 
-        fontWeight: "800",
+            paddingVertical: 4,
+        },
 
-        marginBottom: 4,
-    },
 
 
+        workoutRow: {
 
-    workoutDescription: {
+            minHeight: 105,
 
-        color: "#91A0B6",
+            flexDirection:
+                "row",
 
-        fontSize: 11,
+            alignItems:
+                "center",
 
-        lineHeight: 16,
+            borderBottomWidth: 1,
 
-        marginBottom: 5,
-    },
+            borderBottomColor:
+                "#102344",
+        },
 
 
 
-    assignedText: {
+        workoutIcon: {
 
-        color: "#4DA3FF",
+            width: 57,
 
-        fontSize: 11,
+            height: 57,
 
-        fontWeight: "700",
-    },
+            borderRadius: 18,
 
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
 
-    // ========================================================
-    // EMPTY
-    // ========================================================
+            marginRight: 13,
+        },
 
-    emptyCard: {
 
-        minHeight: 230,
 
-        backgroundColor:
-            "#071321",
+        workoutIconBlue: {
 
-        borderRadius: 21,
+            backgroundColor:
+                "#173C91",
+        },
 
-        borderWidth: 1,
 
-        borderColor:
-            "#102D56",
 
-        alignItems:
-            "center",
+        workoutIconGreen: {
 
-        justifyContent:
-            "center",
+            backgroundColor:
+                "#075746",
+        },
 
-        padding: 25,
-    },
 
 
+        workoutIconOrange: {
 
-    emptyMemberCard: {
+            backgroundColor:
+                "#744300",
+        },
 
-        minHeight: 190,
 
-        backgroundColor:
-            "#071321",
 
-        borderRadius: 21,
+        workoutInfo: {
 
-        borderWidth: 1,
+            flex: 1,
 
-        borderColor:
-            "#102D56",
+            paddingRight: 10,
+        },
 
-        alignItems:
-            "center",
 
-        justifyContent:
-            "center",
 
-        padding: 25,
-    },
+        workoutName: {
 
+            color:
+                "#FFFFFF",
 
+            fontSize: 16,
 
-    emptyIcon: {
+            fontWeight: "800",
 
-        width: 70,
+            marginBottom: 4,
+        },
 
-        height: 70,
 
-        borderRadius: 22,
 
-        backgroundColor:
-            "#102F69",
+        workoutDescription: {
 
-        alignItems:
-            "center",
+            color:
+                "#91A0B6",
 
-        justifyContent:
-            "center",
+            fontSize: 11,
 
-        marginBottom: 15,
-    },
+            lineHeight: 16,
 
+            marginBottom: 5,
+        },
 
 
-    memberEmptyIcon: {
 
-        width: 65,
+        assignedText: {
 
-        height: 65,
+            color:
+                "#4DA3FF",
 
-        borderRadius: 20,
+            fontSize: 11,
 
-        backgroundColor:
-            "#102F69",
+            fontWeight: "700",
+        },
 
-        alignItems:
-            "center",
 
-        justifyContent:
-            "center",
 
-        marginBottom: 13,
-    },
+        // ====================================================
+        // EMPTY
+        // ====================================================
 
+        emptyCard: {
 
+            minHeight: 230,
 
-    emptyTitle: {
+            backgroundColor:
+                "#071321",
 
-        color: "#FFFFFF",
+            borderRadius: 21,
 
-        fontSize: 17,
+            borderWidth: 1,
 
-        fontWeight: "800",
+            borderColor:
+                "#102D56",
 
-        marginBottom: 5,
-    },
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
 
+            padding: 25,
+        },
 
-    emptySubtitle: {
 
-        color: "#78889F",
 
-        fontSize: 12,
+        emptyMemberCard: {
 
-        lineHeight: 18,
+            minHeight: 190,
 
-        textAlign: "center",
-    },
+            backgroundColor:
+                "#071321",
 
+            borderRadius: 21,
 
+            borderWidth: 1,
 
-    // ========================================================
-    // MEMBERS
-    // ========================================================
+            borderColor:
+                "#102D56",
 
-    memberList: {
+            alignItems:
+                "center",
 
-        backgroundColor:
-            "#071321",
+            justifyContent:
+                "center",
 
-        borderRadius: 21,
+            padding: 25,
+        },
 
-        borderWidth: 1,
 
-        borderColor:
-            "#102D56",
 
-        paddingHorizontal: 14,
-    },
+        emptyIcon: {
 
+            width: 70,
 
+            height: 70,
 
-    memberRow: {
+            borderRadius: 22,
 
-        minHeight: 80,
+            backgroundColor:
+                "#102F69",
 
-        flexDirection: "row",
+            alignItems:
+                "center",
 
-        alignItems: "center",
+            justifyContent:
+                "center",
 
-        borderBottomWidth: 1,
+            marginBottom: 15,
+        },
 
-        borderBottomColor:
-            "#102344",
-    },
 
 
+        memberEmptyIcon: {
 
-    memberAvatar: {
+            width: 65,
 
-        width: 50,
+            height: 65,
 
-        height: 50,
+            borderRadius: 20,
 
-        borderRadius: 17,
+            backgroundColor:
+                "#102F69",
 
-        backgroundColor:
-            "#173C91",
+            alignItems:
+                "center",
 
-        alignItems:
-            "center",
+            justifyContent:
+                "center",
 
-        justifyContent:
-            "center",
+            marginBottom: 13,
+        },
 
-        marginRight: 13,
-    },
 
 
+        emptyTitle: {
 
-    memberInitial: {
+            color:
+                "#FFFFFF",
 
-        color: "#FFFFFF",
+            fontSize: 17,
 
-        fontSize: 20,
+            fontWeight: "800",
 
-        fontWeight: "800",
-    },
+            marginBottom: 5,
+        },
 
 
 
-    memberInfo: {
+        emptySubtitle: {
 
-        flex: 1,
-    },
+            color:
+                "#78889F",
 
+            fontSize: 12,
 
+            lineHeight: 18,
 
-    memberName: {
+            textAlign:
+                "center",
+        },
 
-        color: "#FFFFFF",
 
-        fontSize: 14,
 
-        fontWeight: "800",
+        // ====================================================
+        // MEMBERS
+        // ====================================================
 
-        marginBottom: 3,
-    },
+        memberList: {
 
+            backgroundColor:
+                "#071321",
 
+            borderRadius: 21,
 
-    memberUsername: {
+            borderWidth: 1,
 
-        color: "#8493A8",
+            borderColor:
+                "#102D56",
 
-        fontSize: 11,
-    },
+            paddingHorizontal: 14,
+        },
 
 
 
-    // ========================================================
-    // MODAL
-    // ========================================================
+        memberRow: {
 
-    modalOverlay: {
+            minHeight: 80,
 
-        flex: 1,
+            flexDirection:
+                "row",
 
-        backgroundColor:
-            "rgba(0,0,0,0.72)",
+            alignItems:
+                "center",
 
-        justifyContent:
-            "flex-end",
-    },
+            borderBottomWidth: 1,
 
+            borderBottomColor:
+                "#102344",
+        },
 
 
-    modalCard: {
 
-        backgroundColor:
-            "#071321",
+        memberAvatar: {
 
-        borderTopLeftRadius: 28,
+            width: 50,
 
-        borderTopRightRadius: 28,
+            height: 50,
 
-        borderWidth: 1,
+            borderRadius: 17,
 
-        borderColor:
-            "#153E73",
+            backgroundColor:
+                "#173C91",
 
-        paddingHorizontal: 23,
+            alignItems:
+                "center",
 
-        paddingTop: 22,
+            justifyContent:
+                "center",
 
-        paddingBottom: 35,
+            marginRight: 13,
+        },
 
-        minHeight: 330,
-    },
 
 
+        memberInitial: {
 
-    createModal: {
+            color:
+                "#FFFFFF",
 
-        backgroundColor:
-            "#071321",
+            fontSize: 20,
 
-        borderTopLeftRadius: 28,
+            fontWeight: "800",
+        },
 
-        borderTopRightRadius: 28,
 
-        borderWidth: 1,
 
-        borderColor:
-            "#153E73",
+        memberInfo: {
 
-        paddingHorizontal: 23,
+            flex: 1,
+        },
 
-        paddingTop: 22,
 
-        paddingBottom: 15,
 
-        maxHeight: "92%",
-    },
+        memberName: {
 
+            color:
+                "#FFFFFF",
 
+            fontSize: 14,
 
-    modalHeader: {
+            fontWeight: "800",
 
-        flexDirection: "row",
+            marginBottom: 3,
+        },
 
-        alignItems: "center",
 
-        justifyContent:
-            "space-between",
 
-        marginBottom: 22,
-    },
+        memberUsername: {
 
+            color:
+                "#8493A8",
 
+            fontSize: 11,
+        },
 
-    modalTitle: {
 
-        color: "#FFFFFF",
 
-        fontSize: 22,
+        // ====================================================
+        // MODAL
+        // ====================================================
 
-        fontWeight: "900",
-    },
+        modalOverlay: {
 
+            flex: 1,
 
+            backgroundColor:
+                "rgba(0,0,0,0.72)",
 
-    modalSmallText: {
+            justifyContent:
+                "flex-end",
+        },
 
-        color: "#7F90A7",
 
-        fontSize: 11,
 
-        marginTop: 3,
-    },
+        modalCard: {
 
+            backgroundColor:
+                "#071321",
 
+            borderTopLeftRadius:
+                28,
 
-    modalDescription: {
+            borderTopRightRadius:
+                28,
 
-        color: "#A4B4CA",
+            borderWidth: 1,
 
-        fontSize: 13,
+            borderColor:
+                "#153E73",
 
-        lineHeight: 20,
+            paddingHorizontal: 23,
 
-        marginBottom: 18,
-    },
+            paddingTop: 22,
 
+            paddingBottom: 35,
 
+            minHeight: 330,
+        },
 
-    detailRow: {
 
-        minHeight: 52,
 
-        flexDirection: "row",
+        createModal: {
 
-        alignItems: "center",
+            backgroundColor:
+                "#071321",
 
-        borderBottomWidth: 1,
+            borderTopLeftRadius:
+                28,
 
-        borderBottomColor:
-            "#102344",
-    },
+            borderTopRightRadius:
+                28,
 
+            borderWidth: 1,
 
+            borderColor:
+                "#153E73",
 
-    detailLabel: {
+            paddingHorizontal: 23,
 
-        color: "#7789A2",
+            paddingTop: 22,
 
-        fontSize: 12,
+            paddingBottom: 15,
 
-        marginLeft: 12,
+            maxHeight: "92%",
+        },
 
-        flex: 1,
-    },
 
 
+        modalHeader: {
 
-    detailValue: {
+            flexDirection:
+                "row",
 
-        color: "#FFFFFF",
+            alignItems:
+                "center",
 
-        fontSize: 13,
+            justifyContent:
+                "space-between",
 
-        fontWeight: "800",
-    },
+            marginBottom: 22,
+        },
 
 
 
-    modalMembers: {
+        modalTitle: {
 
-        marginTop: 20,
+            color:
+                "#FFFFFF",
 
-        marginBottom: 20,
-    },
+            fontSize: 22,
 
+            fontWeight: "900",
+        },
 
 
-    modalSectionTitle: {
 
-        color: "#73849F",
+        modalSmallText: {
 
-        fontSize: 11,
+            color:
+                "#7F90A7",
 
-        fontWeight: "900",
+            fontSize: 11,
 
-        letterSpacing: 1.5,
+            marginTop: 3,
+        },
 
-        marginBottom: 6,
-    },
 
 
+        modalDescription: {
 
-    modalMemberCount: {
+            color:
+                "#A4B4CA",
 
-        color: "#4DA3FF",
+            fontSize: 13,
 
-        fontSize: 15,
+            lineHeight: 20,
 
-        fontWeight: "800",
-    },
+            marginBottom: 18,
+        },
 
 
 
-    deleteButton: {
+        detailRow: {
 
-        height: 54,
+            minHeight: 52,
 
-        borderRadius: 16,
+            flexDirection:
+                "row",
 
-        borderWidth: 1,
+            alignItems:
+                "center",
 
-        borderColor:
-            "#55202B",
+            borderBottomWidth: 1,
 
-        backgroundColor:
-            "#100D15",
+            borderBottomColor:
+                "#102344",
+        },
 
-        flexDirection: "row",
 
-        alignItems: "center",
 
-        justifyContent:
-            "center",
-    },
+        detailLabel: {
 
+            color:
+                "#7789A2",
 
+            fontSize: 12,
 
-    deleteText: {
+            marginLeft: 12,
 
-        color: "#FF4D5E",
+            flex: 1,
+        },
 
-        fontSize: 14,
 
-        fontWeight: "800",
 
-        marginLeft: 8,
-    },
+        detailValue: {
 
+            color:
+                "#FFFFFF",
 
+            fontSize: 13,
 
-    // ========================================================
-    // FORM
-    // ========================================================
+            fontWeight: "800",
+        },
 
-    inputLabel: {
 
-        color: "#73849F",
 
-        fontSize: 11,
+        modalMembers: {
 
-        fontWeight: "900",
+            marginTop: 20,
 
-        letterSpacing: 1.4,
+            marginBottom: 20,
+        },
 
-        marginBottom: 7,
 
-        marginTop: 7,
-    },
 
+        modalSectionTitle: {
 
+            color:
+                "#73849F",
 
-    input: {
+            fontSize: 11,
 
-        height: 53,
+            fontWeight: "900",
 
-        borderRadius: 15,
+            letterSpacing: 1.5,
 
-        backgroundColor:
-            "#020A16",
+            marginBottom: 6,
+        },
 
-        borderWidth: 1,
 
-        borderColor:
-            "#15345F",
 
-        paddingHorizontal: 15,
+        modalMemberCount: {
 
-        color: "#FFFFFF",
+            color:
+                "#4DA3FF",
 
-        fontSize: 14,
+            fontSize: 15,
 
-        fontWeight: "600",
+            fontWeight: "800",
+        },
 
-        marginBottom: 12,
-    },
 
 
+        deleteButton: {
 
-    textArea: {
+            height: 54,
 
-        height: 95,
+            borderRadius: 16,
 
-        paddingTop: 14,
+            borderWidth: 1,
 
-        textAlignVertical:
-            "top",
-    },
+            borderColor:
+                "#55202B",
 
+            backgroundColor:
+                "#100D15",
 
+            flexDirection:
+                "row",
 
-    noMembersBox: {
+            alignItems:
+                "center",
 
-        minHeight: 80,
+            justifyContent:
+                "center",
+        },
 
-        borderRadius: 16,
 
-        backgroundColor:
-            "#020A16",
 
-        borderWidth: 1,
+        deleteText: {
 
-        borderColor:
-            "#15345F",
+            color:
+                "#FF4D5E",
 
-        flexDirection: "row",
+            fontSize: 14,
 
-        alignItems: "center",
+            fontWeight: "800",
 
-        paddingHorizontal: 15,
+            marginLeft: 8,
+        },
 
-        marginBottom: 15,
-    },
 
 
+        // ====================================================
+        // FORM
+        // ====================================================
 
-    noMembersText: {
+        inputLabel: {
 
-        color: "#8B9AB0",
+            color:
+                "#73849F",
 
-        fontSize: 12,
+            fontSize: 11,
 
-        marginLeft: 10,
+            fontWeight: "900",
 
-        flex: 1,
-    },
+            letterSpacing: 1.4,
 
+            marginBottom: 7,
 
+            marginTop: 7,
+        },
 
-    selectMemberRow: {
 
-        minHeight: 70,
 
-        borderRadius: 16,
+        input: {
 
-        backgroundColor:
-            "#020A16",
+            height: 53,
 
-        borderWidth: 1,
+            borderRadius: 15,
 
-        borderColor:
-            "#122D51",
+            backgroundColor:
+                "#020A16",
 
-        flexDirection: "row",
+            borderWidth: 1,
 
-        alignItems: "center",
+            borderColor:
+                "#15345F",
 
-        paddingHorizontal: 11,
+            paddingHorizontal: 15,
 
-        marginBottom: 8,
-    },
+            color:
+                "#FFFFFF",
 
+            fontSize: 14,
 
+            fontWeight: "600",
 
-    selectMemberRowActive: {
+            marginBottom: 12,
+        },
 
-        backgroundColor:
-            "#0A214D",
 
-        borderColor:
-            "#2F80FF",
-    },
 
+        textArea: {
 
+            height: 95,
 
-    selectMemberAvatar: {
+            paddingTop: 14,
 
-        width: 43,
+            textAlignVertical:
+                "top",
+        },
 
-        height: 43,
 
-        borderRadius: 14,
 
-        backgroundColor:
-            "#173C91",
+        noMembersBox: {
 
-        alignItems:
-            "center",
+            minHeight: 80,
 
-        justifyContent:
-            "center",
+            borderRadius: 16,
 
-        marginRight: 11,
-    },
+            backgroundColor:
+                "#020A16",
 
+            borderWidth: 1,
 
+            borderColor:
+                "#15345F",
 
-    selectMemberInitial: {
+            flexDirection:
+                "row",
 
-        color: "#FFFFFF",
+            alignItems:
+                "center",
 
-        fontSize: 17,
+            paddingHorizontal: 15,
 
-        fontWeight: "800",
-    },
+            marginBottom: 15,
+        },
 
 
 
-    selectMemberInfo: {
+        noMembersText: {
 
-        flex: 1,
-    },
+            color:
+                "#8B9AB0",
 
+            fontSize: 12,
 
+            marginLeft: 10,
 
-    selectMemberName: {
+            flex: 1,
+        },
 
-        color: "#FFFFFF",
 
-        fontSize: 13,
 
-        fontWeight: "800",
+        selectMemberRow: {
 
-        marginBottom: 3,
-    },
+            minHeight: 70,
 
+            borderRadius: 16,
 
+            backgroundColor:
+                "#020A16",
 
-    selectMemberUsername: {
+            borderWidth: 1,
 
-        color: "#7D8EA5",
+            borderColor:
+                "#122D51",
 
-        fontSize: 10,
-    },
+            flexDirection:
+                "row",
 
+            alignItems:
+                "center",
 
+            paddingHorizontal: 11,
 
-    checkbox: {
+            marginBottom: 8,
+        },
 
-        width: 27,
 
-        height: 27,
 
-        borderRadius: 9,
+        selectMemberRowActive: {
 
-        borderWidth: 1,
+            backgroundColor:
+                "#0A214D",
 
-        borderColor:
-            "#365170",
+            borderColor:
+                "#2F80FF",
+        },
 
-        alignItems:
-            "center",
 
-        justifyContent:
-            "center",
-    },
 
+        selectMemberAvatar: {
 
+            width: 43,
 
-    checkboxActive: {
+            height: 43,
 
-        backgroundColor:
-            "#1264E8",
+            borderRadius: 14,
 
-        borderColor:
-            "#1264E8",
-    },
+            backgroundColor:
+                "#173C91",
 
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
 
-    saveButton: {
+            marginRight: 11,
+        },
 
-        height: 57,
 
-        borderRadius: 17,
 
-        backgroundColor:
-            "#2563EB",
+        selectMemberInitial: {
 
-        marginTop: 20,
+            color:
+                "#FFFFFF",
 
-        flexDirection: "row",
+            fontSize: 17,
 
-        alignItems: "center",
+            fontWeight: "800",
+        },
 
-        justifyContent:
-            "center",
-    },
 
 
+        selectMemberInfo: {
 
-    saveButtonText: {
+            flex: 1,
+        },
 
-        color: "#FFFFFF",
 
-        fontSize: 14,
 
-        fontWeight: "900",
+        selectMemberName: {
 
-        marginLeft: 8,
-    },
+            color:
+                "#FFFFFF",
 
+            fontSize: 13,
 
+            fontWeight: "800",
 
-    // ========================================================
-    // BOTTOM NAV
-    // ========================================================
+            marginBottom: 3,
+        },
 
-    bottomNav: {
 
-        position: "absolute",
 
-        left: 0,
+        selectMemberUsername: {
 
-        right: 0,
+            color:
+                "#7D8EA5",
 
-        bottom: 0,
+            fontSize: 10,
+        },
 
-        height: 92,
 
-        backgroundColor:
-            "#061321",
 
-        borderTopWidth: 1,
+        checkbox: {
 
-        borderTopColor:
-            "#0F294C",
+            width: 27,
 
-        flexDirection: "row",
+            height: 27,
 
-        alignItems: "center",
+            borderRadius: 9,
 
-        justifyContent:
-            "space-around",
+            borderWidth: 1,
 
-        paddingBottom: 7,
+            borderColor:
+                "#365170",
 
-        elevation: 20,
-    },
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
+        },
 
 
-    navItem: {
 
-        width: "25%",
+        checkboxActive: {
 
-        height: 82,
+            backgroundColor:
+                "#1264E8",
 
-        alignItems: "center",
+            borderColor:
+                "#1264E8",
+        },
 
-        justifyContent: "center",
 
-        position: "relative",
-    },
 
+        saveButton: {
 
+            height: 57,
 
-    navIconBox: {
+            borderRadius: 17,
 
-        width: 58,
+            backgroundColor:
+                "#2563EB",
 
-        height: 43,
+            marginTop: 20,
 
-        borderRadius: 15,
+            flexDirection:
+                "row",
 
-        alignItems: "center",
+            alignItems:
+                "center",
 
-        justifyContent: "center",
-    },
+            justifyContent:
+                "center",
+        },
 
 
 
-    navIconBoxActive: {
+        saveButtonText: {
 
-        backgroundColor:
-            "#102F69",
-    },
+            color:
+                "#FFFFFF",
 
+            fontSize: 14,
 
+            fontWeight: "900",
 
-    navLabel: {
+            marginLeft: 8,
+        },
 
-        color: "#A1ACBD",
 
-        fontSize: 11,
 
-        fontWeight: "700",
+        // ====================================================
+        // BOTTOM NAV
+        // ====================================================
 
-        marginTop: 2,
-    },
+        bottomNav: {
 
+            position:
+                "absolute",
 
+            left: 0,
 
-    navLabelActive: {
+            right: 0,
 
-        color: "#4DA3FF",
-    },
+            bottom: 0,
 
+            height: 92,
 
+            backgroundColor:
+                "#061321",
 
-    navIndicator: {
+            borderTopWidth: 1,
 
-        position: "absolute",
+            borderTopColor:
+                "#0F294C",
 
-        bottom: 0,
+            flexDirection:
+                "row",
 
-        width: 58,
+            alignItems:
+                "center",
 
-        height: 4,
+            justifyContent:
+                "space-around",
 
-        borderRadius: 4,
+            paddingBottom: 7,
 
-        backgroundColor:
-            "#4DA3FF",
-    },
+            elevation: 20,
+        },
 
 
 
-    // ========================================================
-    // LOADING
-    // ========================================================
+        navItem: {
 
-    loadingContainer: {
+            width: "25%",
 
-        flex: 1,
+            height: 82,
 
-        backgroundColor:
-            "#020617",
+            alignItems:
+                "center",
 
-        alignItems: "center",
+            justifyContent:
+                "center",
 
-        justifyContent: "center",
-    },
+            position:
+                "relative",
+        },
 
 
 
-    loadingText: {
+        navIconBox: {
 
-        color: "#8793A8",
+            width: 58,
 
-        fontSize: 14,
+            height: 43,
 
-        marginTop: 12,
-    },
+            borderRadius: 15,
 
-});
+            alignItems:
+                "center",
+
+            justifyContent:
+                "center",
+        },
+
+
+
+        navIconBoxActive: {
+
+            backgroundColor:
+                "#102F69",
+        },
+
+
+
+        navLabel: {
+
+            color:
+                "#A1ACBD",
+
+            fontSize: 11,
+
+            fontWeight: "700",
+
+            marginTop: 2,
+        },
+
+
+
+        navLabelActive: {
+
+            color:
+                "#4DA3FF",
+        },
+
+
+
+        navIndicator: {
+
+            position:
+                "absolute",
+
+            bottom: 0,
+
+            width: 58,
+
+            height: 4,
+
+            borderRadius: 4,
+
+            backgroundColor:
+                "#4DA3FF",
+        },
+
+
+
+        // ====================================================
+        // LOADING
+        // ====================================================
+
+        loadingContainer: {
+
+            flex: 1,
+
+            backgroundColor:
+                "#020617",
+
+            alignItems:
+                "center",
+
+            justifyContent:
+                "center",
+        },
+
+
+
+        loadingText: {
+
+            color:
+                "#8793A8",
+
+            fontSize: 14,
+
+            marginTop: 12,
+        },
+
+    });

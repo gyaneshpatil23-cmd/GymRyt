@@ -325,81 +325,113 @@ export default function TrainerProfile() {
 
 
 
-    // ========================================================
-    // CHANGE PHOTO
-    // ========================================================
+// ========================================================
+// CHANGE PHOTO
+// ========================================================
 
-    const handleChangePhoto = async () => {
+const handleChangePhoto = async () => {
 
-        try {
+    try {
 
-            const permission =
-                await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const permission =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-
-
-            if (
-                permission.status !==
-                "granted"
-            ) {
-
-                Alert.alert(
-                    "Permission Required",
-                    "Please allow photo library access to change your profile picture."
-                );
-
-                return;
-            }
-
-
-
-            const result =
-                await ImagePicker.launchImageLibraryAsync(
-                    {
-                        mediaTypes:
-                            ["images"],
-
-                        allowsEditing:
-                            true,
-
-                        aspect:
-                            [1, 1],
-
-                        quality:
-                            0.85,
-                    }
-                );
-
-
-
-            if (
-                result.canceled ||
-                !result.assets ||
-                result.assets.length === 0
-            ) {
-
-                return;
-            }
-
-
-
-            await uploadProfilePhoto(
-                result.assets[0]
-            );
-
-        } catch (error) {
-
-            console.log(
-                "Image picker error:",
-                error
-            );
+        if (
+            permission.status !==
+            "granted"
+        ) {
 
             Alert.alert(
-                "Photo Error",
-                "Unable to select the image."
+                "Permission Required",
+                "Please allow photo library access to change your profile picture."
             );
+
+            return;
         }
-    };
+
+        // ==================================================
+        // OPEN IMAGE PICKER
+        //
+        // IMPORTANT:
+        // Native editing is disabled.
+        // The selected image goes to our custom
+        // GymRyt crop screen.
+        // ==================================================
+
+        const result =
+            await ImagePicker.launchImageLibraryAsync(
+                {
+                    mediaTypes: ["images"],
+
+                    allowsEditing: false,
+
+                    quality: 0.9,
+                }
+            );
+
+        if (
+            result.canceled ||
+            !result.assets ||
+            result.assets.length === 0
+        ) {
+
+            return;
+        }
+
+        const asset =
+            result.assets[0];
+
+        if (!asset?.uri) {
+
+            Alert.alert(
+                "Image Error",
+                "Could not read the selected image."
+            );
+
+            return;
+        }
+
+        console.log(
+            "TRAINER SELECTED IMAGE:",
+            asset.uri
+        );
+
+        console.log(
+            "TRAINER IMAGE TYPE:",
+            asset.mimeType
+        );
+
+        console.log(
+            "TRAINER IMAGE NAME:",
+            asset.fileName
+        );
+
+        // ==================================================
+        // OPEN CUSTOM GYMRyT CROP SCREEN
+        // ==================================================
+
+        router.push({
+            pathname: "/crop",
+
+            params: {
+                uri: asset.uri,
+            },
+        });
+
+    } catch (error) {
+
+        console.log(
+            "Image picker error:",
+            error
+        );
+
+        Alert.alert(
+            "Photo Error",
+            error?.message ||
+            "Unable to select the image."
+        );
+    }
+};
 
 
 
