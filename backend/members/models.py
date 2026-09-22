@@ -923,6 +923,99 @@ class WorkoutPlan(models.Model):
         )
 
 # ============================================================
+# EXERCISE LIBRARY
+# ============================================================
+
+class Exercise(models.Model):
+    """
+    Master exercise library used by trainers
+    when creating workout routines.
+    """
+
+    id = models.BigAutoField(
+        primary_key=True
+    )
+
+    name = models.CharField(
+        max_length=200,
+        unique=True
+    )
+
+    primary_muscle = models.CharField(
+        max_length=100
+    )
+
+    secondary_muscles = models.JSONField(
+        default=list,
+        blank=True
+    )
+
+    equipment = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    gif_url = models.URLField(
+        blank=True,
+        null=True
+    )
+
+    description = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    instructions = models.JSONField(
+        default=list,
+        blank=True
+    )
+
+    is_active = models.BooleanField(
+        default=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = [
+            "name"
+        ]
+
+        indexes = [
+
+            models.Index(
+                fields=[
+                    "primary_muscle"
+                ]
+            ),
+
+            models.Index(
+                fields=[
+                    "equipment"
+                ]
+            ),
+
+            models.Index(
+                fields=[
+                    "is_active"
+                ]
+            ),
+
+        ]
+
+    def __str__(self):
+
+        return self.name
+
+# ============================================================
 # NOTIFICATION
 # ============================================================
 
@@ -1092,4 +1185,149 @@ class Notification(models.Model):
         return (
             f"{recipient_name} - "
             f"{self.title}"
+        )
+
+# ============================================================
+# ATTENDANCE
+# ============================================================
+
+class Attendance(models.Model):
+    """
+    Stores daily attendance records for gym members.
+
+    One member can have only one attendance record per date.
+    """
+
+    STATUS_CHOICES = [
+        ("PRESENT", "Present"),
+        ("ABSENT", "Absent"),
+        ("LATE", "Late"),
+    ]
+
+    id = models.BigAutoField(
+        primary_key=True
+    )
+
+    # --------------------------------------------------------
+    # MEMBER
+    # --------------------------------------------------------
+
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name="attendance_records",
+    )
+
+    # --------------------------------------------------------
+    # GYM / WORKSPACE
+    # --------------------------------------------------------
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name="attendance_records",
+    )
+
+    # --------------------------------------------------------
+    # ATTENDANCE DATE
+    # --------------------------------------------------------
+
+    date = models.DateField()
+
+    # --------------------------------------------------------
+    # STATUS
+    # --------------------------------------------------------
+
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default="PRESENT",
+    )
+
+    # --------------------------------------------------------
+    # CHECK IN / CHECK OUT
+    # --------------------------------------------------------
+
+    check_in = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    check_out = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    # --------------------------------------------------------
+    # NOTES
+    # --------------------------------------------------------
+
+    notes = models.TextField(
+        null=True,
+        blank=True,
+    )
+
+    # --------------------------------------------------------
+    # TIMESTAMP
+    # --------------------------------------------------------
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    # --------------------------------------------------------
+    # META
+    # --------------------------------------------------------
+
+    class Meta:
+        ordering = [
+            "-date",
+            "-created_at",
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "member",
+                    "date",
+                ],
+                name="unique_member_attendance_per_day",
+            ),
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "member",
+                    "date",
+                ],
+            ),
+            models.Index(
+                fields=[
+                    "workspace",
+                    "date",
+                ],
+            ),
+            models.Index(
+                fields=[
+                    "workspace",
+                    "status",
+                    "date",
+                ],
+            ),
+        ]
+
+    # --------------------------------------------------------
+    # STRING REPRESENTATION
+    # --------------------------------------------------------
+
+    def __str__(self):
+        return (
+            f"{self.member.name} - "
+            f"{self.date} - "
+            f"{self.status}"
         )

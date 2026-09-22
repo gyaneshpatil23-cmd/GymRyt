@@ -34,6 +34,8 @@ from .models import (
     TrainerProfile,
     TrainerApplication,
     WorkoutPlan,
+    Exercise,
+    Attendance,
 )
 
 from .serializers import (
@@ -42,7 +44,9 @@ from .serializers import (
     WorkspaceSerializer,
     TrainerSerializer,
     WorkoutPlanSerializer,
+    ExerciseSerializer,
     NotificationSerializer,
+    AttendanceSerializer,
 )
 
 
@@ -2301,6 +2305,554 @@ class MemberDetailView(APIView):
         return self.delete(
             request,
             pk
+        )
+
+
+# ============================================================
+# ATTENDANCE
+# ============================================================
+
+
+class AttendanceListCreateView(APIView):
+    """
+    Attendance management for OWNER, OWNER_TRAINER and TRAINER.
+
+    OWNER:
+        Can view attendance for the workspace only.
+        Cannot create attendance.
+
+    OWNER_TRAINER:
+        Can view and manage attendance for workspace members.
+
+    TRAINER:
+        Can view and manage attendance for assigned members only.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_allowed_members(self, request, profile, workspace):
+        if not workspace:
+            return Member.objects.none()
+
+        if profile.is_owner:
+            return Member.objects.filter(
+                workspace=workspace,
+                is_deleted=False,
+            )
+
+        if profile.is_trainer:
+            return Member.objects.filter(
+                workspace=workspace,
+                trainer=request.user,
+                is_deleted=False,
+            )
+
+        return Member.objects.none()
+
+    def get(self, request):
+        profile = get_or_create_profile(request.user)
+        workspace = get_user_workspace(request.user)
+
+        if not workspace or not (profile.is_owner or profile.is_trainer):
+            return Response(
+                {
+                    "success": False,
+                    "message": "You do not have permission to view attendance.",
+                    "attendance": [],
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        allowed_members = self._get_allowed_members(
+            request,
+            profile,
+            workspace,
+        )
+
+        attendance = Attendance.objects.filter(
+            workspace=workspace,
+            member__in=allowed_members,
+        ).select_related("member", "workspace")
+
+        member_id = str(request.query_params.get("member", "")).strip()
+        date_value = str(request.query_params.get("date", "")).strip()
+        month_value = str(request.query_params.get("month", "")).strip()
+        status_value = str(request.query_params.get("status", "")).strip().upper()
+
+        if member_id:
+            try:
+                attendance = attendance.filter(member_id=int(member_id))
+            except (TypeError, ValueError):
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Invalid member parameter.",
+                        "attendance": [],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if date_value:
+            try:
+                attendance_date = date.fromisoformat(date_value)
+            except ValueError:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Invalid date. Use YYYY-MM-DD.",
+                        "attendance": [],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            attendance = attendance.filter(date=attendance_date)
+
+        if month_value:
+            try:
+                month_start = date.fromisoformat(f"{month_value}-01")
+            except ValueError:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Invalid month. Use YYYY-MM.",
+                        "attendance": [],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if month_start.month == 12:
+                month_end = date(month_start.year + 1, 1, 1)
+            else:
+                month_end = date(month_start.year, month_start.month + 1, 1)
+
+            attendance = attendance.filter(
+                date__gte=month_start,
+                date__lt=month_end,
+            )
+
+        if status_value:
+            if status_value not in {"PRESENT", "ABSENT", "LATE"}:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Invalid attendance status.",
+                        "attendance": [],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            attendance = attendance.filter(status=status_value)
+
+        attendance = attendance.order_by("-date", "-created_at")
+
+        present_count = attendance.filter(status="PRESENT").count()
+        absent_count = attendance.filter(status="ABSENT").count()
+        late_count = attendance.filter(status="LATE").count()
+        total_count = attendance.count()
+
+        attendance_percentage = 0
+        if total_count:
+            attendance_percentage = round(
+                ((present_count + late_count) / total_count) * 100,
+                2,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "count": total_count,
+                "present_count": present_count,
+                "absent_count": absent_count,
+                "late_count": late_count,
+                "attendance_percentage": attendance_percentage,
+                "attendance": AttendanceSerializer(
+                    attendance,
+                    many=True,
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def post(self, request):
+        profile = get_or_create_profile(request.user)
+
+        # OWNER is read-only. Only TRAINER and OWNER_TRAINER
+        # can actually mark attendance.
+        if not profile.is_trainer:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only trainers can mark attendance.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        workspace = get_user_workspace(request.user)
+
+        if not workspace:
+            return Response(
+                {
+                    "success": False,
+                    "message": "No active workspace found.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        allowed_members = self._get_allowed_members(
+            request,
+            profile,
+            workspace,
+        )
+
+        member_id = request.data.get("member")
+        if not member_id:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Member is required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            member_id = int(member_id)
+        except (TypeError, ValueError):
+            return Response(
+                {
+                    "success": False,
+                    "message": "Invalid member.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        member = allowed_members.filter(id=member_id).first()
+        if not member:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Member not found or not assigned to you.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        date_value = request.data.get("date")
+        if date_value:
+            try:
+                attendance_date = date.fromisoformat(str(date_value))
+            except ValueError:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Invalid date. Use YYYY-MM-DD.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            attendance_date = timezone.localdate()
+
+        attendance_status = str(
+            request.data.get("status", "PRESENT")
+        ).strip().upper()
+
+        if attendance_status not in {"PRESENT", "ABSENT", "LATE"}:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Invalid attendance status.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        attendance, created = Attendance.objects.update_or_create(
+            member=member,
+            date=attendance_date,
+            defaults={
+                "workspace": workspace,
+                "status": attendance_status,
+                "check_in": request.data.get("check_in"),
+                "check_out": request.data.get("check_out"),
+                "notes": request.data.get("notes"),
+            },
+        )
+
+        return Response(
+            {
+                "success": True,
+                "created": created,
+                "message": (
+                    "Attendance created successfully."
+                    if created
+                    else "Attendance updated successfully."
+                ),
+                "attendance": AttendanceSerializer(
+                    attendance
+                ).data,
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class AttendanceDetailView(APIView):
+    """
+    View/update/delete a single attendance record.
+
+    OWNER can view through GET but cannot modify attendance.
+    TRAINER and OWNER_TRAINER can modify records they are allowed to manage.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_attendance(self, request, pk):
+        profile = get_or_create_profile(request.user)
+        workspace = get_user_workspace(request.user)
+
+        if not workspace or not (profile.is_owner or profile.is_trainer):
+            return None
+
+        attendance = (
+            Attendance.objects
+            .select_related("member", "workspace")
+            .filter(
+                pk=pk,
+                workspace=workspace,
+                member__is_deleted=False,
+            )
+            .first()
+        )
+
+        if not attendance:
+            return None
+
+        if profile.is_owner:
+            return attendance
+
+        if profile.is_trainer and attendance.member.trainer_id == request.user.id:
+            return attendance
+
+        return None
+
+    def get(self, request, pk):
+        attendance = self._get_attendance(request, pk)
+
+        if not attendance:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Attendance record not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "attendance": AttendanceSerializer(attendance).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def patch(self, request, pk):
+        profile = get_or_create_profile(request.user)
+
+        if not profile.is_trainer:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only trainers can modify attendance.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        attendance = self._get_attendance(request, pk)
+
+        if not attendance:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Attendance record not found or not assigned to you.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if "status" in request.data:
+            attendance_status = str(
+                request.data.get("status")
+            ).strip().upper()
+            if attendance_status not in {"PRESENT", "ABSENT", "LATE"}:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Invalid attendance status.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            attendance.status = attendance_status
+
+        if "date" in request.data:
+            try:
+                new_date = date.fromisoformat(
+                    str(request.data.get("date"))
+                )
+            except ValueError:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Invalid date. Use YYYY-MM-DD.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if Attendance.objects.filter(
+                member=attendance.member,
+                date=new_date,
+            ).exclude(pk=attendance.pk).exists():
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Attendance already exists for this member on that date.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            attendance.date = new_date
+
+        if "check_in" in request.data:
+            attendance.check_in = request.data.get("check_in")
+
+        if "check_out" in request.data:
+            attendance.check_out = request.data.get("check_out")
+
+        if "notes" in request.data:
+            attendance.notes = request.data.get("notes")
+
+        attendance.save()
+
+        return Response(
+            {
+                "success": True,
+                "message": "Attendance updated successfully.",
+                "attendance": AttendanceSerializer(attendance).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, pk):
+        profile = get_or_create_profile(request.user)
+
+        if not profile.is_trainer:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only trainers can delete attendance.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        attendance = self._get_attendance(request, pk)
+
+        if not attendance:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Attendance record not found or not assigned to you.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        attendance.delete()
+
+        return Response(
+            {
+                "success": True,
+                "message": "Attendance deleted successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MemberAttendanceView(APIView):
+    """
+    Member-facing attendance endpoint.
+
+    Members can only see their own attendance records.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        member = get_authenticated_member(request)
+
+        if not member:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Invalid or expired member session.",
+                    "attendance": [],
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        attendance = Attendance.objects.filter(
+            member=member,
+            workspace=member.workspace,
+        ).select_related("member", "workspace")
+
+        month_value = str(request.query_params.get("month", "")).strip()
+
+        if month_value:
+            try:
+                month_start = date.fromisoformat(f"{month_value}-01")
+            except ValueError:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Invalid month. Use YYYY-MM.",
+                        "attendance": [],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if month_start.month == 12:
+                month_end = date(month_start.year + 1, 1, 1)
+            else:
+                month_end = date(month_start.year, month_start.month + 1, 1)
+
+            attendance = attendance.filter(
+                date__gte=month_start,
+                date__lt=month_end,
+            )
+
+        attendance = attendance.order_by("-date", "-created_at")
+
+        present_count = attendance.filter(status="PRESENT").count()
+        absent_count = attendance.filter(status="ABSENT").count()
+        late_count = attendance.filter(status="LATE").count()
+        total_count = attendance.count()
+
+        attendance_percentage = 0
+        if total_count:
+            attendance_percentage = round(
+                ((present_count + late_count) / total_count) * 100,
+                2,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "member": {
+                    "id": member.id,
+                    "name": member.name,
+                    "username": member.username,
+                },
+                "count": total_count,
+                "present_count": present_count,
+                "absent_count": absent_count,
+                "late_count": late_count,
+                "attendance_percentage": attendance_percentage,
+                "attendance": AttendanceSerializer(
+                    attendance,
+                    many=True,
+                ).data,
+            },
+            status=status.HTTP_200_OK,
         )
 
 
@@ -6625,6 +7177,180 @@ class WorkoutPlanDetailView(APIView):
             {
                 "success": True,
                 "message": "Workout plan removed successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+# ============================================================
+# EXERCISE LIBRARY
+# ============================================================
+
+
+class ExerciseListView(APIView):
+    """
+    Returns the GymRyt exercise library.
+
+    Trainers can:
+    - View all active exercises
+    - Search exercises by name
+    - Filter by primary muscle
+    - Filter by equipment
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        profile = get_or_create_profile(
+            request.user
+        )
+
+        if not profile.is_trainer:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Only active trainers can "
+                        "access the exercise library."
+                    ),
+                    "exercises": [],
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        exercises = Exercise.objects.filter(
+            is_active=True
+        )
+
+        # ----------------------------------------------------
+        # SEARCH
+        # ----------------------------------------------------
+
+        search = str(
+            request.query_params.get(
+                "search",
+                ""
+            )
+        ).strip()
+
+        if search:
+
+            exercises = exercises.filter(
+                name__icontains=search
+            )
+
+        # ----------------------------------------------------
+        # MUSCLE FILTER
+        # ----------------------------------------------------
+
+        muscle = str(
+            request.query_params.get(
+                "muscle",
+                ""
+            )
+        ).strip()
+
+        if muscle:
+
+            exercises = exercises.filter(
+                primary_muscle__iexact=muscle
+            )
+
+        # ----------------------------------------------------
+        # EQUIPMENT FILTER
+        # ----------------------------------------------------
+
+        equipment = str(
+            request.query_params.get(
+                "equipment",
+                ""
+            )
+        ).strip()
+
+        if equipment:
+
+            exercises = exercises.filter(
+                equipment__iexact=equipment
+            )
+
+        exercises = exercises.order_by(
+            "name"
+        )
+
+        serializer = ExerciseSerializer(
+            exercises,
+            many=True,
+            context={
+                "request": request
+            },
+        )
+
+        return Response(
+            {
+                "success": True,
+                "count": exercises.count(),
+                "exercises": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class ExerciseDetailView(APIView):
+    """
+    Returns details for one exercise.
+
+    Used by the Trainer Exercise Details screen.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+
+        profile = get_or_create_profile(
+            request.user
+        )
+
+        if not profile.is_trainer:
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Only active trainers can "
+                        "access exercise details."
+                    ),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        exercise = (
+            Exercise.objects
+            .filter(
+                pk=pk,
+                is_active=True,
+            )
+            .first()
+        )
+
+        if not exercise:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Exercise not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = ExerciseSerializer(
+            exercise,
+            context={
+                "request": request
+            },
+        )
+
+        return Response(
+            {
+                "success": True,
+                "exercise": serializer.data,
             },
             status=status.HTTP_200_OK,
         )
