@@ -14,7 +14,9 @@ from .models import (
     TrainerProfile,
     TrainerApplication,
     WorkoutPlan,
+    Exercise,
     Notification,
+    Attendance,
 )
 
 
@@ -796,6 +798,39 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
         return value
 
 # ============================================================
+# EXERCISE SERIALIZER
+# ============================================================
+
+class ExerciseSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the GymRyt master exercise library.
+    """
+
+    class Meta:
+
+        model = Exercise
+
+        fields = [
+            "id",
+            "name",
+            "primary_muscle",
+            "secondary_muscles",
+            "equipment",
+            "gif_url",
+            "description",
+            "instructions",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+        ]
+
+# ============================================================
 # NOTIFICATION SERIALIZER
 # ============================================================
 
@@ -823,4 +858,65 @@ class NotificationSerializer(serializers.ModelSerializer):
             "related_id",
             "related_type",
             "created_at",
+        ]
+
+# ============================================================
+# ATTENDANCE SERIALIZER
+# ============================================================
+
+class AttendanceSerializer(serializers.ModelSerializer):
+    """
+    Serializer for member attendance records.
+    """
+
+    member_name = serializers.CharField(
+        source="member.name",
+        read_only=True,
+    )
+
+    member_username = serializers.CharField(
+        source="member.username",
+        read_only=True,
+    )
+
+    workspace_name = serializers.CharField(
+        source="workspace.name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = Attendance
+
+        fields = [
+            "id",
+
+            # Member
+            "member",
+            "member_name",
+            "member_username",
+
+            # Workspace
+            "workspace",
+            "workspace_name",
+
+            # Attendance
+            "date",
+            "status",
+            "check_in",
+            "check_out",
+            "notes",
+
+            # Timestamps
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "workspace",
+            "workspace_name",
+            "member_name",
+            "member_username",
+            "created_at",
+            "updated_at",
         ]

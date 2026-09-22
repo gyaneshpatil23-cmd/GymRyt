@@ -857,34 +857,6 @@ export default function OwnerDashboard() {
         </View>
 
         {/* ==================================================
-            ROLE INDICATOR
-        ================================================== */}
-
-        <View
-          style={[
-            styles.roleBadge,
-            {
-              backgroundColor:
-                colors.iconBackground,
-              borderColor:
-                colors.border,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.roleBadgeText,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            OWNER
-          </Text>
-        </View>
-
-        {/* ==================================================
             OVERVIEW
         ================================================== */}
 

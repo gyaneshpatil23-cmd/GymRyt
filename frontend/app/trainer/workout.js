@@ -1,6 +1,5 @@
 import React, {
     useCallback,
-    useEffect,
     useState,
 } from "react";
 
@@ -14,6 +13,7 @@ import {
     Alert,
     ActivityIndicator,
     Modal,
+    RefreshControl,
 } from "react-native";
 
 import {
@@ -28,6 +28,7 @@ import {
     useFocusEffect,
 } from "expo-router";
 
+import { useTheme } from "../../context/ThemeContext";
 
 
 // ============================================================
@@ -38,12 +39,77 @@ const API_BASE_URL =
     "http://192.168.1.52:8000/api/members";
 
 
-
 // ============================================================
 // WORKOUT SCREEN
 // ============================================================
 
 export default function TrainerWorkout() {
+
+    const {
+        colors,
+        isDark,
+        toggleTheme,
+    } = useTheme();
+
+    // --------------------------------------------------------
+    // THEME COLORS
+    // --------------------------------------------------------
+
+    const theme = {
+        background:
+            colors?.background ||
+            (isDark ? "#020617" : "#F5F7FB"),
+
+        card:
+            colors?.card ||
+            (isDark ? "#071321" : "#FFFFFF"),
+
+        cardSecondary:
+            colors?.surface ||
+            colors?.cardSecondary ||
+            (isDark ? "#0A1728" : "#F8FAFC"),
+
+        text:
+            colors?.text ||
+            (isDark ? "#FFFFFF" : "#172033"),
+
+        muted:
+            colors?.mutedText ||
+            (isDark ? "#91A0B6" : "#6B7280"),
+
+        border:
+            colors?.border ||
+            (isDark ? "#102D56" : "#E3E8F0"),
+
+        primary:
+            colors?.primary ||
+            "#2563EB",
+
+        primaryLight:
+            colors?.primaryLight ||
+            "#4DA3FF",
+
+        iconBackground:
+            colors?.iconBackground ||
+            (isDark ? "#102F69" : "#EAF2FF"),
+
+        input:
+            isDark ? "#020A16" : "#F8FAFC",
+
+        nav:
+            isDark ? "#061321" : "#FFFFFF",
+
+        divider:
+            isDark ? "#102344" : "#E8EDF4",
+
+        danger:
+            "#FF4D5E",
+    };
+
+
+    // ========================================================
+    // STATE
+    // ========================================================
 
     const [workouts, setWorkouts] =
         useState([]);
@@ -65,7 +131,6 @@ export default function TrainerWorkout() {
 
     const [selectedWorkout, setSelectedWorkout] =
         useState(null);
-
 
 
     // ========================================================
@@ -91,19 +156,15 @@ export default function TrainerWorkout() {
         useState([]);
 
 
-
     // ========================================================
-    // LOAD WHEN SCREEN FOCUSED
+    // LOAD WHEN SCREEN IS FOCUSED
     // ========================================================
 
     useFocusEffect(
         useCallback(() => {
-
             loadData();
-
         }, [])
     );
-
 
 
     // ========================================================
@@ -130,7 +191,6 @@ export default function TrainerWorkout() {
     };
 
 
-
     // ========================================================
     // SAFE JSON RESPONSE
     // ========================================================
@@ -145,7 +205,6 @@ export default function TrainerWorkout() {
             ) || "";
 
 
-
         if (
             contentType.includes(
                 "application/json"
@@ -156,10 +215,8 @@ export default function TrainerWorkout() {
         }
 
 
-
         const text =
             await response.text();
-
 
 
         console.log(
@@ -168,12 +225,61 @@ export default function TrainerWorkout() {
         );
 
 
+        if (!text) {
+            return {};
+        }
+
 
         throw new Error(
             `Server returned HTTP ${response.status}`
         );
     };
 
+
+    // ========================================================
+    // NORMALIZE LIST
+    // ========================================================
+
+    const normalizeList = (
+        data
+    ) => {
+
+        if (
+            Array.isArray(data)
+        ) {
+            return data;
+        }
+
+
+        if (
+            Array.isArray(
+                data?.results
+            )
+        ) {
+            return data.results;
+        }
+
+
+        if (
+            Array.isArray(
+                data?.workouts
+            )
+        ) {
+            return data.workouts;
+        }
+
+
+        if (
+            Array.isArray(
+                data?.members
+            )
+        ) {
+            return data.members;
+        }
+
+
+        return [];
+    };
 
 
     // ========================================================
@@ -186,11 +292,8 @@ export default function TrainerWorkout() {
 
             setLoading(true);
 
-
-
             const token =
                 await getToken();
-
 
 
             if (!token) {
@@ -209,7 +312,6 @@ export default function TrainerWorkout() {
 
                 return;
             }
-
 
 
             // ------------------------------------------------
@@ -233,12 +335,10 @@ export default function TrainerWorkout() {
                 );
 
 
-
             const workoutData =
                 await parseResponse(
                     workoutResponse
                 );
-
 
 
             if (
@@ -253,13 +353,11 @@ export default function TrainerWorkout() {
             }
 
 
-
             setWorkouts(
                 normalizeList(
                     workoutData
                 )
             );
-
 
 
             // ------------------------------------------------
@@ -283,12 +381,10 @@ export default function TrainerWorkout() {
                 );
 
 
-
             const memberData =
                 await parseResponse(
                     memberResponse
                 );
-
 
 
             if (
@@ -299,7 +395,6 @@ export default function TrainerWorkout() {
                     normalizeList(
                         memberData
                     );
-
 
 
                 // Only members assigned to this trainer
@@ -322,13 +417,10 @@ export default function TrainerWorkout() {
                     );
 
 
-
                 setMembers(
                     assigned
                 );
             }
-
-
 
         } catch (error) {
 
@@ -351,62 +443,6 @@ export default function TrainerWorkout() {
     };
 
 
-
-    // ========================================================
-    // NORMALIZE LIST
-    // ========================================================
-
-    const normalizeList = (
-        data
-    ) => {
-
-        if (
-            Array.isArray(data)
-        ) {
-
-            return data;
-        }
-
-
-
-        if (
-            Array.isArray(
-                data?.results
-            )
-        ) {
-
-            return data.results;
-        }
-
-
-
-        if (
-            Array.isArray(
-                data?.workouts
-            )
-        ) {
-
-            return data.workouts;
-        }
-
-
-
-        if (
-            Array.isArray(
-                data?.members
-            )
-        ) {
-
-            return data.members;
-        }
-
-
-
-        return [];
-    };
-
-
-
     // ========================================================
     // REFRESH
     // ========================================================
@@ -419,9 +455,8 @@ export default function TrainerWorkout() {
     };
 
 
-
     // ========================================================
-    // OPEN CREATE
+    // OPEN CREATE WORKOUT
     // ========================================================
 
     const openCreateWorkout = () => {
@@ -444,7 +479,6 @@ export default function TrainerWorkout() {
     };
 
 
-
     // ========================================================
     // TOGGLE MEMBER
     // ========================================================
@@ -464,11 +498,9 @@ export default function TrainerWorkout() {
 
                     return previous.filter(
                         (id) =>
-                            id !==
-                            memberId
+                            id !== memberId
                     );
                 }
-
 
 
                 return [
@@ -478,7 +510,6 @@ export default function TrainerWorkout() {
             }
         );
     };
-
 
 
     // ========================================================
@@ -498,7 +529,6 @@ export default function TrainerWorkout() {
         }
 
 
-
         if (
             selectedMemberIds.length === 0
         ) {
@@ -512,16 +542,13 @@ export default function TrainerWorkout() {
         }
 
 
-
         try {
 
             setSaving(true);
 
 
-
             const token =
                 await getToken();
-
 
 
             if (!token) {
@@ -535,12 +562,42 @@ export default function TrainerWorkout() {
             }
 
 
+            const selectedIds =
+                selectedMemberIds
+                    .map(
+                        (id) =>
+                            Number(id)
+                    )
+                    .filter(
+                        (id) =>
+                            Number.isFinite(id)
+                    );
+
+
+            if (
+                selectedIds.length === 0
+            ) {
+
+                Alert.alert(
+                    "Invalid Member",
+                    "Please select a valid member."
+                );
+
+                return;
+            }
+
+
+            console.log(
+                "SELECTED MEMBER IDS:",
+                selectedIds
+            );
+
 
             // ------------------------------------------------
-            // Workout payload
+            // COMMON WORKOUT DATA
             // ------------------------------------------------
 
-            const payload = {
+            const basePayload = {
 
                 title:
                     title.trim(),
@@ -565,78 +622,110 @@ export default function TrainerWorkout() {
                         )
                         : null,
 
+                // Keep reps as TEXT.
                 reps:
                     reps
-                        ? Number(
-                            reps
-                        )
+                        ? reps.trim()
                         : null,
-
-                member_ids:
-                    selectedMemberIds,
-
             };
 
 
-
             console.log(
-                "CREATE WORKOUT:",
-                payload
+                "CREATE WORKOUT BASE DATA:",
+                basePayload
             );
 
 
+            // ------------------------------------------------
+            // CREATE WORKOUT FOR EACH MEMBER
+            // ------------------------------------------------
 
-            const response =
-                await fetch(
-                    `${API_BASE_URL}/trainer/workouts/`,
-                    {
-                        method: "POST",
+            const results = [];
 
-                        headers: {
-                            Accept:
-                                "application/json",
 
-                            "Content-Type":
-                                "application/json",
+            for (
+                const memberId
+                of selectedIds
+            ) {
 
-                            Authorization:
-                                `Token ${token}`,
-                        },
+                const payload = {
 
-                        body:
-                            JSON.stringify(
-                                payload
-                            ),
-                    }
+                    ...basePayload,
+
+                    // Backend expects "member"
+                    // because WorkoutPlan has
+                    // a single member ForeignKey.
+                    member:
+                        memberId,
+                };
+
+
+                console.log(
+                    "CREATE WORKOUT:",
+                    payload
                 );
 
 
+                const response =
+                    await fetch(
+                        `${API_BASE_URL}/trainer/workouts/`,
+                        {
+                            method: "POST",
 
-            const data =
-                await parseResponse(
-                    response
+                            headers: {
+
+                                Accept:
+                                    "application/json",
+
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Token ${token}`,
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                ),
+                        }
+                    );
+
+
+                const data =
+                    await parseResponse(
+                        response
+                    );
+
+
+                console.log(
+                    "CREATE WORKOUT RESPONSE:",
+                    data
                 );
 
 
+                if (!response.ok) {
 
-            console.log(
-                "CREATE WORKOUT RESPONSE:",
-                data
-            );
+                    throw new Error(
+                        data?.detail ||
+                        data?.message ||
+                        data?.error ||
+                        JSON.stringify(data) ||
+                        `Unable to create workout for member ${memberId}.`
+                    );
+                }
 
 
-
-            if (!response.ok) {
-
-                throw new Error(
-                    data?.detail ||
-                    data?.message ||
-                    data?.error ||
-                    JSON.stringify(data) ||
-                    "Unable to create workout."
+                results.push(
+                    data
                 );
             }
 
+
+            console.log(
+                "ALL WORKOUTS CREATED:",
+                results
+            );
 
 
             setShowCreateModal(
@@ -644,16 +733,39 @@ export default function TrainerWorkout() {
             );
 
 
+            // ------------------------------------------------
+            // CLEAR FORM
+            // ------------------------------------------------
+
+            setTitle("");
+
+            setDescription("");
+
+            setDuration("");
+
+            setSets("");
+
+            setReps("");
+
+            setSelectedMemberIds([]);
+
+            setSelectedWorkout(null);
+
+
+            // ------------------------------------------------
+            // RELOAD
+            // ------------------------------------------------
+
+            await loadData();
+
 
             Alert.alert(
                 "Workout Created",
-                "Workout has been created successfully."
+
+                selectedIds.length === 1
+                    ? "Workout has been created and assigned successfully."
+                    : `Workout has been created and assigned to ${selectedIds.length} members.`
             );
-
-
-
-            loadData();
-
 
 
         } catch (error) {
@@ -676,7 +788,6 @@ export default function TrainerWorkout() {
     };
 
 
-
     // ========================================================
     // DELETE WORKOUT
     // ========================================================
@@ -687,6 +798,7 @@ export default function TrainerWorkout() {
 
         Alert.alert(
             "Delete Workout",
+
             `Delete "${getWorkoutName(workout)}"?`,
 
             [
@@ -709,7 +821,6 @@ export default function TrainerWorkout() {
     };
 
 
-
     // ========================================================
     // CONFIRM DELETE
     // ========================================================
@@ -723,7 +834,6 @@ export default function TrainerWorkout() {
                     await getToken();
 
 
-
                 if (!token) {
 
                     Alert.alert(
@@ -733,7 +843,6 @@ export default function TrainerWorkout() {
 
                     return;
                 }
-
 
 
                 const response =
@@ -753,16 +862,15 @@ export default function TrainerWorkout() {
                     );
 
 
-
                 if (
-                    response.status !==
-                    204
+                    response.status !== 204
                 ) {
 
                     const data =
                         await parseResponse(
                             response
                         );
+
 
                     if (
                         !response.ok
@@ -777,7 +885,6 @@ export default function TrainerWorkout() {
                 }
 
 
-
                 setWorkouts(
                     (previous) =>
                         previous.filter(
@@ -786,8 +893,6 @@ export default function TrainerWorkout() {
                                 workout.id
                         )
                 );
-
-
 
             } catch (error) {
 
@@ -803,7 +908,6 @@ export default function TrainerWorkout() {
                 );
             }
         };
-
 
 
     // ========================================================
@@ -823,7 +927,6 @@ export default function TrainerWorkout() {
     };
 
 
-
     // ========================================================
     // WORKOUT DESCRIPTION
     // ========================================================
@@ -838,7 +941,6 @@ export default function TrainerWorkout() {
             "Personalized workout plan"
         );
     };
-
 
 
     // ========================================================
@@ -859,7 +961,6 @@ export default function TrainerWorkout() {
         }
 
 
-
         if (
             Array.isArray(
                 workout?.member_ids
@@ -868,7 +969,6 @@ export default function TrainerWorkout() {
 
             return workout.member_ids.length;
         }
-
 
 
         if (
@@ -880,10 +980,16 @@ export default function TrainerWorkout() {
         }
 
 
+        if (
+            workout?.member
+        ) {
+
+            return 1;
+        }
+
 
         return 0;
     };
-
 
 
     // ========================================================
@@ -901,14 +1007,11 @@ export default function TrainerWorkout() {
             "weight-lifter",
         ];
 
-
-
         return icons[
             index %
             icons.length
         ];
     };
-
 
 
     // ========================================================
@@ -920,22 +1023,30 @@ export default function TrainerWorkout() {
         return (
 
             <View
-                style={
-                    styles.loadingContainer
-                }
+                style={[
+                    styles.loadingContainer,
+                    {
+                        backgroundColor:
+                            theme.background,
+                    },
+                ]}
             >
 
                 <ActivityIndicator
                     size="large"
-                    color="#2F80FF"
+                    color={
+                        theme.primaryLight
+                    }
                 />
 
-
-
                 <Text
-                    style={
-                        styles.loadingText
-                    }
+                    style={[
+                        styles.loadingText,
+                        {
+                            color:
+                                theme.muted,
+                        },
+                    ]}
                 >
                     Loading workouts...
                 </Text>
@@ -945,7 +1056,6 @@ export default function TrainerWorkout() {
     }
 
 
-
     // ========================================================
     // MAIN UI
     // ========================================================
@@ -953,9 +1063,13 @@ export default function TrainerWorkout() {
     return (
 
         <View
-            style={
-                styles.container
-            }
+            style={[
+                styles.container,
+                {
+                    backgroundColor:
+                        theme.background,
+                },
+            ]}
         >
 
             {/* ==================================================
@@ -963,27 +1077,41 @@ export default function TrainerWorkout() {
             ================================================== */}
 
             <View
-                style={
-                    styles.header
-                }
+                style={[
+                    styles.header,
+                    {
+                        borderBottomColor:
+                            theme.border,
+                    },
+                ]}
             >
 
-                <View>
+                <View
+                    style={
+                        styles.headerTextContainer
+                    }
+                >
 
                     <Text
-                        style={
-                            styles.headerEyebrow
-                        }
+                        style={[
+                            styles.headerEyebrow,
+                            {
+                                color:
+                                    theme.primaryLight,
+                            },
+                        ]}
                     >
                         GYMRYT • TRAINER
                     </Text>
 
-
-
                     <Text
-                        style={
-                            styles.headerTitle
-                        }
+                        style={[
+                            styles.headerTitle,
+                            {
+                                color:
+                                    theme.text,
+                            },
+                        ]}
                     >
                         Workouts
                     </Text>
@@ -991,27 +1119,72 @@ export default function TrainerWorkout() {
                 </View>
 
 
-
-                <TouchableOpacity
+                <View
                     style={
-                        styles.addButton
+                        styles.headerActions
                     }
-                    onPress={
-                        openCreateWorkout
-                    }
-                    activeOpacity={0.85}
                 >
 
-                    <Ionicons
-                        name="add"
-                        size={32}
-                        color="#FFFFFF"
-                    />
+                    {/* Theme */}
 
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[
+                            styles.headerButton,
+                            {
+                                backgroundColor:
+                                    theme.card,
+                                borderColor:
+                                    theme.border,
+                            },
+                        ]}
+                        onPress={
+                            toggleTheme
+                        }
+                        activeOpacity={0.85}
+                    >
+
+                        <Ionicons
+                            name={
+                                isDark
+                                    ? "sunny-outline"
+                                    : "moon-outline"
+                            }
+                            size={20}
+                            color={
+                                theme.primaryLight
+                            }
+                        />
+
+                    </TouchableOpacity>
+
+
+                    {/* Add */}
+
+                    <TouchableOpacity
+                        style={[
+                            styles.addButton,
+                            {
+                                backgroundColor:
+                                    theme.primary,
+                            },
+                        ]}
+                        onPress={
+                            openCreateWorkout
+                        }
+                        activeOpacity={0.85}
+                    >
+
+                        <Ionicons
+                            name="add"
+                            size={25}
+                            color="#FFFFFF"
+                        />
+
+                    </TouchableOpacity>
+
+                </View>
 
             </View>
-
 
 
             {/* ==================================================
@@ -1022,19 +1195,43 @@ export default function TrainerWorkout() {
                 showsVerticalScrollIndicator={
                     false
                 }
-                contentContainerStyle={
-                    styles.scrollContent
+
+                refreshControl={
+                    <RefreshControl
+                        refreshing={
+                            refreshing
+                        }
+                        onRefresh={
+                            handleRefresh
+                        }
+                        tintColor={
+                            theme.primary
+                        }
+                    />
                 }
+
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingBottom: 120,
+                    },
+                ]}
             >
 
                 {/* ==================================================
-                    CREATE WORKOUT
+                    CREATE WORKOUT CARD
                 ================================================== */}
 
                 <TouchableOpacity
-                    style={
-                        styles.createCard
-                    }
+                    style={[
+                        styles.createCard,
+                        {
+                            backgroundColor:
+                                theme.card,
+                            borderColor:
+                                theme.border,
+                        },
+                    ]}
                     onPress={
                         openCreateWorkout
                     }
@@ -1042,19 +1239,24 @@ export default function TrainerWorkout() {
                 >
 
                     <View
-                        style={
-                            styles.createIcon
-                        }
+                        style={[
+                            styles.createIcon,
+                            {
+                                backgroundColor:
+                                    theme.iconBackground,
+                            },
+                        ]}
                     >
 
                         <Ionicons
                             name="barbell-outline"
-                            size={30}
-                            color="#4DA3FF"
+                            size={26}
+                            color={
+                                theme.primaryLight
+                            }
                         />
 
                     </View>
-
 
 
                     <View
@@ -1064,49 +1266,58 @@ export default function TrainerWorkout() {
                     >
 
                         <Text
-                            style={
-                                styles.createTitle
-                            }
+                            style={[
+                                styles.createTitle,
+                                {
+                                    color:
+                                        theme.text,
+                                },
+                            ]}
                         >
                             Create Workout
                         </Text>
 
-
-
                         <Text
-                            style={
-                                styles.createSubtitle
-                            }
+                            style={[
+                                styles.createSubtitle,
+                                {
+                                    color:
+                                        theme.muted,
+                                },
+                            ]}
                         >
                             Design a personalized workout
-                        </Text>
-
-
-
-                        <Text
-                            style={
-                                styles.createSubtitle
-                            }
-                        >
                             plan for your members.
                         </Text>
 
                     </View>
 
 
+                    <View
+                        style={[
+                            styles.chevronBox,
+                            {
+                                backgroundColor:
+                                    theme.iconBackground,
+                            },
+                        ]}
+                    >
 
-                    <Ionicons
-                        name="chevron-forward"
-                        size={24}
-                        color="#A8B9D1"
-                    />
+                        <Ionicons
+                            name="chevron-forward"
+                            size={18}
+                            color={
+                                theme.primaryLight
+                            }
+                        />
+
+                    </View>
 
                 </TouchableOpacity>
 
 
-
                 {/* ==================================================
-                    MY WORKOUTS TITLE
+                    MY WORKOUTS
                 ================================================== */}
 
                 <View
@@ -1115,42 +1326,62 @@ export default function TrainerWorkout() {
                     }
                 >
 
-                    <Text
-                        style={
-                            styles.sectionTitle
-                        }
-                    >
-                        MY WORKOUTS
-                    </Text>
+                    <View>
 
+                        <Text
+                            style={[
+                                styles.sectionEyebrow,
+                                {
+                                    color:
+                                        theme.primaryLight,
+                                },
+                            ]}
+                        >
+                            TRAINING
+                        </Text>
+
+                        <Text
+                            style={[
+                                styles.sectionTitle,
+                                {
+                                    color:
+                                        theme.text,
+                                },
+                            ]}
+                        >
+                            My Workouts
+                        </Text>
+
+                    </View>
 
 
                     <View
-                        style={
-                            styles.sectionCountContainer
-                        }
+                        style={[
+                            styles.countPill,
+                            {
+                                backgroundColor:
+                                    theme.iconBackground,
+                                borderColor:
+                                    theme.border,
+                            },
+                        ]}
                     >
 
                         <Text
-                            style={
-                                styles.sectionCount
-                            }
+                            style={[
+                                styles.sectionCount,
+                                {
+                                    color:
+                                        theme.primaryLight,
+                                },
+                            ]}
                         >
                             {workouts.length}
                         </Text>
 
-
-
-                        <Ionicons
-                            name="chevron-forward"
-                            size={21}
-                            color="#A8B9D1"
-                        />
-
                     </View>
 
                 </View>
-
 
 
                 {/* ==================================================
@@ -1160,52 +1391,59 @@ export default function TrainerWorkout() {
                 {workouts.length === 0 ? (
 
                     <View
-                        style={
-                            styles.emptyCard
-                        }
+                        style={[
+                            styles.emptyCard,
+                            {
+                                backgroundColor:
+                                    theme.card,
+                                borderColor:
+                                    theme.border,
+                            },
+                        ]}
                     >
 
                         <View
-                            style={
-                                styles.emptyIcon
-                            }
+                            style={[
+                                styles.emptyIcon,
+                                {
+                                    backgroundColor:
+                                        theme.iconBackground,
+                                },
+                            ]}
                         >
 
                             <Ionicons
                                 name="barbell-outline"
-                                size={35}
-                                color="#4DA3FF"
+                                size={28}
+                                color={
+                                    theme.primaryLight
+                                }
                             />
 
                         </View>
 
-
-
                         <Text
-                            style={
-                                styles.emptyTitle
-                            }
+                            style={[
+                                styles.emptyTitle,
+                                {
+                                    color:
+                                        theme.text,
+                                },
+                            ]}
                         >
                             No workouts yet
                         </Text>
 
-
-
                         <Text
-                            style={
-                                styles.emptySubtitle
-                            }
+                            style={[
+                                styles.emptySubtitle,
+                                {
+                                    color:
+                                        theme.muted,
+                                },
+                            ]}
                         >
                             Create your first workout
-                        </Text>
-
-
-
-                        <Text
-                            style={
-                                styles.emptySubtitle
-                            }
-                        >
                             and assign it to your members.
                         </Text>
 
@@ -1214,9 +1452,15 @@ export default function TrainerWorkout() {
                 ) : (
 
                     <View
-                        style={
-                            styles.workoutList
-                        }
+                        style={[
+                            styles.workoutList,
+                            {
+                                backgroundColor:
+                                    theme.card,
+                                borderColor:
+                                    theme.border,
+                            },
+                        ]}
                     >
 
                         {workouts.map(
@@ -1230,36 +1474,35 @@ export default function TrainerWorkout() {
                                         workout.id ||
                                         index
                                     }
-                                    style={
-                                        styles.workoutRow
-                                    }
+
+                                    style={[
+                                        styles.workoutRow,
+                                        {
+                                            borderBottomColor:
+                                                theme.divider,
+                                        },
+                                    ]}
+
                                     onPress={() =>
                                         setSelectedWorkout(
                                             workout
                                         )
                                     }
-                                    activeOpacity={
-                                        0.8
-                                    }
+
+                                    activeOpacity={0.8}
                                 >
 
                                     <View
                                         style={[
                                             styles.workoutIcon,
-                                            index %
-                                                3 ===
-                                                0 &&
-                                                styles.workoutIconBlue,
-
-                                            index %
-                                                3 ===
-                                                1 &&
-                                                styles.workoutIconGreen,
-
-                                            index %
-                                                3 ===
-                                                2 &&
-                                                styles.workoutIconOrange,
+                                            {
+                                                backgroundColor:
+                                                    index % 3 === 0
+                                                        ? "#173C91"
+                                                        : index % 3 === 1
+                                                            ? "#075746"
+                                                            : "#744300",
+                                            },
                                         ]}
                                     >
 
@@ -1269,16 +1512,11 @@ export default function TrainerWorkout() {
                                                     index
                                                 )
                                             }
-                                            size={
-                                                27
-                                            }
-                                            color={
-                                                "#FFFFFF"
-                                            }
+                                            size={24}
+                                            color="#FFFFFF"
                                         />
 
                                     </View>
-
 
 
                                     <View
@@ -1288,63 +1526,91 @@ export default function TrainerWorkout() {
                                     >
 
                                         <Text
-                                            style={
-                                                styles.workoutName
-                                            }
-                                            numberOfLines={
-                                                1
-                                            }
-                                        >
-                                            {getWorkoutName(
-                                                workout
-                                            )}
-                                        </Text>
-
-
-
-                                        <Text
-                                            style={
-                                                styles.workoutDescription
-                                            }
-                                            numberOfLines={
-                                                2
-                                            }
-                                        >
-                                            {getWorkoutDescription(
-                                                workout
-                                            )}
-                                        </Text>
-
-
-
-                                        <Text
-                                            style={
-                                                styles.assignedText
-                                            }
+                                            style={[
+                                                styles.workoutName,
+                                                {
+                                                    color:
+                                                        theme.text,
+                                                },
+                                            ]}
+                                            numberOfLines={1}
                                         >
                                             {
-                                                getWorkoutMemberCount(
+                                                getWorkoutName(
                                                     workout
                                                 )
-                                            }{" "}
-                                            member
-                                            {getWorkoutMemberCount(
-                                                workout
-                                            ) ===
-                                            1
-                                                ? ""
-                                                : "s"}{" "}
-                                            assigned
+                                            }
                                         </Text>
+
+
+                                        <Text
+                                            style={[
+                                                styles.workoutDescription,
+                                                {
+                                                    color:
+                                                        theme.muted,
+                                                },
+                                            ]}
+                                            numberOfLines={2}
+                                        >
+                                            {
+                                                getWorkoutDescription(
+                                                    workout
+                                                )
+                                            }
+                                        </Text>
+
+
+                                        <View
+                                            style={
+                                                styles.assignedRow
+                                            }
+                                        >
+
+                                            <Ionicons
+                                                name="people-outline"
+                                                size={13}
+                                                color={
+                                                    theme.primaryLight
+                                                }
+                                            />
+
+                                            <Text
+                                                style={[
+                                                    styles.assignedText,
+                                                    {
+                                                        color:
+                                                            theme.primaryLight,
+                                                    },
+                                                ]}
+                                            >
+                                                {
+                                                    getWorkoutMemberCount(
+                                                        workout
+                                                    )
+                                                }{" "}
+                                                member
+                                                {
+                                                    getWorkoutMemberCount(
+                                                        workout
+                                                    ) === 1
+                                                        ? ""
+                                                        : "s"
+                                                }{" "}
+                                                assigned
+                                            </Text>
+
+                                        </View>
 
                                     </View>
 
 
-
                                     <Ionicons
                                         name="chevron-forward"
-                                        size={23}
-                                        color="#9DAEC5"
+                                        size={18}
+                                        color={
+                                            theme.muted
+                                        }
                                     />
 
                                 </TouchableOpacity>
@@ -1354,7 +1620,6 @@ export default function TrainerWorkout() {
 
                     </View>
                 )}
-
 
 
                 {/* ==================================================
@@ -1367,93 +1632,120 @@ export default function TrainerWorkout() {
                     }
                 >
 
-                    <Text
-                        style={
-                            styles.sectionTitle
-                        }
-                    >
-                        ASSIGNED MEMBERS
-                    </Text>
+                    <View>
 
+                        <Text
+                            style={[
+                                styles.sectionEyebrow,
+                                {
+                                    color:
+                                        theme.primaryLight,
+                                },
+                            ]}
+                        >
+                            YOUR CLIENTS
+                        </Text>
+
+                        <Text
+                            style={[
+                                styles.sectionTitle,
+                                {
+                                    color:
+                                        theme.text,
+                                },
+                            ]}
+                        >
+                            Assigned Members
+                        </Text>
+
+                    </View>
 
 
                     <View
-                        style={
-                            styles.sectionCountContainer
-                        }
+                        style={[
+                            styles.countPill,
+                            {
+                                backgroundColor:
+                                    theme.iconBackground,
+                                borderColor:
+                                    theme.border,
+                            },
+                        ]}
                     >
 
                         <Text
-                            style={
-                                styles.sectionCount
-                            }
+                            style={[
+                                styles.sectionCount,
+                                {
+                                    color:
+                                        theme.primaryLight,
+                                },
+                            ]}
                         >
                             {members.length}
                         </Text>
-
-
-
-                        <Ionicons
-                            name="chevron-forward"
-                            size={21}
-                            color="#A8B9D1"
-                        />
 
                     </View>
 
                 </View>
 
 
-
                 {members.length === 0 ? (
 
                     <View
-                        style={
-                            styles.emptyMemberCard
-                        }
+                        style={[
+                            styles.emptyMemberCard,
+                            {
+                                backgroundColor:
+                                    theme.card,
+                                borderColor:
+                                    theme.border,
+                            },
+                        ]}
                     >
 
                         <View
-                            style={
-                                styles.memberEmptyIcon
-                            }
+                            style={[
+                                styles.emptyIconSmall,
+                                {
+                                    backgroundColor:
+                                        theme.iconBackground,
+                                },
+                            ]}
                         >
 
                             <Ionicons
                                 name="people-outline"
-                                size={31}
-                                color="#4DA3FF"
+                                size={25}
+                                color={
+                                    theme.primaryLight
+                                }
                             />
 
                         </View>
 
-
-
                         <Text
-                            style={
-                                styles.emptyTitle
-                            }
+                            style={[
+                                styles.emptyTitle,
+                                {
+                                    color:
+                                        theme.text,
+                                },
+                            ]}
                         >
                             No members assigned
                         </Text>
 
-
-
                         <Text
-                            style={
-                                styles.emptySubtitle
-                            }
+                            style={[
+                                styles.emptySubtitle,
+                                {
+                                    color:
+                                        theme.muted,
+                                },
+                            ]}
                         >
                             Members assigned to you
-                        </Text>
-
-
-
-                        <Text
-                            style={
-                                styles.emptySubtitle
-                            }
-                        >
                             will appear here.
                         </Text>
 
@@ -1462,9 +1754,15 @@ export default function TrainerWorkout() {
                 ) : (
 
                     <View
-                        style={
-                            styles.memberList
-                        }
+                        style={[
+                            styles.memberList,
+                            {
+                                backgroundColor:
+                                    theme.card,
+                                borderColor:
+                                    theme.border,
+                            },
+                        ]}
                     >
 
                         {members
@@ -1475,40 +1773,52 @@ export default function TrainerWorkout() {
                                     index
                                 ) => (
 
-                                    <View
+                                    <TouchableOpacity
                                         key={
                                             member.id ||
                                             index
                                         }
-                                        style={
-                                            styles.memberRow
-                                        }
+
+                                        style={[
+                                            styles.memberRow,
+                                            {
+                                                borderBottomColor:
+                                                    theme.divider,
+                                            },
+                                        ]}
+
+                                        activeOpacity={0.8}
                                     >
 
                                         <View
-                                            style={
-                                                styles.memberAvatar
-                                            }
+                                            style={[
+                                                styles.memberAvatar,
+                                                {
+                                                    backgroundColor:
+                                                        theme.iconBackground,
+                                                },
+                                            ]}
                                         >
 
                                             <Text
-                                                style={
-                                                    styles.memberInitial
-                                                }
+                                                style={[
+                                                    styles.memberInitial,
+                                                    {
+                                                        color:
+                                                            theme.primaryLight,
+                                                    },
+                                                ]}
                                             >
                                                 {(
                                                     member.name ||
                                                     member.username ||
                                                     "M"
                                                 )
-                                                    .charAt(
-                                                        0
-                                                    )
+                                                    .charAt(0)
                                                     .toUpperCase()}
                                             </Text>
 
                                         </View>
-
 
 
                                         <View
@@ -1518,21 +1828,31 @@ export default function TrainerWorkout() {
                                         >
 
                                             <Text
-                                                style={
-                                                    styles.memberName
-                                                }
+                                                style={[
+                                                    styles.memberName,
+                                                    {
+                                                        color:
+                                                            theme.text,
+                                                    },
+                                                ]}
+                                                numberOfLines={1}
                                             >
-                                                {member.name ||
+                                                {
+                                                    member.name ||
                                                     member.username ||
-                                                    "Member"}
+                                                    "Member"
+                                                }
                                             </Text>
 
 
-
                                             <Text
-                                                style={
-                                                    styles.memberUsername
-                                                }
+                                                style={[
+                                                    styles.memberUsername,
+                                                    {
+                                                        color:
+                                                            theme.muted,
+                                                    },
+                                                ]}
                                             >
                                                 {member.username
                                                     ? `@${member.username}`
@@ -1542,14 +1862,27 @@ export default function TrainerWorkout() {
                                         </View>
 
 
+                                        <View
+                                            style={[
+                                                styles.memberArrow,
+                                                {
+                                                    backgroundColor:
+                                                        theme.iconBackground,
+                                                },
+                                            ]}
+                                        >
 
-                                        <Ionicons
-                                            name="chevron-forward"
-                                            size={22}
-                                            color="#9DAEC5"
-                                        />
+                                            <Ionicons
+                                                name="chevron-forward"
+                                                size={16}
+                                                color={
+                                                    theme.primaryLight
+                                                }
+                                            />
 
-                                    </View>
+                                        </View>
+
+                                    </TouchableOpacity>
 
                                 )
                             )}
@@ -1557,16 +1890,7 @@ export default function TrainerWorkout() {
                     </View>
                 )}
 
-
-
-                <View
-                    style={{
-                        height: 120,
-                    }}
-                />
-
             </ScrollView>
-
 
 
             {/* ==================================================
@@ -1575,8 +1899,7 @@ export default function TrainerWorkout() {
 
             <Modal
                 visible={
-                    selectedWorkout !==
-                    null
+                    selectedWorkout !== null
                 }
                 transparent
                 animationType="slide"
@@ -1594,10 +1917,23 @@ export default function TrainerWorkout() {
                 >
 
                     <View
-                        style={
-                            styles.modalCard
-                        }
+                        style={[
+                            styles.modalCard,
+                            {
+                                backgroundColor:
+                                    theme.card,
+                                borderColor:
+                                    theme.border,
+                            },
+                        ]}
                     >
+
+                        <View
+                            style={
+                                styles.modalHandle
+                            }
+                        />
+
 
                         <View
                             style={
@@ -1605,21 +1941,54 @@ export default function TrainerWorkout() {
                             }
                         >
 
-                            <Text
+                            <View
                                 style={
-                                    styles.modalTitle
+                                    styles.modalTitleWrap
                                 }
                             >
-                                {selectedWorkout
-                                    ? getWorkoutName(
-                                        selectedWorkout
-                                    )
-                                    : "Workout"}
-                            </Text>
 
+                                <Text
+                                    style={[
+                                        styles.modalEyebrow,
+                                        {
+                                            color:
+                                                theme.primaryLight,
+                                        },
+                                    ]}
+                                >
+                                    WORKOUT DETAILS
+                                </Text>
+
+                                <Text
+                                    style={[
+                                        styles.modalTitle,
+                                        {
+                                            color:
+                                                theme.text,
+                                        },
+                                    ]}
+                                    numberOfLines={2}
+                                >
+                                    {
+                                        selectedWorkout
+                                            ? getWorkoutName(
+                                                selectedWorkout
+                                            )
+                                            : "Workout"
+                                    }
+                                </Text>
+
+                            </View>
 
 
                             <TouchableOpacity
+                                style={[
+                                    styles.closeButton,
+                                    {
+                                        backgroundColor:
+                                            theme.iconBackground,
+                                    },
+                                ]}
                                 onPress={() =>
                                     setSelectedWorkout(
                                         null
@@ -1629,8 +1998,10 @@ export default function TrainerWorkout() {
 
                                 <Ionicons
                                     name="close"
-                                    size={27}
-                                    color="#FFFFFF"
+                                    size={20}
+                                    color={
+                                        theme.text
+                                    }
                                 />
 
                             </TouchableOpacity>
@@ -1638,151 +2009,227 @@ export default function TrainerWorkout() {
                         </View>
 
 
-
-                        <Text
-                            style={
-                                styles.modalDescription
+                        <ScrollView
+                            showsVerticalScrollIndicator={
+                                false
                             }
-                        >
-                            {selectedWorkout
-                                ? getWorkoutDescription(
-                                    selectedWorkout
-                                )
-                                : ""}
-                        </Text>
-
-
-
-                        {selectedWorkout?.duration !==
-                            undefined &&
-                            selectedWorkout?.duration !==
-                                null && (
-
-                                <DetailRow
-                                    icon="timer-outline"
-                                    label="Duration"
-                                    value={`${selectedWorkout.duration} minutes`}
-                                />
-
-                            )}
-
-
-
-                        {selectedWorkout?.sets !==
-                            undefined &&
-                            selectedWorkout?.sets !==
-                                null && (
-
-                                <DetailRow
-                                    icon="repeat"
-                                    label="Sets"
-                                    value={String(
-                                        selectedWorkout.sets
-                                    )}
-                                />
-
-                            )}
-
-
-
-                        {selectedWorkout?.reps !==
-                            undefined &&
-                            selectedWorkout?.reps !==
-                                null && (
-
-                                <DetailRow
-                                    icon="fitness-outline"
-                                    label="Reps"
-                                    value={String(
-                                        selectedWorkout.reps
-                                    )}
-                                />
-
-                            )}
-
-
-
-                        <View
-                            style={
-                                styles.modalMembers
-                            }
-                        >
-
-                            <Text
-                                style={
-                                    styles.modalSectionTitle
-                                }
-                            >
-                                ASSIGNED MEMBERS
-                            </Text>
-
-
-
-                            <Text
-                                style={
-                                    styles.modalMemberCount
-                                }
-                            >
-                                {getWorkoutMemberCount(
-                                    selectedWorkout
-                                )}{" "}
-                                member
-                                {getWorkoutMemberCount(
-                                    selectedWorkout
-                                ) ===
-                                1
-                                    ? ""
-                                    : "s"}
-                            </Text>
-
-                        </View>
-
-
-
-                        <TouchableOpacity
-                            style={
-                                styles.deleteButton
-                            }
-                            onPress={() => {
-
-                                const workout =
-                                    selectedWorkout;
-
-                                setSelectedWorkout(
-                                    null
-                                );
-
-                                deleteWorkout(
-                                    workout
-                                );
-
+                            contentContainerStyle={{
+                                paddingBottom: 10,
                             }}
                         >
 
-                            <Ionicons
-                                name="trash-outline"
-                                size={20}
-                                color="#FF4D5E"
-                            />
-
-
-
                             <Text
-                                style={
-                                    styles.deleteText
-                                }
+                                style={[
+                                    styles.modalDescription,
+                                    {
+                                        color:
+                                            theme.muted,
+                                    },
+                                ]}
                             >
-                                Delete Workout
+                                {selectedWorkout
+                                    ? getWorkoutDescription(
+                                        selectedWorkout
+                                    )
+                                    : ""}
                             </Text>
 
-                        </TouchableOpacity>
+
+                            <View
+                                style={[
+                                    styles.detailsBox,
+                                    {
+                                        backgroundColor:
+                                            theme.cardSecondary,
+                                        borderColor:
+                                            theme.border,
+                                    },
+                                ]}
+                            >
+
+                                {selectedWorkout?.duration !==
+                                    undefined &&
+                                    selectedWorkout?.duration !==
+                                    null && (
+
+                                        <DetailRow
+                                            icon="timer-outline"
+                                            label="Duration"
+                                            value={`${selectedWorkout.duration} minutes`}
+                                            theme={
+                                                theme
+                                            }
+                                        />
+
+                                    )}
+
+
+                                {selectedWorkout?.sets !==
+                                    undefined &&
+                                    selectedWorkout?.sets !==
+                                    null && (
+
+                                        <DetailRow
+                                            icon="repeat"
+                                            label="Sets"
+                                            value={String(
+                                                selectedWorkout.sets
+                                            )}
+                                            theme={
+                                                theme
+                                            }
+                                        />
+
+                                    )}
+
+
+                                {selectedWorkout?.reps !==
+                                    undefined &&
+                                    selectedWorkout?.reps !==
+                                    null && (
+
+                                        <DetailRow
+                                            icon="fitness-outline"
+                                            label="Reps"
+                                            value={String(
+                                                selectedWorkout.reps
+                                            )}
+                                            theme={
+                                                theme
+                                            }
+                                        />
+
+                                    )}
+
+                            </View>
+
+
+                            <View
+                                style={
+                                    styles.modalMembers
+                                }
+                            >
+
+                                <Text
+                                    style={[
+                                        styles.modalSectionTitle,
+                                        {
+                                            color:
+                                                theme.muted,
+                                        },
+                                    ]}
+                                >
+                                    ASSIGNED MEMBERS
+                                </Text>
+
+
+                                <View
+                                    style={[
+                                        styles.modalMemberPill,
+                                        {
+                                            backgroundColor:
+                                                theme.iconBackground,
+                                        },
+                                    ]}
+                                >
+
+                                    <Ionicons
+                                        name="people-outline"
+                                        size={16}
+                                        color={
+                                            theme.primaryLight
+                                        }
+                                    />
+
+                                    <Text
+                                        style={[
+                                            styles.modalMemberCount,
+                                            {
+                                                color:
+                                                    theme.primaryLight,
+                                            },
+                                        ]}
+                                    >
+                                        {
+                                            getWorkoutMemberCount(
+                                                selectedWorkout
+                                            )
+                                        }{" "}
+                                        member
+                                        {
+                                            getWorkoutMemberCount(
+                                                selectedWorkout
+                                            ) === 1
+                                                ? ""
+                                                : "s"
+                                        }
+                                    </Text>
+
+                                </View>
+
+                            </View>
+
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.deleteButton,
+                                    {
+                                        backgroundColor:
+                                            isDark
+                                                ? "#100D15"
+                                                : "#FFF5F6",
+                                        borderColor:
+                                            isDark
+                                                ? "#55202B"
+                                                : "#FFD5DA",
+                                    },
+                                ]}
+                                onPress={() => {
+
+                                    const workout =
+                                        selectedWorkout;
+
+                                    setSelectedWorkout(
+                                        null
+                                    );
+
+                                    deleteWorkout(
+                                        workout
+                                    );
+
+                                }}
+                                activeOpacity={0.85}
+                            >
+
+                                <Ionicons
+                                    name="trash-outline"
+                                    size={18}
+                                    color={
+                                        theme.danger
+                                    }
+                                />
+
+                                <Text
+                                    style={[
+                                        styles.deleteText,
+                                        {
+                                            color:
+                                                theme.danger,
+                                        },
+                                    ]}
+                                >
+                                    Delete Workout
+                                </Text>
+
+                            </TouchableOpacity>
+
+                        </ScrollView>
 
                     </View>
 
                 </View>
 
             </Modal>
-
 
 
             {/* ==================================================
@@ -1809,15 +2256,32 @@ export default function TrainerWorkout() {
                 >
 
                     <View
-                        style={
-                            styles.createModal
-                        }
+                        style={[
+                            styles.createModal,
+                            {
+                                backgroundColor:
+                                    theme.card,
+                                borderColor:
+                                    theme.border,
+                            },
+                        ]}
                     >
+
+                        <View
+                            style={
+                                styles.modalHandle
+                            }
+                        />
+
 
                         <ScrollView
                             showsVerticalScrollIndicator={
                                 false
                             }
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={{
+                                paddingBottom: 25,
+                            }}
                         >
 
                             <View
@@ -1826,22 +2290,44 @@ export default function TrainerWorkout() {
                                 }
                             >
 
-                                <View>
+                                <View
+                                    style={
+                                        styles.modalTitleWrap
+                                    }
+                                >
 
                                     <Text
-                                        style={
-                                            styles.modalTitle
-                                        }
+                                        style={[
+                                            styles.modalEyebrow,
+                                            {
+                                                color:
+                                                    theme.primaryLight,
+                                            },
+                                        ]}
+                                    >
+                                        TRAINING PLAN
+                                    </Text>
+
+                                    <Text
+                                        style={[
+                                            styles.modalTitle,
+                                            {
+                                                color:
+                                                    theme.text,
+                                            },
+                                        ]}
                                     >
                                         Create Workout
                                     </Text>
 
-
-
                                     <Text
-                                        style={
-                                            styles.modalSmallText
-                                        }
+                                        style={[
+                                            styles.modalSmallText,
+                                            {
+                                                color:
+                                                    theme.muted,
+                                            },
+                                        ]}
                                     >
                                         Assign it to your members
                                     </Text>
@@ -1849,8 +2335,14 @@ export default function TrainerWorkout() {
                                 </View>
 
 
-
                                 <TouchableOpacity
+                                    style={[
+                                        styles.closeButton,
+                                        {
+                                            backgroundColor:
+                                                theme.iconBackground,
+                                        },
+                                    ]}
                                     onPress={() =>
                                         setShowCreateModal(
                                             false
@@ -1860,8 +2352,10 @@ export default function TrainerWorkout() {
 
                                     <Ionicons
                                         name="close"
-                                        size={27}
-                                        color="#FFFFFF"
+                                        size={20}
+                                        color={
+                                            theme.text
+                                        }
                                     />
 
                                 </TouchableOpacity>
@@ -1869,23 +2363,29 @@ export default function TrainerWorkout() {
                             </View>
 
 
-
-                            {/* WORKOUT NAME */}
-
-                            <Text
-                                style={
-                                    styles.inputLabel
-                                }
-                            >
+                            {/* ==================================================
                                 WORKOUT NAME
-                            </Text>
+                            ================================================== */}
 
-
+                            <FormLabel
+                                text="WORKOUT NAME"
+                                theme={
+                                    theme
+                                }
+                            />
 
                             <TextInput
-                                style={
-                                    styles.input
-                                }
+                                style={[
+                                    styles.input,
+                                    {
+                                        backgroundColor:
+                                            theme.input,
+                                        borderColor:
+                                            theme.border,
+                                        color:
+                                            theme.text,
+                                    },
+                                ]}
                                 value={
                                     title
                                 }
@@ -1893,27 +2393,36 @@ export default function TrainerWorkout() {
                                     setTitle
                                 }
                                 placeholder="e.g. Chest & Triceps"
-                                placeholderTextColor="#66758C"
+                                placeholderTextColor={
+                                    theme.muted
+                                }
+                                autoCapitalize="sentences"
                             />
 
 
-
-                            {/* DESCRIPTION */}
-
-                            <Text
-                                style={
-                                    styles.inputLabel
-                                }
-                            >
+                            {/* ==================================================
                                 DESCRIPTION
-                            </Text>
+                            ================================================== */}
 
-
+                            <FormLabel
+                                text="DESCRIPTION"
+                                theme={
+                                    theme
+                                }
+                            />
 
                             <TextInput
                                 style={[
                                     styles.input,
                                     styles.textArea,
+                                    {
+                                        backgroundColor:
+                                            theme.input,
+                                        borderColor:
+                                            theme.border,
+                                        color:
+                                            theme.text,
+                                    },
                                 ]}
                                 value={
                                     description
@@ -1922,132 +2431,221 @@ export default function TrainerWorkout() {
                                     setDescription
                                 }
                                 placeholder="Describe the workout..."
-                                placeholderTextColor="#66758C"
+                                placeholderTextColor={
+                                    theme.muted
+                                }
                                 multiline
                             />
 
 
+                            {/* ==================================================
+                                QUICK STATS
+                            ================================================== */}
 
-                            {/* DURATION */}
-
-                            <Text
+                            <View
                                 style={
-                                    styles.inputLabel
+                                    styles.formRow
                                 }
                             >
-                                DURATION (MINUTES)
-                            </Text>
+
+                                <View
+                                    style={
+                                        styles.formHalf
+                                    }
+                                >
+
+                                    <FormLabel
+                                        text="DURATION"
+                                        theme={
+                                            theme
+                                        }
+                                    />
+
+                                    <TextInput
+                                        style={[
+                                            styles.input,
+                                            {
+                                                backgroundColor:
+                                                    theme.input,
+                                                borderColor:
+                                                    theme.border,
+                                                color:
+                                                    theme.text,
+                                            },
+                                        ]}
+                                        value={
+                                            duration
+                                        }
+                                        onChangeText={
+                                            setDuration
+                                        }
+                                        placeholder="60 min"
+                                        placeholderTextColor={
+                                            theme.muted
+                                        }
+                                        keyboardType="numeric"
+                                    />
+
+                                </View>
 
 
+                                <View
+                                    style={
+                                        styles.formHalf
+                                    }
+                                >
 
-                            <TextInput
-                                style={
-                                    styles.input
-                                }
-                                value={
-                                    duration
-                                }
-                                onChangeText={
-                                    setDuration
-                                }
-                                placeholder="60"
-                                placeholderTextColor="#66758C"
-                                keyboardType="numeric"
-                            />
+                                    <FormLabel
+                                        text="SETS"
+                                        theme={
+                                            theme
+                                        }
+                                    />
 
+                                    <TextInput
+                                        style={[
+                                            styles.input,
+                                            {
+                                                backgroundColor:
+                                                    theme.input,
+                                                borderColor:
+                                                    theme.border,
+                                                color:
+                                                    theme.text,
+                                            },
+                                        ]}
+                                        value={
+                                            sets
+                                        }
+                                        onChangeText={
+                                            setSets
+                                        }
+                                        placeholder="4"
+                                        placeholderTextColor={
+                                            theme.muted
+                                        }
+                                        keyboardType="numeric"
+                                    />
 
+                                </View>
 
-                            {/* SETS */}
-
-                            <Text
-                                style={
-                                    styles.inputLabel
-                                }
-                            >
-                                SETS
-                            </Text>
-
-
-
-                            <TextInput
-                                style={
-                                    styles.input
-                                }
-                                value={
-                                    sets
-                                }
-                                onChangeText={
-                                    setSets
-                                }
-                                placeholder="4"
-                                placeholderTextColor="#66758C"
-                                keyboardType="numeric"
-                            />
+                            </View>
 
 
-
-                            {/* REPS */}
-
-                            <Text
-                                style={
-                                    styles.inputLabel
-                                }
-                            >
+                            {/* ==================================================
                                 REPS
-                            </Text>
+                            ================================================== */}
 
-
+                            <FormLabel
+                                text="REPS"
+                                theme={
+                                    theme
+                                }
+                            />
 
                             <TextInput
-                                style={
-                                    styles.input
-                                }
+                                style={[
+                                    styles.input,
+                                    {
+                                        backgroundColor:
+                                            theme.input,
+                                        borderColor:
+                                            theme.border,
+                                        color:
+                                            theme.text,
+                                    },
+                                ]}
                                 value={
                                     reps
                                 }
                                 onChangeText={
                                     setReps
                                 }
-                                placeholder="12"
-                                placeholderTextColor="#66758C"
-                                keyboardType="numeric"
+                                placeholder="8-10"
+                                placeholderTextColor={
+                                    theme.muted
+                                }
+                                keyboardType="default"
+                                autoCapitalize="none"
                             />
 
 
+                            {/* ==================================================
+                                ASSIGN MEMBERS
+                            ================================================== */}
 
-                            {/* MEMBERS */}
-
-                            <Text
+                            <View
                                 style={
-                                    styles.inputLabel
+                                    styles.memberSelectHeader
                                 }
                             >
-                                ASSIGN TO MEMBERS
-                            </Text>
 
-
-
-                            {members.length ===
-                            0 ? (
+                                <FormLabel
+                                    text="ASSIGN TO MEMBERS"
+                                    theme={
+                                        theme
+                                    }
+                                />
 
                                 <View
-                                    style={
-                                        styles.noMembersBox
-                                    }
+                                    style={[
+                                        styles.selectedCount,
+                                        {
+                                            backgroundColor:
+                                                theme.iconBackground,
+                                        },
+                                    ]}
+                                >
+
+                                    <Text
+                                        style={[
+                                            styles.selectedCountText,
+                                            {
+                                                color:
+                                                    theme.primaryLight,
+                                            },
+                                        ]}
+                                    >
+                                        {
+                                            selectedMemberIds.length
+                                        }
+                                    </Text>
+
+                                </View>
+
+                            </View>
+
+
+                            {members.length === 0 ? (
+
+                                <View
+                                    style={[
+                                        styles.noMembersBox,
+                                        {
+                                            backgroundColor:
+                                                theme.input,
+                                            borderColor:
+                                                theme.border,
+                                        },
+                                    ]}
                                 >
 
                                     <Ionicons
                                         name="people-outline"
-                                        size={24}
-                                        color="#4DA3FF"
+                                        size={21}
+                                        color={
+                                            theme.primaryLight
+                                        }
                                     />
 
-
-
                                     <Text
-                                        style={
-                                            styles.noMembersText
-                                        }
+                                        style={[
+                                            styles.noMembersText,
+                                            {
+                                                color:
+                                                    theme.muted,
+                                            },
+                                        ]}
                                     >
                                         No members are assigned
                                         to you yet.
@@ -2080,45 +2678,61 @@ export default function TrainerWorkout() {
                                                         memberId ||
                                                         index
                                                     }
+
                                                     style={[
                                                         styles.selectMemberRow,
-                                                        selected &&
-                                                            styles.selectMemberRowActive,
+                                                        {
+                                                            backgroundColor:
+                                                                selected
+                                                                    ? theme.iconBackground
+                                                                    : theme.input,
+                                                            borderColor:
+                                                                selected
+                                                                    ? theme.primary
+                                                                    : theme.border,
+                                                        },
                                                     ]}
+
                                                     onPress={() =>
                                                         toggleMember(
                                                             memberId
                                                         )
                                                     }
+
                                                     activeOpacity={
                                                         0.8
                                                     }
                                                 >
 
                                                     <View
-                                                        style={
-                                                            styles.selectMemberAvatar
-                                                        }
+                                                        style={[
+                                                            styles.selectMemberAvatar,
+                                                            {
+                                                                backgroundColor:
+                                                                    theme.iconBackground,
+                                                            },
+                                                        ]}
                                                     >
 
                                                         <Text
-                                                            style={
-                                                                styles.selectMemberInitial
-                                                            }
+                                                            style={[
+                                                                styles.selectMemberInitial,
+                                                                {
+                                                                    color:
+                                                                        theme.primaryLight,
+                                                                },
+                                                            ]}
                                                         >
                                                             {(
                                                                 member.name ||
                                                                 member.username ||
                                                                 "M"
                                                             )
-                                                                .charAt(
-                                                                    0
-                                                                )
+                                                                .charAt(0)
                                                                 .toUpperCase()}
                                                         </Text>
 
                                                     </View>
-
 
 
                                                     <View
@@ -2128,21 +2742,30 @@ export default function TrainerWorkout() {
                                                     >
 
                                                         <Text
-                                                            style={
-                                                                styles.selectMemberName
-                                                            }
+                                                            style={[
+                                                                styles.selectMemberName,
+                                                                {
+                                                                    color:
+                                                                        theme.text,
+                                                                },
+                                                            ]}
                                                         >
-                                                            {member.name ||
+                                                            {
+                                                                member.name ||
                                                                 member.username ||
-                                                                "Member"}
+                                                                "Member"
+                                                            }
                                                         </Text>
 
 
-
                                                         <Text
-                                                            style={
-                                                                styles.selectMemberUsername
-                                                            }
+                                                            style={[
+                                                                styles.selectMemberUsername,
+                                                                {
+                                                                    color:
+                                                                        theme.muted,
+                                                                },
+                                                            ]}
                                                         >
                                                             {member.username
                                                                 ? `@${member.username}`
@@ -2152,12 +2775,19 @@ export default function TrainerWorkout() {
                                                     </View>
 
 
-
                                                     <View
                                                         style={[
                                                             styles.checkbox,
-                                                            selected &&
-                                                                styles.checkboxActive,
+                                                            {
+                                                                borderColor:
+                                                                    selected
+                                                                        ? theme.primary
+                                                                        : theme.border,
+                                                                backgroundColor:
+                                                                    selected
+                                                                        ? theme.primary
+                                                                        : "transparent",
+                                                            },
                                                         ]}
                                                     >
 
@@ -2165,7 +2795,7 @@ export default function TrainerWorkout() {
 
                                                             <Ionicons
                                                                 name="checkmark"
-                                                                size={17}
+                                                                size={16}
                                                                 color="#FFFFFF"
                                                             />
 
@@ -2174,6 +2804,7 @@ export default function TrainerWorkout() {
                                                     </View>
 
                                                 </TouchableOpacity>
+
                                             );
                                         }
                                     )}
@@ -2182,13 +2813,22 @@ export default function TrainerWorkout() {
                             )}
 
 
-
-                            {/* SAVE */}
+                            {/* ==================================================
+                                SAVE
+                            ================================================== */}
 
                             <TouchableOpacity
-                                style={
-                                    styles.saveButton
-                                }
+                                style={[
+                                    styles.saveButton,
+                                    {
+                                        backgroundColor:
+                                            theme.primary,
+                                        opacity:
+                                            saving
+                                                ? 0.7
+                                                : 1,
+                                    },
+                                ]}
                                 onPress={
                                     createWorkout
                                 }
@@ -2213,11 +2853,9 @@ export default function TrainerWorkout() {
 
                                         <Ionicons
                                             name="checkmark-circle-outline"
-                                            size={21}
+                                            size={20}
                                             color="#FFFFFF"
                                         />
-
-
 
                                         <Text
                                             style={
@@ -2233,14 +2871,6 @@ export default function TrainerWorkout() {
 
                             </TouchableOpacity>
 
-
-
-                            <View
-                                style={{
-                                    height: 30,
-                                }}
-                            />
-
                         </ScrollView>
 
                     </View>
@@ -2250,19 +2880,46 @@ export default function TrainerWorkout() {
             </Modal>
 
 
-
             {/* ==================================================
-                BOTTOM NAV
+                BOTTOM NAVIGATION
             ================================================== */}
 
             <TrainerBottomNav
                 active="workouts"
+                theme={
+                    theme
+                }
             />
 
         </View>
     );
 }
 
+
+// ============================================================
+// FORM LABEL
+// ============================================================
+
+function FormLabel({
+    text,
+    theme,
+}) {
+
+    return (
+
+        <Text
+            style={[
+                styles.inputLabel,
+                {
+                    color:
+                        theme.muted,
+                },
+            ]}
+        >
+            {text}
+        </Text>
+    );
+}
 
 
 // ============================================================
@@ -2273,38 +2930,63 @@ function DetailRow({
     icon,
     label,
     value,
+    theme,
 }) {
 
     return (
 
         <View
-            style={
-                styles.detailRow
-            }
+            style={[
+                styles.detailRow,
+                {
+                    borderBottomColor:
+                        theme.border,
+                },
+            ]}
         >
 
-            <Ionicons
-                name={icon}
-                size={21}
-                color="#4DA3FF"
-            />
+            <View
+                style={[
+                    styles.detailIcon,
+                    {
+                        backgroundColor:
+                            theme.iconBackground,
+                    },
+                ]}
+            >
 
+                <Ionicons
+                    name={icon}
+                    size={17}
+                    color={
+                        theme.primaryLight
+                    }
+                />
+
+            </View>
 
 
             <Text
-                style={
-                    styles.detailLabel
-                }
+                style={[
+                    styles.detailLabel,
+                    {
+                        color:
+                            theme.muted,
+                    },
+                ]}
             >
                 {label}
             </Text>
 
 
-
             <Text
-                style={
-                    styles.detailValue
-                }
+                style={[
+                    styles.detailValue,
+                    {
+                        color:
+                            theme.text,
+                    },
+                ]}
             >
                 {value}
             </Text>
@@ -2314,13 +2996,13 @@ function DetailRow({
 }
 
 
-
 // ============================================================
-// BOTTOM NAVIGATION
+// TRAINER BOTTOM NAVIGATION
 // ============================================================
 
 function TrainerBottomNav({
     active,
+    theme,
 }) {
 
     const goTo = (
@@ -2331,10 +3013,8 @@ function TrainerBottomNav({
             screen ===
             active
         ) {
-
             return;
         }
-
 
 
         if (
@@ -2360,8 +3040,19 @@ function TrainerBottomNav({
             "workouts"
         ) {
 
+            // IMPORTANT:
+            // Existing route is /trainer/workout
             router.replace(
                 "/trainer/workout"
+            );
+
+        } else if (
+            screen ===
+            "attendance"
+        ) {
+
+            router.replace(
+                "/trainer/attendance"
             );
 
         } else if (
@@ -2376,13 +3067,18 @@ function TrainerBottomNav({
     };
 
 
-
     return (
 
         <View
-            style={
-                styles.bottomNav
-            }
+            style={[
+                styles.bottomNav,
+                {
+                    backgroundColor:
+                        theme.nav,
+                    borderTopColor:
+                        theme.border,
+                },
+            ]}
         >
 
             <NavItem
@@ -2392,11 +3088,13 @@ function TrainerBottomNav({
                     active ===
                     "home"
                 }
+                theme={
+                    theme
+                }
                 onPress={() =>
                     goTo("home")
                 }
             />
-
 
 
             <NavItem
@@ -2406,11 +3104,13 @@ function TrainerBottomNav({
                     active ===
                     "members"
                 }
+                theme={
+                    theme
+                }
                 onPress={() =>
                     goTo("members")
                 }
             />
-
 
 
             <NavItem
@@ -2420,11 +3120,29 @@ function TrainerBottomNav({
                     active ===
                     "workouts"
                 }
+                theme={
+                    theme
+                }
                 onPress={() =>
                     goTo("workouts")
                 }
             />
 
+
+            <NavItem
+                icon="calendar-outline"
+                label="Attendance"
+                active={
+                    active ===
+                    "attendance"
+                }
+                theme={
+                    theme
+                }
+                onPress={() =>
+                    goTo("attendance")
+                }
+            />
 
 
             <NavItem
@@ -2433,6 +3151,9 @@ function TrainerBottomNav({
                 active={
                     active ===
                     "profile"
+                }
+                theme={
+                    theme
                 }
                 onPress={() =>
                     goTo("profile")
@@ -2444,7 +3165,6 @@ function TrainerBottomNav({
 }
 
 
-
 // ============================================================
 // NAV ITEM
 // ============================================================
@@ -2454,6 +3174,7 @@ function NavItem({
     label,
     active,
     onPress,
+    theme,
 }) {
 
     return (
@@ -2462,52 +3183,62 @@ function NavItem({
             style={
                 styles.navItem
             }
-            onPress={onPress}
-            activeOpacity={0.8}
+            onPress={
+                onPress
+            }
+            activeOpacity={
+                0.8
+            }
         >
 
             <View
                 style={[
                     styles.navIconBox,
-
-                    active &&
-                        styles.navIconBoxActive,
+                    active && {
+                        backgroundColor:
+                            theme.iconBackground,
+                    },
                 ]}
             >
 
                 <Ionicons
                     name={icon}
-                    size={27}
+                    size={21}
                     color={
                         active
-                            ? "#4DA3FF"
-                            : "#AAB6C8"
+                            ? theme.primaryLight
+                            : theme.muted
                     }
                 />
 
             </View>
 
 
-
             <Text
                 style={[
                     styles.navLabel,
-
-                    active &&
-                        styles.navLabelActive,
+                    {
+                        color:
+                            active
+                                ? theme.primaryLight
+                                : theme.muted,
+                    },
                 ]}
             >
                 {label}
             </Text>
 
 
-
             {active && (
 
                 <View
-                    style={
-                        styles.navIndicator
-                    }
+                    style={[
+                        styles.navIndicator,
+                        {
+                            backgroundColor:
+                                theme.primaryLight,
+                        },
+                    ]}
                 />
 
             )}
@@ -2517,1244 +3248,964 @@ function NavItem({
 }
 
 
-
 // ============================================================
 // STYLES
 // ============================================================
 
-const styles = StyleSheet.create({
+const styles =
+    StyleSheet.create({
 
-    // ========================================================
-    // MAIN
-    // ========================================================
+        // ====================================================
+        // MAIN
+        // ====================================================
 
-    container: {
-        flex: 1,
-        backgroundColor: "#020617",
-    },
-
-
-
-    // ========================================================
-    // HEADER
-    // ========================================================
-
-    header: {
-
-        height: 112,
-
-        paddingHorizontal: 24,
-
-        paddingTop: 25,
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        justifyContent:
-            "space-between",
-
-        borderBottomWidth: 1,
-
-        borderBottomColor:
-            "#102044",
-    },
-
-
-
-    headerEyebrow: {
-
-        color: "#4D9AFF",
-
-        fontSize: 11,
-
-        fontWeight: "900",
-
-        letterSpacing: 2.4,
-
-        marginBottom: 4,
-    },
-
-
-
-    headerTitle: {
-
-        color: "#FFFFFF",
-
-        fontSize: 29,
-
-        fontWeight: "900",
-    },
-
-
-
-    addButton: {
-
-        width: 58,
-
-        height: 58,
-
-        borderRadius: 18,
-
-        backgroundColor:
-            "#1264E8",
-
-        alignItems:
-            "center",
-
-        justifyContent:
-            "center",
-
-        elevation: 5,
-
-        shadowColor:
-            "#1264E8",
-
-        shadowOpacity: 0.3,
-
-        shadowRadius: 8,
-
-        shadowOffset: {
-            width: 0,
-            height: 4,
+        container: {
+            flex: 1,
         },
-    },
 
 
+        // ====================================================
+        // HEADER
+        // ====================================================
 
-    // ========================================================
-    // CONTENT
-    // ========================================================
+        header: {
+            minHeight: 105,
+            paddingHorizontal: 18,
+            paddingTop: 45,
+            paddingBottom: 12,
 
-    scrollContent: {
+            flexDirection:
+                "row",
 
-        paddingHorizontal: 24,
+            alignItems:
+                "center",
 
-        paddingTop: 24,
+            justifyContent:
+                "space-between",
 
-        paddingBottom: 30,
-    },
+            borderBottomWidth:
+                1,
+        },
 
+        headerTextContainer: {
+            flex: 1,
+        },
 
+        headerEyebrow: {
+            fontSize: 10,
+            fontWeight: "900",
+            letterSpacing: 1.8,
+            marginBottom: 3,
+        },
 
-    // ========================================================
-    // CREATE CARD
-    // ========================================================
+        headerTitle: {
+            fontSize: 26,
+            fontWeight: "900",
+        },
 
-    createCard: {
+        headerActions: {
+            flexDirection:
+                "row",
 
-        minHeight: 130,
+            alignItems:
+                "center",
 
-        backgroundColor:
-            "#071321",
+            gap: 8,
+        },
 
-        borderRadius: 21,
+        headerButton: {
+            width: 43,
+            height: 43,
+            borderRadius: 14,
 
-        borderWidth: 1,
+            borderWidth: 1,
 
-        borderColor:
-            "#124783",
+            alignItems:
+                "center",
 
-        paddingHorizontal: 18,
+            justifyContent:
+                "center",
+        },
 
-        paddingVertical: 18,
+        addButton: {
+            width: 43,
+            height: 43,
+            borderRadius: 14,
 
-        flexDirection: "row",
+            alignItems:
+                "center",
 
-        alignItems: "center",
-    },
+            justifyContent:
+                "center",
+        },
 
 
+        // ====================================================
+        // CONTENT
+        // ====================================================
 
-    createIcon: {
+        scrollContent: {
+            paddingHorizontal: 18,
+            paddingTop: 18,
+        },
 
-        width: 70,
 
-        height: 70,
+        // ====================================================
+        // CREATE CARD
+        // ====================================================
 
-        borderRadius: 19,
+        createCard: {
+            minHeight: 105,
 
-        backgroundColor:
-            "#102F69",
+            borderRadius: 20,
 
-        alignItems:
-            "center",
+            borderWidth: 1,
 
-        justifyContent:
-            "center",
+            paddingHorizontal: 14,
+            paddingVertical: 14,
 
-        marginRight: 15,
-    },
+            flexDirection:
+                "row",
 
+            alignItems:
+                "center",
+        },
 
+        createIcon: {
+            width: 56,
+            height: 56,
 
-    createText: {
+            borderRadius: 17,
 
-        flex: 1,
-    },
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
 
+            marginRight: 13,
+        },
 
-    createTitle: {
+        createText: {
+            flex: 1,
+            paddingRight: 8,
+        },
 
-        color: "#FFFFFF",
+        createTitle: {
+            fontSize: 16,
+            fontWeight: "900",
+            marginBottom: 4,
+        },
 
-        fontSize: 18,
+        createSubtitle: {
+            fontSize: 11,
+            lineHeight: 16,
+        },
 
-        fontWeight: "800",
+        chevronBox: {
+            width: 32,
+            height: 32,
 
-        marginBottom: 5,
-    },
+            borderRadius: 11,
 
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
+        },
 
-    createSubtitle: {
 
-        color: "#A4B4CA",
+        // ====================================================
+        // SECTION
+        // ====================================================
 
-        fontSize: 12,
+        sectionHeader: {
+            marginTop: 23,
+            marginBottom: 10,
 
-        lineHeight: 18,
-    },
+            flexDirection:
+                "row",
 
+            alignItems:
+                "center",
 
+            justifyContent:
+                "space-between",
+        },
 
-    // ========================================================
-    // SECTION
-    // ========================================================
+        sectionEyebrow: {
+            fontSize: 9,
+            fontWeight: "900",
+            letterSpacing: 1.5,
+            marginBottom: 2,
+        },
 
-    sectionHeader: {
+        sectionTitle: {
+            fontSize: 17,
+            fontWeight: "900",
+        },
 
-        marginTop: 28,
+        countPill: {
+            minWidth: 34,
+            height: 30,
 
-        marginBottom: 13,
+            paddingHorizontal: 9,
 
-        flexDirection: "row",
+            borderRadius: 11,
 
-        alignItems: "center",
+            borderWidth: 1,
 
-        justifyContent:
-            "space-between",
-    },
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
+        },
 
+        sectionCount: {
+            fontSize: 13,
+            fontWeight: "900",
+        },
 
-    sectionTitle: {
 
-        color: "#FFFFFF",
+        // ====================================================
+        // WORKOUT LIST
+        // ====================================================
 
-        fontSize: 18,
+        workoutList: {
+            borderRadius: 20,
 
-        fontWeight: "900",
+            borderWidth: 1,
 
-        letterSpacing: 0.5,
-    },
+            paddingHorizontal: 12,
+        },
 
+        workoutRow: {
+            minHeight: 82,
 
+            flexDirection:
+                "row",
 
-    sectionCountContainer: {
+            alignItems:
+                "center",
 
-        flexDirection: "row",
+            borderBottomWidth:
+                1,
 
-        alignItems: "center",
-    },
+            paddingVertical: 8,
+        },
 
+        workoutIcon: {
+            width: 47,
+            height: 47,
 
+            borderRadius: 15,
 
-    sectionCount: {
+            alignItems:
+                "center",
 
-        color: "#FFFFFF",
+            justifyContent:
+                "center",
 
-        fontSize: 20,
+            marginRight: 11,
+        },
 
-        fontWeight: "900",
+        workoutInfo: {
+            flex: 1,
+            paddingRight: 8,
+        },
 
-        marginRight: 5,
-    },
+        workoutName: {
+            fontSize: 14,
+            fontWeight: "900",
+            marginBottom: 3,
+        },
 
+        workoutDescription: {
+            fontSize: 10,
+            lineHeight: 14,
+            marginBottom: 4,
+        },
 
+        assignedRow: {
+            flexDirection:
+                "row",
 
-    // ========================================================
-    // WORKOUT LIST
-    // ========================================================
+            alignItems:
+                "center",
 
-    workoutList: {
+            gap: 4,
+        },
 
-        backgroundColor:
-            "#071321",
+        assignedText: {
+            fontSize: 10,
+            fontWeight: "800",
+        },
 
-        borderRadius: 21,
 
-        borderWidth: 1,
+        // ====================================================
+        // EMPTY
+        // ====================================================
 
-        borderColor:
-            "#102D56",
+        emptyCard: {
+            minHeight: 180,
 
-        paddingHorizontal: 14,
+            borderRadius: 20,
 
-        paddingVertical: 4,
-    },
+            borderWidth: 1,
 
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
 
-    workoutRow: {
+            padding:
+                22,
+        },
 
-        minHeight: 105,
+        emptyMemberCard: {
+            minHeight: 150,
 
-        flexDirection: "row",
+            borderRadius: 20,
 
-        alignItems: "center",
+            borderWidth: 1,
 
-        borderBottomWidth: 1,
+            alignItems:
+                "center",
 
-        borderBottomColor:
-            "#102344",
-    },
+            justifyContent:
+                "center",
 
+            padding:
+                20,
+        },
 
+        emptyIcon: {
+            width: 58,
+            height: 58,
 
-    workoutIcon: {
+            borderRadius: 18,
 
-        width: 57,
+            alignItems:
+                "center",
 
-        height: 57,
+            justifyContent:
+                "center",
 
-        borderRadius: 18,
+            marginBottom: 11,
+        },
 
-        alignItems:
-            "center",
+        emptyIconSmall: {
+            width: 50,
+            height: 50,
 
-        justifyContent:
-            "center",
+            borderRadius: 16,
 
-        marginRight: 13,
-    },
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
 
+            marginBottom: 10,
+        },
 
-    workoutIconBlue: {
+        emptyTitle: {
+            fontSize: 15,
+            fontWeight: "900",
+            marginBottom: 4,
+        },
 
-        backgroundColor:
-            "#173C91",
-    },
+        emptySubtitle: {
+            fontSize: 11,
+            lineHeight: 17,
+            textAlign:
+                "center",
+            maxWidth: 250,
+        },
 
 
+        // ====================================================
+        // MEMBERS
+        // ====================================================
 
-    workoutIconGreen: {
+        memberList: {
+            borderRadius: 20,
 
-        backgroundColor:
-            "#075746",
-    },
+            borderWidth: 1,
 
+            paddingHorizontal: 12,
+        },
 
+        memberRow: {
+            minHeight: 69,
 
-    workoutIconOrange: {
+            flexDirection:
+                "row",
 
-        backgroundColor:
-            "#744300",
-    },
+            alignItems:
+                "center",
 
+            borderBottomWidth:
+                1,
+        },
 
+        memberAvatar: {
+            width: 43,
+            height: 43,
 
-    workoutInfo: {
+            borderRadius: 14,
 
-        flex: 1,
+            alignItems:
+                "center",
 
-        paddingRight: 10,
-    },
+            justifyContent:
+                "center",
 
+            marginRight: 11,
+        },
 
+        memberInitial: {
+            fontSize: 17,
+            fontWeight: "900",
+        },
 
-    workoutName: {
+        memberInfo: {
+            flex: 1,
+        },
 
-        color: "#FFFFFF",
+        memberName: {
+            fontSize: 13,
+            fontWeight: "900",
+            marginBottom: 2,
+        },
 
-        fontSize: 16,
+        memberUsername: {
+            fontSize: 10,
+        },
 
-        fontWeight: "800",
+        memberArrow: {
+            width: 30,
+            height: 30,
 
-        marginBottom: 4,
-    },
+            borderRadius: 10,
 
+            alignItems:
+                "center",
 
+            justifyContent:
+                "center",
+        },
 
-    workoutDescription: {
 
-        color: "#91A0B6",
+        // ====================================================
+        // MODAL
+        // ====================================================
 
-        fontSize: 11,
+        modalOverlay: {
+            flex: 1,
 
-        lineHeight: 16,
+            backgroundColor:
+                "rgba(0,0,0,0.68)",
 
-        marginBottom: 5,
-    },
+            justifyContent:
+                "flex-end",
+        },
 
+        modalCard: {
+            borderTopLeftRadius: 25,
+            borderTopRightRadius: 25,
 
+            borderWidth: 1,
 
-    assignedText: {
+            paddingHorizontal: 18,
+            paddingTop: 10,
+            paddingBottom: 25,
 
-        color: "#4DA3FF",
+            maxHeight: "78%",
+        },
 
-        fontSize: 11,
+        createModal: {
+            borderTopLeftRadius: 25,
+            borderTopRightRadius: 25,
 
-        fontWeight: "700",
-    },
+            borderWidth: 1,
 
+            paddingHorizontal: 18,
+            paddingTop: 10,
+            paddingBottom: 10,
 
+            maxHeight: "91%",
+        },
 
-    // ========================================================
-    // EMPTY
-    // ========================================================
+        modalHandle: {
+            width: 38,
+            height: 4,
 
-    emptyCard: {
+            borderRadius: 4,
 
-        minHeight: 230,
+            backgroundColor:
+                "#68758A",
 
-        backgroundColor:
-            "#071321",
+            alignSelf:
+                "center",
 
-        borderRadius: 21,
+            marginBottom: 14,
+        },
 
-        borderWidth: 1,
+        modalHeader: {
+            flexDirection:
+                "row",
 
-        borderColor:
-            "#102D56",
+            alignItems:
+                "center",
 
-        alignItems:
-            "center",
+            justifyContent:
+                "space-between",
 
-        justifyContent:
-            "center",
+            marginBottom: 16,
+        },
 
-        padding: 25,
-    },
+        modalTitleWrap: {
+            flex: 1,
+            paddingRight: 12,
+        },
 
+        modalEyebrow: {
+            fontSize: 9,
+            fontWeight: "900",
+            letterSpacing: 1.5,
+            marginBottom: 3,
+        },
 
+        modalTitle: {
+            fontSize: 20,
+            fontWeight: "900",
+        },
 
-    emptyMemberCard: {
+        modalSmallText: {
+            fontSize: 10,
+            marginTop: 3,
+        },
 
-        minHeight: 190,
+        closeButton: {
+            width: 36,
+            height: 36,
 
-        backgroundColor:
-            "#071321",
+            borderRadius: 12,
 
-        borderRadius: 21,
+            alignItems:
+                "center",
 
-        borderWidth: 1,
+            justifyContent:
+                "center",
+        },
 
-        borderColor:
-            "#102D56",
+        modalDescription: {
+            fontSize: 12,
+            lineHeight: 18,
+            marginBottom: 13,
+        },
 
-        alignItems:
-            "center",
+        detailsBox: {
+            borderRadius: 16,
 
-        justifyContent:
-            "center",
+            borderWidth: 1,
 
-        padding: 25,
-    },
+            paddingHorizontal: 12,
+        },
 
+        detailRow: {
+            minHeight: 48,
 
+            flexDirection:
+                "row",
 
-    emptyIcon: {
+            alignItems:
+                "center",
 
-        width: 70,
+            borderBottomWidth:
+                1,
+        },
 
-        height: 70,
+        detailIcon: {
+            width: 32,
+            height: 32,
 
-        borderRadius: 22,
+            borderRadius: 10,
 
-        backgroundColor:
-            "#102F69",
+            alignItems:
+                "center",
 
-        alignItems:
-            "center",
+            justifyContent:
+                "center",
 
-        justifyContent:
-            "center",
+            marginRight: 9,
+        },
 
-        marginBottom: 15,
-    },
+        detailLabel: {
+            fontSize: 11,
 
+            flex: 1,
+        },
 
+        detailValue: {
+            fontSize: 12,
+            fontWeight: "900",
+        },
 
-    memberEmptyIcon: {
+        modalMembers: {
+            marginTop: 16,
+            marginBottom: 14,
+        },
 
-        width: 65,
+        modalSectionTitle: {
+            fontSize: 9,
+            fontWeight: "900",
+            letterSpacing: 1.4,
+            marginBottom: 7,
+        },
 
-        height: 65,
+        modalMemberPill: {
+            alignSelf:
+                "flex-start",
 
-        borderRadius: 20,
+            flexDirection:
+                "row",
 
-        backgroundColor:
-            "#102F69",
+            alignItems:
+                "center",
 
-        alignItems:
-            "center",
+            paddingHorizontal: 11,
+            height: 34,
 
-        justifyContent:
-            "center",
+            borderRadius: 11,
 
-        marginBottom: 13,
-    },
+            gap: 6,
+        },
 
+        modalMemberCount: {
+            fontSize: 11,
+            fontWeight: "900",
+        },
 
+        deleteButton: {
+            height: 49,
 
-    emptyTitle: {
+            borderRadius: 14,
 
-        color: "#FFFFFF",
+            borderWidth: 1,
 
-        fontSize: 17,
+            flexDirection:
+                "row",
 
-        fontWeight: "800",
+            alignItems:
+                "center",
 
-        marginBottom: 5,
-    },
+            justifyContent:
+                "center",
+        },
 
+        deleteText: {
+            fontSize: 12,
+            fontWeight: "900",
+            marginLeft: 7,
+        },
 
 
-    emptySubtitle: {
+        // ====================================================
+        // FORM
+        // ====================================================
 
-        color: "#78889F",
+        inputLabel: {
+            fontSize: 9,
+            fontWeight: "900",
+            letterSpacing: 1.2,
+            marginBottom: 6,
+            marginTop: 5,
+        },
 
-        fontSize: 12,
+        input: {
+            height: 47,
 
-        lineHeight: 18,
+            borderRadius: 13,
 
-        textAlign: "center",
-    },
+            borderWidth: 1,
 
+            paddingHorizontal: 13,
 
+            fontSize: 13,
+            fontWeight: "600",
 
-    // ========================================================
-    // MEMBERS
-    // ========================================================
+            marginBottom: 9,
+        },
 
-    memberList: {
+        textArea: {
+            height: 76,
 
-        backgroundColor:
-            "#071321",
+            paddingTop: 12,
 
-        borderRadius: 21,
+            textAlignVertical:
+                "top",
+        },
 
-        borderWidth: 1,
+        formRow: {
+            flexDirection:
+                "row",
 
-        borderColor:
-            "#102D56",
+            gap: 10,
+        },
 
-        paddingHorizontal: 14,
-    },
+        formHalf: {
+            flex: 1,
+        },
 
+        memberSelectHeader: {
+            flexDirection:
+                "row",
 
+            alignItems:
+                "flex-end",
 
-    memberRow: {
+            justifyContent:
+                "space-between",
+        },
 
-        minHeight: 80,
+        selectedCount: {
+            minWidth: 28,
+            height: 25,
 
-        flexDirection: "row",
+            borderRadius: 9,
 
-        alignItems: "center",
+            alignItems:
+                "center",
 
-        borderBottomWidth: 1,
+            justifyContent:
+                "center",
 
-        borderBottomColor:
-            "#102344",
-    },
+            marginBottom: 6,
+        },
 
+        selectedCountText: {
+            fontSize: 10,
+            fontWeight: "900",
+        },
 
+        noMembersBox: {
+            minHeight: 65,
 
-    memberAvatar: {
+            borderRadius: 14,
 
-        width: 50,
+            borderWidth: 1,
 
-        height: 50,
+            flexDirection:
+                "row",
 
-        borderRadius: 17,
+            alignItems:
+                "center",
 
-        backgroundColor:
-            "#173C91",
+            paddingHorizontal: 13,
 
-        alignItems:
-            "center",
+            marginBottom: 10,
+        },
 
-        justifyContent:
-            "center",
+        noMembersText: {
+            fontSize: 11,
+            marginLeft: 9,
+            flex: 1,
+        },
 
-        marginRight: 13,
-    },
+        selectMemberRow: {
+            minHeight: 60,
 
+            borderRadius: 14,
 
+            borderWidth: 1,
 
-    memberInitial: {
+            flexDirection:
+                "row",
 
-        color: "#FFFFFF",
+            alignItems:
+                "center",
 
-        fontSize: 20,
+            paddingHorizontal: 10,
 
-        fontWeight: "800",
-    },
+            marginBottom: 7,
+        },
 
+        selectMemberAvatar: {
+            width: 38,
+            height: 38,
 
+            borderRadius: 12,
 
-    memberInfo: {
+            alignItems:
+                "center",
 
-        flex: 1,
-    },
+            justifyContent:
+                "center",
 
+            marginRight: 10,
+        },
 
+        selectMemberInitial: {
+            fontSize: 15,
+            fontWeight: "900",
+        },
 
-    memberName: {
+        selectMemberInfo: {
+            flex: 1,
+        },
 
-        color: "#FFFFFF",
+        selectMemberName: {
+            fontSize: 12,
+            fontWeight: "900",
+            marginBottom: 2,
+        },
 
-        fontSize: 14,
+        selectMemberUsername: {
+            fontSize: 9,
+        },
 
-        fontWeight: "800",
+        checkbox: {
+            width: 25,
+            height: 25,
 
-        marginBottom: 3,
-    },
+            borderRadius: 8,
 
+            borderWidth: 1,
 
+            alignItems:
+                "center",
 
-    memberUsername: {
+            justifyContent:
+                "center",
+        },
 
-        color: "#8493A8",
+        saveButton: {
+            height: 51,
 
-        fontSize: 11,
-    },
+            borderRadius: 15,
 
+            marginTop: 13,
 
+            flexDirection:
+                "row",
 
-    // ========================================================
-    // MODAL
-    // ========================================================
+            alignItems:
+                "center",
 
-    modalOverlay: {
+            justifyContent:
+                "center",
+        },
 
-        flex: 1,
+        saveButtonText: {
+            color: "#FFFFFF",
 
-        backgroundColor:
-            "rgba(0,0,0,0.72)",
+            fontSize: 13,
+            fontWeight: "900",
 
-        justifyContent:
-            "flex-end",
-    },
+            marginLeft: 7,
+        },
 
 
+        // ====================================================
+        // BOTTOM NAV
+        // ====================================================
 
-    modalCard: {
+        bottomNav: {
+            position:
+                "absolute",
 
-        backgroundColor:
-            "#071321",
+            left: 0,
+            right: 0,
+            bottom: 0,
 
-        borderTopLeftRadius: 28,
+            height: 82,
 
-        borderTopRightRadius: 28,
+            borderTopWidth: 1,
 
-        borderWidth: 1,
+            flexDirection:
+                "row",
 
-        borderColor:
-            "#153E73",
+            alignItems:
+                "center",
 
-        paddingHorizontal: 23,
+            justifyContent:
+                "space-around",
 
-        paddingTop: 22,
+            paddingBottom: 4,
 
-        paddingBottom: 35,
+            elevation: 20,
+        },
 
-        minHeight: 330,
-    },
+        navItem: {
+            flex: 1,
 
+            height: 70,
 
+            alignItems:
+                "center",
 
-    createModal: {
+            justifyContent:
+                "center",
 
-        backgroundColor:
-            "#071321",
+            position:
+                "relative",
+        },
 
-        borderTopLeftRadius: 28,
+        navIconBox: {
+            width: 48,
+            height: 37,
 
-        borderTopRightRadius: 28,
+            borderRadius: 12,
 
-        borderWidth: 1,
+            alignItems:
+                "center",
 
-        borderColor:
-            "#153E73",
+            justifyContent:
+                "center",
+        },
 
-        paddingHorizontal: 23,
+        navLabel: {
+            fontSize: 9,
+            fontWeight: "800",
 
-        paddingTop: 22,
+            marginTop: 2,
+        },
 
-        paddingBottom: 15,
+        navIndicator: {
+            position:
+                "absolute",
 
-        maxHeight: "92%",
-    },
+            bottom: 1,
 
+            width: 32,
+            height: 3,
 
+            borderRadius: 3,
+        },
 
-    modalHeader: {
 
-        flexDirection: "row",
+        // ====================================================
+        // LOADING
+        // ====================================================
 
-        alignItems: "center",
+        loadingContainer: {
+            flex: 1,
 
-        justifyContent:
-            "space-between",
+            alignItems:
+                "center",
 
-        marginBottom: 22,
-    },
+            justifyContent:
+                "center",
+        },
 
+        loadingText: {
+            fontSize: 12,
+            marginTop: 10,
+        },
 
-
-    modalTitle: {
-
-        color: "#FFFFFF",
-
-        fontSize: 22,
-
-        fontWeight: "900",
-    },
-
-
-
-    modalSmallText: {
-
-        color: "#7F90A7",
-
-        fontSize: 11,
-
-        marginTop: 3,
-    },
-
-
-
-    modalDescription: {
-
-        color: "#A4B4CA",
-
-        fontSize: 13,
-
-        lineHeight: 20,
-
-        marginBottom: 18,
-    },
-
-
-
-    detailRow: {
-
-        minHeight: 52,
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        borderBottomWidth: 1,
-
-        borderBottomColor:
-            "#102344",
-    },
-
-
-
-    detailLabel: {
-
-        color: "#7789A2",
-
-        fontSize: 12,
-
-        marginLeft: 12,
-
-        flex: 1,
-    },
-
-
-
-    detailValue: {
-
-        color: "#FFFFFF",
-
-        fontSize: 13,
-
-        fontWeight: "800",
-    },
-
-
-
-    modalMembers: {
-
-        marginTop: 20,
-
-        marginBottom: 20,
-    },
-
-
-
-    modalSectionTitle: {
-
-        color: "#73849F",
-
-        fontSize: 11,
-
-        fontWeight: "900",
-
-        letterSpacing: 1.5,
-
-        marginBottom: 6,
-    },
-
-
-
-    modalMemberCount: {
-
-        color: "#4DA3FF",
-
-        fontSize: 15,
-
-        fontWeight: "800",
-    },
-
-
-
-    deleteButton: {
-
-        height: 54,
-
-        borderRadius: 16,
-
-        borderWidth: 1,
-
-        borderColor:
-            "#55202B",
-
-        backgroundColor:
-            "#100D15",
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        justifyContent:
-            "center",
-    },
-
-
-
-    deleteText: {
-
-        color: "#FF4D5E",
-
-        fontSize: 14,
-
-        fontWeight: "800",
-
-        marginLeft: 8,
-    },
-
-
-
-    // ========================================================
-    // FORM
-    // ========================================================
-
-    inputLabel: {
-
-        color: "#73849F",
-
-        fontSize: 11,
-
-        fontWeight: "900",
-
-        letterSpacing: 1.4,
-
-        marginBottom: 7,
-
-        marginTop: 7,
-    },
-
-
-
-    input: {
-
-        height: 53,
-
-        borderRadius: 15,
-
-        backgroundColor:
-            "#020A16",
-
-        borderWidth: 1,
-
-        borderColor:
-            "#15345F",
-
-        paddingHorizontal: 15,
-
-        color: "#FFFFFF",
-
-        fontSize: 14,
-
-        fontWeight: "600",
-
-        marginBottom: 12,
-    },
-
-
-
-    textArea: {
-
-        height: 95,
-
-        paddingTop: 14,
-
-        textAlignVertical:
-            "top",
-    },
-
-
-
-    noMembersBox: {
-
-        minHeight: 80,
-
-        borderRadius: 16,
-
-        backgroundColor:
-            "#020A16",
-
-        borderWidth: 1,
-
-        borderColor:
-            "#15345F",
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        paddingHorizontal: 15,
-
-        marginBottom: 15,
-    },
-
-
-
-    noMembersText: {
-
-        color: "#8B9AB0",
-
-        fontSize: 12,
-
-        marginLeft: 10,
-
-        flex: 1,
-    },
-
-
-
-    selectMemberRow: {
-
-        minHeight: 70,
-
-        borderRadius: 16,
-
-        backgroundColor:
-            "#020A16",
-
-        borderWidth: 1,
-
-        borderColor:
-            "#122D51",
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        paddingHorizontal: 11,
-
-        marginBottom: 8,
-    },
-
-
-
-    selectMemberRowActive: {
-
-        backgroundColor:
-            "#0A214D",
-
-        borderColor:
-            "#2F80FF",
-    },
-
-
-
-    selectMemberAvatar: {
-
-        width: 43,
-
-        height: 43,
-
-        borderRadius: 14,
-
-        backgroundColor:
-            "#173C91",
-
-        alignItems:
-            "center",
-
-        justifyContent:
-            "center",
-
-        marginRight: 11,
-    },
-
-
-
-    selectMemberInitial: {
-
-        color: "#FFFFFF",
-
-        fontSize: 17,
-
-        fontWeight: "800",
-    },
-
-
-
-    selectMemberInfo: {
-
-        flex: 1,
-    },
-
-
-
-    selectMemberName: {
-
-        color: "#FFFFFF",
-
-        fontSize: 13,
-
-        fontWeight: "800",
-
-        marginBottom: 3,
-    },
-
-
-
-    selectMemberUsername: {
-
-        color: "#7D8EA5",
-
-        fontSize: 10,
-    },
-
-
-
-    checkbox: {
-
-        width: 27,
-
-        height: 27,
-
-        borderRadius: 9,
-
-        borderWidth: 1,
-
-        borderColor:
-            "#365170",
-
-        alignItems:
-            "center",
-
-        justifyContent:
-            "center",
-    },
-
-
-
-    checkboxActive: {
-
-        backgroundColor:
-            "#1264E8",
-
-        borderColor:
-            "#1264E8",
-    },
-
-
-
-    saveButton: {
-
-        height: 57,
-
-        borderRadius: 17,
-
-        backgroundColor:
-            "#2563EB",
-
-        marginTop: 20,
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        justifyContent:
-            "center",
-    },
-
-
-
-    saveButtonText: {
-
-        color: "#FFFFFF",
-
-        fontSize: 14,
-
-        fontWeight: "900",
-
-        marginLeft: 8,
-    },
-
-
-
-    // ========================================================
-    // BOTTOM NAV
-    // ========================================================
-
-    bottomNav: {
-
-        position: "absolute",
-
-        left: 0,
-
-        right: 0,
-
-        bottom: 0,
-
-        height: 92,
-
-        backgroundColor:
-            "#061321",
-
-        borderTopWidth: 1,
-
-        borderTopColor:
-            "#0F294C",
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        justifyContent:
-            "space-around",
-
-        paddingBottom: 7,
-
-        elevation: 20,
-    },
-
-
-
-    navItem: {
-
-        width: "25%",
-
-        height: 82,
-
-        alignItems: "center",
-
-        justifyContent: "center",
-
-        position: "relative",
-    },
-
-
-
-    navIconBox: {
-
-        width: 58,
-
-        height: 43,
-
-        borderRadius: 15,
-
-        alignItems: "center",
-
-        justifyContent: "center",
-    },
-
-
-
-    navIconBoxActive: {
-
-        backgroundColor:
-            "#102F69",
-    },
-
-
-
-    navLabel: {
-
-        color: "#A1ACBD",
-
-        fontSize: 11,
-
-        fontWeight: "700",
-
-        marginTop: 2,
-    },
-
-
-
-    navLabelActive: {
-
-        color: "#4DA3FF",
-    },
-
-
-
-    navIndicator: {
-
-        position: "absolute",
-
-        bottom: 0,
-
-        width: 58,
-
-        height: 4,
-
-        borderRadius: 4,
-
-        backgroundColor:
-            "#4DA3FF",
-    },
-
-
-
-    // ========================================================
-    // LOADING
-    // ========================================================
-
-    loadingContainer: {
-
-        flex: 1,
-
-        backgroundColor:
-            "#020617",
-
-        alignItems: "center",
-
-        justifyContent: "center",
-    },
-
-
-
-    loadingText: {
-
-        color: "#8793A8",
-
-        fontSize: 14,
-
-        marginTop: 12,
-    },
-
-});
+    });

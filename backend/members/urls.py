@@ -56,6 +56,19 @@ from .views import (
     WorkoutPlanDetailView,
 
     # ========================================================
+    # EXERCISE LIBRARY
+    # ========================================================
+    ExerciseListView,
+    ExerciseDetailView,
+
+    # ========================================================
+    # ATTENDANCE
+    # ========================================================
+    AttendanceListCreateView,
+    AttendanceDetailView,
+    MemberAttendanceView,
+
+    # ========================================================
     # MEMBERS
     # ========================================================
     MemberListCreateView,
@@ -331,6 +344,23 @@ urlpatterns = [
         name="trainer-workout-detail",
     ),
 
+    # ============================================================
+    # EXERCISE LIBRARY
+    # ============================================================
+
+    path(
+        "exercises/",
+        ExerciseListView.as_view(),
+        name="exercise-list",
+        ),
+
+
+    path(
+        "exercises/<int:pk>/",
+        ExerciseDetailView.as_view(),
+        name="exercise-detail",
+        ),
+
 
     # ============================================================
     # MEMBERS
@@ -424,5 +454,24 @@ urlpatterns = [
         MemberNotificationMarkAllReadView.as_view(),
         name="member-notification-mark-all-read",
     ),
+
+    path(
+    "attendance/",
+    AttendanceListCreateView.as_view(),
+    name="attendance-list-create",
+    ),
+
+    path(
+    "attendance/<int:pk>/",
+    AttendanceDetailView.as_view(),
+    name="attendance-detail",
+    ),
+
+    path(
+    "member-attendance/",
+    MemberAttendanceView.as_view(),
+    name="member-attendance",
+    ),
+
 
 ]
