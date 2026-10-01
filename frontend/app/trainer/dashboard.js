@@ -42,7 +42,7 @@ import {
 // ============================================================
 
 const BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 const DASHBOARD_API =
   `${BASE_URL}/dashboard-stats/`;
@@ -1897,7 +1897,7 @@ function TrainerBottomNavigation({
       ) {
 
         router.push(
-          "/trainer/workouts"
+          "/trainer/workout"
         );
 
         return;
@@ -1981,7 +1981,7 @@ function TrainerBottomNavigation({
           colors
         }
         onPress={() =>
-          goTo("trainer/workout")
+          goTo("workouts")
         }
       />
 

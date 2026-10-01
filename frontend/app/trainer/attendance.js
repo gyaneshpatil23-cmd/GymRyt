@@ -33,7 +33,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 
 // ============================================================
@@ -471,13 +471,13 @@ export default function TrainerAttendanceScreen() {
     ) {
 
       case "PRESENT":
-        return "#2ECC71";
+        return "#45E0A5";
 
       case "LATE":
-        return "#F5A623";
+        return "#FFB21C";
 
       case "ABSENT":
-        return "#FF4D5E";
+        return "#FF5870";
 
       default:
         return colors.primaryLight;
@@ -886,21 +886,21 @@ export default function TrainerAttendanceScreen() {
             <SummaryStat
               label="PRESENT"
               value={summary.present}
-              color="#2ECC71"
+              color="#45E0A5"
               colors={colors}
             />
 
             <SummaryStat
               label="LATE"
               value={summary.late}
-              color="#F5A623"
+              color="#FFB21C"
               colors={colors}
             />
 
             <SummaryStat
               label="ABSENT"
               value={summary.absent}
-              color="#FF4D5E"
+              color="#FF5870"
               colors={colors}
             />
 
@@ -2094,7 +2094,7 @@ const styles =
     summaryCard: {
       borderWidth: 1,
 
-      borderRadius: 24,
+      borderRadius: 26,
 
       padding: 17,
 

@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, Pressable,
+  Alert, ActivityIndicator, Platform,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../context/ThemeContext";
 
-const BASE_URL = "http://192.168.1.52:8000/api/members";
+const BASE_URL = "http://192.168.1.43:8000/api/members";
 const MEMBERS_API = `${BASE_URL}/`;
 const PAYMENTS_API = `${BASE_URL}/payments/`;
 
@@ -20,7 +21,7 @@ const daysLeft = (end) => {
 };
 
 export default function MemberDetails() {
-  const { colors } = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
   const params = useLocalSearchParams();
   const memberId = String(params.id || "");
 
@@ -110,66 +111,96 @@ export default function MemberDetails() {
     ]);
   };
 
-  const statusColor = member.status === "EXPIRED" ? colors.danger : member.status === "EXPIRING" ? colors.warning : colors.success;
-  const statusBg = member.status === "EXPIRED" ? colors.dangerBackground : member.status === "EXPIRING" ? colors.warningBackground : colors.successBackground;
+  const statusColor = member.status === "EXPIRED" ? "#FF5870" : member.status === "EXPIRING" ? "#FFB21C" : member.status === "ACTIVE" ? "#45E0A5" : colors.secondaryText;
+  const headerButton = [styles.headerButton, { backgroundColor: colors.card, borderColor: colors.border }];
 
   if (loading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /><Text style={[styles.loading, { color: colors.mutedText }]}>Loading member details...</Text></View>;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* HEADER */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}><Text style={[styles.eyebrow, { color: colors.primaryLight }]}>GYMRYT • MEMBER</Text><Text style={[styles.title, { color: colors.text }]}>Member Details</Text></View>
+        <View style={styles.headerActions}>
+          <Pressable style={headerButton} onPress={toggleTheme}><Ionicons name={isDark ? "sunny-outline" : "moon-outline"} size={20} color={colors.text} /></Pressable>
+          <Pressable style={headerButton} onPress={() => router.back()}><Ionicons name="arrow-back" size={20} color={colors.text} /></Pressable>
+        </View>
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <TouchableOpacity style={[styles.back, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.back()}><Text style={[styles.backText, { color: colors.text }]}>‹</Text></TouchableOpacity>
-          <View style={styles.headerText}><Text style={[styles.eyebrow, { color: colors.primaryLight }]}>GYMRYT MANAGEMENT</Text><Text style={[styles.title, { color: colors.text }]}>Member Details</Text></View>
-        </View>
-
-        <View style={styles.profileRow}>
-          <View style={styles.profileBlock}>
-            <View style={[styles.avatar, { backgroundColor: colors.iconBackground, borderColor: colors.primary }]}><Text style={[styles.avatarText, { color: colors.primaryLight }]}>{initials(member.name)}</Text></View>
-            <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>{member.name}</Text>
-            <View style={[styles.badge, { backgroundColor: statusBg }]}><View style={[styles.dot, { backgroundColor: statusColor }]} /><Text style={[styles.badgeText, { color: statusColor }]}>{member.status}</Text></View>
-          </View>
-          <View style={styles.personal}>
-            <Text style={[styles.section, { color: colors.primaryLight }]}>PERSONAL INFORMATION</Text>
-            <Info label="PHONE NUMBER" value={member.phone} colors={colors} />
-            <Info label="EMAIL ADDRESS" value={member.email} colors={colors} />
-            <Info label="USERNAME" value={member.username} colors={colors} />
+        {/* PROFILE CARD */}
+        <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.avatar, { backgroundColor: colors.iconBackground, borderColor: `${statusColor}88` }]}><Text style={[styles.avatarText, { color: colors.primaryLight }]}>{initials(member.name)}</Text></View>
+          <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>{member.name}</Text>
+          <View style={styles.badgeRow}>
+            <View style={[styles.badge, { backgroundColor: `${statusColor}18`, borderColor: `${statusColor}55` }]}><View style={[styles.dot, { backgroundColor: statusColor }]} /><Text style={[styles.badgeText, { color: statusColor }]}>{member.status}</Text></View>
+            <View style={[styles.badge, { backgroundColor: colors.iconBackground, borderColor: colors.border }]}><Ionicons name="card-outline" size={11} color={colors.primaryLight} /><Text style={[styles.badgeText, styles.badgeTextIcon, { color: colors.primaryLight }]}>#{member.id || "N/A"}</Text></View>
           </View>
         </View>
 
-        <Text style={[styles.sectionTitle, { color: colors.primaryLight }]}>MEMBERSHIP DETAILS</Text>
-        <Card colors={colors}><Text style={[styles.label, { color: colors.mutedText }]}>MEMBERSHIP TYPE</Text><Text style={[styles.value, { color: colors.text }]}>{plan}</Text></Card>
-        <Card colors={colors}><View style={styles.dateRow}><View style={styles.date}><Text style={[styles.label, { color: colors.mutedText }]}>START DATE</Text><Text style={[styles.valueSmall, { color: colors.text }]}>{member.membership_start || "Not available"}</Text></View><View style={[styles.divider, { backgroundColor: colors.border }]} /><View style={styles.date}><Text style={[styles.label, { color: colors.mutedText }]}>END DATE</Text><Text style={[styles.valueSmall, { color: colors.text }]}>{member.membership_end || "Not available"}</Text></View></View></Card>
-        <Card colors={colors}><Text style={[styles.label, { color: colors.mutedText }]}>DAYS REMAINING</Text><Text style={[styles.days, { color: member.status === "EXPIRED" ? colors.danger : colors.success }]}>{member.status === "EXPIRED" ? "Membership Expired" : `${daysLeft(member.membership_end)} Days`}</Text></Card>
-        <Card colors={colors}><Text style={[styles.label, { color: colors.mutedText }]}>PAYMENT METHOD</Text><Text style={[styles.value, { color: colors.text }]}>{paymentMethod}</Text></Card>
-
-        <Text style={[styles.sectionTitle, { color: colors.primaryLight }]}>TRAINER ASSIGNMENT</Text>
+        {/* PERSONAL INFORMATION */}
+        <SectionTitle title="PERSONAL INFORMATION" colors={colors} />
         <Card colors={colors}>
-          <Text style={[styles.label, { color: colors.mutedText }]}>ASSIGNED TRAINER</Text>
-          <Text style={[styles.trainerValue, { color: member.trainer_name ? colors.success : colors.warning }]}>{member.trainer_name || "No trainer assigned"}</Text>
-          <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: colors.iconBackground, borderColor: colors.border }]} onPress={() => router.push("/admin/trainerassignment")}>
-            <Text style={[styles.secondaryText, { color: colors.primaryLight }]}>{member.trainer_name ? "CHANGE TRAINER" : "ASSIGN TRAINER"}</Text><Text style={[styles.arrow, { color: colors.primaryLight }]}>→</Text>
-          </TouchableOpacity>
+          <Info icon="call-outline" label="Phone Number" value={member.phone} colors={colors} />
+          <Divider colors={colors} />
+          <Info icon="mail-outline" label="Email Address" value={member.email} colors={colors} />
+          <Divider colors={colors} />
+          <Info icon="person-outline" label="Username" value={member.username} colors={colors} />
         </Card>
 
-        <Text style={[styles.sectionTitle, { color: colors.primaryLight }]}>VERIFICATION</Text>
-        <Card colors={colors}><Text style={[styles.value, { color: member.id_verified ? colors.success : colors.warning }]}>{member.id_verified ? "✓ VERIFIED" : "! VERIFICATION PENDING"}</Text></Card>
+        {/* MEMBERSHIP DETAILS */}
+        <SectionTitle title="MEMBERSHIP DETAILS" colors={colors} />
+        <View style={[styles.daysCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.daysIcon, { backgroundColor: `${statusColor}18` }]}><Ionicons name={member.status === "EXPIRED" ? "close-circle-outline" : "time-outline"} size={24} color={statusColor} /></View>
+          <View style={styles.daysInfo}><Text style={[styles.label, { color: colors.secondaryText }]}>DAYS REMAINING</Text><Text style={[styles.days, { color: member.status === "EXPIRED" ? "#FF5870" : colors.text }]}>{member.status === "EXPIRED" ? "Membership Expired" : `${daysLeft(member.membership_end)} Days`}</Text></View>
+        </View>
+        <Card colors={colors}>
+          <Info icon="ribbon-outline" label="Membership Type" value={plan} colors={colors} />
+          <Divider colors={colors} />
+          <Info icon="calendar-outline" label="Start Date" value={member.membership_start} colors={colors} />
+          <Divider colors={colors} />
+          <Info icon="calendar-clear-outline" label="End Date" value={member.membership_end} colors={colors} />
+          <Divider colors={colors} />
+          <Info icon="wallet-outline" label="Payment Method" value={paymentMethod} colors={colors} />
+        </Card>
 
-        <View style={[styles.idCard, { backgroundColor: colors.nav, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedText }]}>MEMBER ID</Text><Text style={[styles.idValue, { color: colors.primaryLight }]}>#{member.id || "N/A"}</Text></View>
+        {/* TRAINER ASSIGNMENT */}
+        <SectionTitle title="TRAINER ASSIGNMENT" colors={colors} />
+        <Card colors={colors}>
+          <Info icon="barbell-outline" label="Assigned Trainer" value={member.trainer_name || "No trainer assigned"} valueColor={member.trainer_name ? "#45E0A5" : "#FFB21C"} colors={colors} />
+          <Pressable style={[styles.secondaryButton, { backgroundColor: colors.iconBackground, borderColor: colors.border }]} onPress={() => router.push("/admin/trainerassignment")}>
+            <Text style={[styles.secondaryText, { color: colors.primaryLight }]}>{member.trainer_name ? "CHANGE TRAINER" : "ASSIGN TRAINER"}</Text><Ionicons name="arrow-forward" size={15} color={colors.primaryLight} />
+          </Pressable>
+        </Card>
 
-        <TouchableOpacity style={[styles.edit, { backgroundColor: colors.primary }]} onPress={edit} disabled={deleting}><Text style={styles.editText}>EDIT MEMBER</Text><Text style={styles.editArrow}>→</Text></TouchableOpacity>
-        <TouchableOpacity style={[styles.delete, { backgroundColor: colors.dangerBackground, borderColor: colors.danger }]} onPress={deleteMember} disabled={deleting}>{deleting ? <ActivityIndicator color={colors.danger} /> : <Text style={[styles.deleteText, { color: colors.danger }]}>🗑  DELETE MEMBER</Text>}</TouchableOpacity>
-        <TouchableOpacity style={styles.backLink} onPress={() => router.replace("/admin/members")}><Text style={[styles.backLinkText, { color: colors.mutedText }]}>BACK TO MEMBERS</Text></TouchableOpacity>
+        {/* VERIFICATION */}
+        <SectionTitle title="VERIFICATION" colors={colors} />
+        <Card colors={colors}>
+          <Info icon={member.id_verified ? "shield-checkmark-outline" : "shield-outline"} label="ID Verification" value={member.id_verified ? "Verified" : "Verification Pending"} valueColor={member.id_verified ? "#45E0A5" : "#FFB21C"} colors={colors} />
+        </Card>
+
+        {/* ACTIONS */}
+        <Pressable style={[styles.edit, { backgroundColor: colors.primary }]} onPress={edit} disabled={deleting}><Ionicons name="create-outline" size={19} color="#FFFFFF" /><Text style={styles.editText}>EDIT MEMBER</Text></Pressable>
+        <Pressable style={[styles.delete, { backgroundColor: isDark ? "#100D15" : "#FFF5F6", borderColor: "#55202B" }]} onPress={deleteMember} disabled={deleting}>{deleting ? <ActivityIndicator color="#FF4D5E" /> : <><Ionicons name="trash-outline" size={19} color="#FF4D5E" /><Text style={styles.deleteText}>DELETE MEMBER</Text></>}</Pressable>
+        <Pressable style={styles.backLink} onPress={() => router.replace("/admin/members")}><View style={[styles.backLinkIcon, { backgroundColor: colors.iconBackground }]}><Ionicons name="people-outline" size={14} color={colors.primaryLight} /></View><Text style={[styles.backLinkText, { color: colors.secondaryText }]}>BACK TO MEMBERS</Text></Pressable>
       </ScrollView>
     </View>
   );
 }
 
-function Info({ label, value, colors }) { return <View style={styles.info}><Text style={[styles.label, { color: colors.mutedText }]}>{label}</Text><Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={2}>{value || "Not available"}</Text></View>; }
+function SectionTitle({ title, colors }) { return <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>; }
+function Divider({ colors }) { return <View style={[styles.divider, { backgroundColor: colors.border }]} />; }
+function Info({ icon, label, value, valueColor, colors }) { return <View style={styles.info}><View style={[styles.infoIcon, { backgroundColor: colors.iconBackground }]}><Ionicons name={icon} size={20} color={colors.primaryLight} /></View><View style={styles.infoText}><Text style={[styles.infoLabel, { color: colors.secondaryText }]}>{label}</Text><Text style={[styles.infoValue, { color: valueColor || colors.text }]} numberOfLines={2}>{value || "Not available"}</Text></View></View>; }
 function Card({ colors, children }) { return <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>{children}</View>; }
 
 const styles = StyleSheet.create({
   container: { flex: 1 }, center: { flex: 1, alignItems: "center", justifyContent: "center" }, loading: { marginTop: 12, fontSize: 12, fontWeight: "700" },
-  content: { paddingHorizontal: 20, paddingTop: 55, paddingBottom: 50 }, header: { flexDirection: "row", alignItems: "center", marginBottom: 28 }, back: { width: 45, height: 45, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" }, backText: { fontSize: 34, fontWeight: "300", marginTop: -4 }, headerText: { marginLeft: 14 }, eyebrow: { fontSize: 9, fontWeight: "900", letterSpacing: 1.5 }, title: { fontSize: 28, fontWeight: "900", marginTop: 3 },
-  profileRow: { flexDirection: "row", marginBottom: 27 }, profileBlock: { width: "36%", alignItems: "center", paddingRight: 10 }, avatar: { width: 80, height: 80, borderRadius: 40, borderWidth: 2, alignItems: "center", justifyContent: "center" }, avatarText: { fontSize: 24, fontWeight: "900" }, name: { fontSize: 15, fontWeight: "900", textAlign: "center", marginTop: 10 }, badge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 9, paddingVertical: 6, borderRadius: 9, marginTop: 9 }, dot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 }, badgeText: { fontSize: 8, fontWeight: "900" }, personal: { width: "64%", paddingLeft: 8 }, section: { fontSize: 9, fontWeight: "900", letterSpacing: 1.1, marginBottom: 12 }, info: { marginBottom: 11 }, label: { fontSize: 7.5, fontWeight: "900", letterSpacing: .7 }, infoValue: { fontSize: 11.5, fontWeight: "800", marginTop: 3 }, sectionTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 1.4, marginBottom: 12 }, card: { minHeight: 72, borderWidth: 1, borderRadius: 17, padding: 16, marginBottom: 10 }, value: { fontSize: 16, fontWeight: "900", marginTop: 5 }, valueSmall: { fontSize: 13, fontWeight: "900", marginTop: 6 }, dateRow: { flexDirection: "row", alignItems: "center" }, date: { flex: 1 }, divider: { width: 1, height: 38, marginHorizontal: 14 }, days: { fontSize: 23, fontWeight: "900", marginTop: 5 }, trainerValue: { fontSize: 16, fontWeight: "900", marginTop: 5, marginBottom: 12 }, secondaryButton: { height: 43, borderRadius: 12, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center" }, secondaryText: { fontSize: 9, fontWeight: "900", letterSpacing: .8 }, arrow: { fontSize: 18, marginLeft: 8 }, idCard: { minHeight: 56, borderWidth: 1, borderRadius: 15, paddingHorizontal: 15, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }, idValue: { fontSize: 14, fontWeight: "900" }, edit: { height: 57, borderRadius: 17, flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 11 }, editText: { color: "#fff", fontSize: 12, fontWeight: "900", letterSpacing: 1 }, editArrow: { color: "#fff", fontSize: 21, marginLeft: 11 }, delete: { height: 55, borderRadius: 17, borderWidth: 1, alignItems: "center", justifyContent: "center", marginBottom: 4 }, deleteText: { fontSize: 11, fontWeight: "900", letterSpacing: .8 }, backLink: { alignItems: "center", paddingVertical: 18 }, backLinkText: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
+  header: { paddingHorizontal: 18, paddingTop: Platform.OS === "ios" ? 54 : 44, paddingBottom: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, headerLeft: { flex: 1 }, eyebrow: { fontSize: 9, fontWeight: "900", letterSpacing: 1.4 }, title: { fontSize: 22, fontWeight: "900", marginTop: 4 }, headerActions: { flexDirection: "row", alignItems: "center", gap: 7, marginLeft: 10 }, headerButton: { width: 43, height: 43, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 40 },
+  profileCard: { borderWidth: 1, borderRadius: 26, paddingHorizontal: 18, paddingVertical: 20, alignItems: "center", marginBottom: 4 }, avatar: { width: 100, height: 100, borderRadius: 30, borderWidth: 2, alignItems: "center", justifyContent: "center" }, avatarText: { fontSize: 31, fontWeight: "900" }, name: { fontSize: 22, fontWeight: "900", textAlign: "center", marginTop: 12 }, badgeRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 9 }, badge: { flexDirection: "row", alignItems: "center", borderWidth: 1, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12 }, dot: { width: 6, height: 6, borderRadius: 3, marginRight: 5 }, badgeText: { fontSize: 7.5, fontWeight: "900", letterSpacing: 1 }, badgeTextIcon: { marginLeft: 4 },
+  sectionTitle: { fontSize: 10, fontWeight: "900", letterSpacing: 1.2, marginTop: 20, marginBottom: 9 }, card: { borderWidth: 1, borderRadius: 21, paddingHorizontal: 13, paddingVertical: 3 }, info: { minHeight: 67, flexDirection: "row", alignItems: "center" }, infoIcon: { width: 43, height: 43, borderRadius: 14, alignItems: "center", justifyContent: "center", marginRight: 11 }, infoText: { flex: 1 }, infoLabel: { fontSize: 8, fontWeight: "700", marginBottom: 3 }, infoValue: { fontSize: 12, fontWeight: "800" }, divider: { height: 1, marginLeft: 54 }, label: { fontSize: 7.5, fontWeight: "900", letterSpacing: 0.8 },
+  daysCard: { minHeight: 78, borderWidth: 1, borderRadius: 21, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", marginBottom: 9 }, daysIcon: { width: 46, height: 46, borderRadius: 15, alignItems: "center", justifyContent: "center" }, daysInfo: { marginLeft: 12, flex: 1 }, days: { fontSize: 22, fontWeight: "900", marginTop: 3 },
+  secondaryButton: { height: 44, borderRadius: 14, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginBottom: 12, marginTop: 2 }, secondaryText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
+  edit: { height: 54, borderRadius: 17, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 22, marginBottom: 10 }, editText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900", letterSpacing: 1 }, delete: { height: 54, borderRadius: 17, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }, deleteText: { color: "#FF4D5E", fontSize: 12, fontWeight: "900", letterSpacing: 0.8 },
+  backLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingTop: 22, paddingBottom: 8 }, backLinkIcon: { width: 27, height: 27, borderRadius: 9, alignItems: "center", justifyContent: "center", marginRight: 7 }, backLinkText: { fontSize: 8, fontWeight: "800", letterSpacing: 0.7 },
 });

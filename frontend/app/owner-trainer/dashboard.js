@@ -1,7 +1,5 @@
 import React, {
   useCallback,
-  useEffect,
-  useRef,
   useState,
 } from "react";
 
@@ -10,11 +8,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Alert,
-  Animated,
   Image,
+  Platform,
 } from "react-native";
 
 import {
@@ -24,6 +22,8 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../context/ThemeContext";
 
 // ======================================================
@@ -31,7 +31,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ======================================================
 
 const BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 const DASHBOARD_API =
   `${BASE_URL}/dashboard-stats/`;
@@ -55,23 +55,6 @@ export default function OwnerTrainerDashboard() {
     colors,
     toggleTheme,
   } = useTheme();
-
-  // ====================================================
-  // THEME ANIMATION
-  // ====================================================
-
-  const themeAnimation = useRef(
-    new Animated.Value(isDark ? 1 : 0)
-  ).current;
-
-  useEffect(() => {
-    Animated.spring(themeAnimation, {
-      toValue: isDark ? 1 : 0,
-      useNativeDriver: true,
-      friction: 7,
-      tension: 80,
-    }).start();
-  }, [isDark, themeAnimation]);
 
   // ====================================================
   // STATE
@@ -577,464 +560,300 @@ export default function OwnerTrainerDashboard() {
             style={styles.headerLeft}
           >
 
-            {/* PROFILE PICTURE */}
+            <Text
+              style={[
+                styles.eyebrow,
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
+            >
+              WELCOME BACK
+            </Text>
 
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() =>
-                router.push(
-                  "/admin/profile"
-                )
+            <View
+              style={
+                styles.profileRow
               }
             >
-              {adminProfilePicture ? (
-                <Image
-                  source={{
-                    uri:
-                      adminProfilePicture,
-                  }}
-                  style={
-                    styles.profileCircle
-                  }
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.profileCircle,
-                    {
-                      backgroundColor:
-                        colors.primary,
-                    },
-                  ]}
-                >
-                  <Text
+
+              {/* PROFILE PICTURE */}
+
+              <Pressable
+                style={[
+                  styles.profileAvatar,
+                  {
+                    backgroundColor:
+                      colors.iconBackground,
+                    borderColor:
+                      colors.border,
+                  },
+                ]}
+                onPress={() =>
+                  router.push(
+                    "/admin/profile"
+                  )
+                }
+              >
+                {adminProfilePicture ? (
+                  <Image
+                    source={{
+                      uri:
+                        adminProfilePicture,
+                    }}
                     style={
-                      styles.profileText
+                      styles.profileImage
                     }
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      styles.profileInitials,
+                      {
+                        color:
+                          colors.primaryLight,
+                      },
+                    ]}
                   >
                     {getInitials(
                       adminUsername
                     )}
                   </Text>
-                </View>
-              )}
-            </TouchableOpacity>
+                )}
+              </Pressable>
 
-            <View
-              style={
-                styles.adminNameContainer
+              <View
+                style={
+                  styles.headerText
+                }
+              >
+                <Text
+                  style={[
+                    styles.ownerName,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {adminUsername}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.ownerRole,
+                    {
+                      color:
+                        colors.secondaryText,
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  Owner + Trainer • Manage your gym
+                </Text>
+              </View>
+
+            </View>
+
+          </View>
+
+          {/* ==================================================
+              HEADER ACTIONS
+          ================================================== */}
+
+          <View
+            style={
+              styles.headerActions
+            }
+          >
+
+            {/* THEME */}
+
+            <Pressable
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={
+                toggleTheme
               }
             >
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={21}
+                color={
+                  colors.text
+                }
+              />
+            </Pressable>
+
+          </View>
+
+        </View>
+
+        {/* ==================================================
+            GYM OVERVIEW
+        ================================================== */}
+
+        <View
+          style={[
+            styles.overviewCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
+        >
+
+          <View
+            style={
+              styles.sectionHeader
+            }
+          >
+
+            <View>
               <Text
                 style={[
-                  styles.smallText,
+                  styles.sectionEyebrow,
                   {
                     color:
-                      colors.mutedText,
+                      colors.primaryLight,
                   },
                 ]}
               >
-                WELCOME BACK
+                YOUR GYM
               </Text>
 
               <Text
                 style={[
-                  styles.title,
+                  styles.sectionTitle,
                   {
                     color:
                       colors.text,
                   },
                 ]}
-                numberOfLines={1}
               >
-                {adminUsername} 
+                Gym Overview
               </Text>
+            </View>
+
+            <View
+              style={[
+                styles.todayBadge,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={14}
+                color={
+                  colors.secondaryText
+                }
+              />
 
               <Text
                 style={[
-                  styles.subtitle,
+                  styles.todayText,
                   {
                     color:
                       colors.secondaryText,
                   },
                 ]}
               >
-                Manage your gym with ease.
+                Today
               </Text>
             </View>
 
           </View>
 
-          {/* THEME SWITCH */}
+          {/* ==================================================
+              STAT GRID
+          ================================================== */}
 
-          <TouchableOpacity
-            style={[
-              styles.themeSwitch,
-              {
-                backgroundColor:
-                  isDark
-                    ? "#111827"
-                    : "#E2E8F0",
-              },
-            ]}
-            onPress={toggleTheme}
-            activeOpacity={0.8}
+          <View
+            style={
+              styles.statsGrid
+            }
           >
-            <Text
-              style={
-                styles.themeIcon
+
+            <OverviewStat
+              value={
+                stats.total_members
               }
-            >
-              🌙
-            </Text>
-
-            <Text
-              style={
-                styles.themeIcon
+              label="TOTAL MEMBERS"
+              icon="people-outline"
+              iconColor="#36B7FF"
+              colors={colors}
+              onPress={() =>
+                router.push(
+                  "/admin/members"
+                )
               }
-            >
-              ☀️
-            </Text>
+            />
 
-            <Animated.View
-              style={[
-                styles.themeKnob,
-                {
-                  backgroundColor:
-                    isDark
-                      ? "#1E293B"
-                      : "#FFFFFF",
+            <OverviewStat
+              value={
+                `₹${formattedRevenue}`
+              }
+              label="REVENUE"
+              icon="cash-outline"
+              iconColor="#45E0A5"
+              colors={colors}
+              onPress={() =>
+                router.push(
+                  "/admin/revenue"
+                )
+              }
+            />
 
-                  transform: [
-                    {
-                      translateX:
-                        themeAnimation.interpolate({
-                          inputRange: [
-                            0,
-                            1,
-                          ],
-                          outputRange: [
-                            30,
-                            0,
-                          ],
-                        }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <Text
-                style={
-                  styles.knobIcon
-                }
-              >
-                {isDark
-                  ? "🌙"
-                  : "☀️"}
-              </Text>
-            </Animated.View>
-          </TouchableOpacity>
+            <OverviewStat
+              value={
+                stats.expired_members
+              }
+              label={
+                stats.expired_members > 0
+                  ? "EXPIRED • NEEDS ATTENTION"
+                  : "EXPIRED MEMBERS"
+              }
+              icon="close-circle-outline"
+              iconColor="#FF5870"
+              colors={colors}
+              onPress={() =>
+                router.push(
+                  "/admin/members"
+                )
+              }
+            />
 
-        </View>
+            <OverviewStat
+              value={
+                stats.attendance_today
+              }
+              label="TODAY'S ATTENDANCE"
+              icon="checkmark-circle-outline"
+              iconColor="#FFB21C"
+              colors={colors}
+            />
 
-        {/* ==================================================
-            ROLE INDICATOR
-        ================================================== */}
-
-        <View
-          style={[
-            styles.roleBadge,
-            {
-              backgroundColor:
-                colors.iconBackground,
-              borderColor:
-                colors.border,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.roleBadgeText,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            OWNER + TRAINER
-          </Text>
-        </View>
-
-        {/* ==================================================
-            OVERVIEW
-        ================================================== */}
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          OVERVIEW
-        </Text>
-
-        <View
-          style={styles.statsGrid}
-        >
-
-          {/* TOTAL MEMBERS */}
-
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.push(
-                "/admin/members"
-              )
-            }
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.iconBox,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
-              <Text
-                style={styles.icon}
-              >
-                👥
-              </Text>
-            </View>
-
-            <Text
-              style={[
-                styles.statNumber,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {stats.total_members}
-            </Text>
-
-            <Text
-              style={[
-                styles.statLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Total Members
-            </Text>
-          </TouchableOpacity>
-
-          {/* REVENUE */}
-
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.push(
-                "/admin/revenue"
-              )
-            }
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.iconBox,
-                {
-                  backgroundColor:
-                    colors.successBackground,
-                },
-              ]}
-            >
-              <Text
-                style={styles.icon}
-              >
-                ₹
-              </Text>
-            </View>
-
-            <Text
-              style={[
-                styles.revenueNumber,
-                {
-                  color:
-                    colors.revenue,
-                },
-              ]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              ₹{formattedRevenue}
-            </Text>
-
-            <Text
-              style={[
-                styles.statLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Revenue
-            </Text>
-          </TouchableOpacity>
-
-          {/* EXPIRED */}
-
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.push(
-                "/admin/members"
-              )
-            }
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.iconBox,
-                {
-                  backgroundColor:
-                    colors.warningBackground,
-                },
-              ]}
-            >
-              <Text
-                style={styles.icon}
-              >
-                !
-              </Text>
-            </View>
-
-            <Text
-              style={[
-                styles.statNumber,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {stats.expired_members}
-            </Text>
-
-            <Text
-              style={[
-                styles.statLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Expired
-            </Text>
-
-            <Text
-              style={[
-                styles.warningText,
-                {
-                  color:
-                    colors.warning,
-                },
-              ]}
-            >
-              {stats.expired_members > 0
-                ? "Needs attention"
-                : "All memberships active"}
-            </Text>
-          </TouchableOpacity>
-
-          {/* ATTENDANCE */}
-
-          <TouchableOpacity
-            style={[
-              styles.statCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.iconBox,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
-              <Text
-                style={styles.icon}
-              >
-                🔥
-              </Text>
-            </View>
-
-            <Text
-              style={[
-                styles.statNumber,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {stats.attendance_today}
-            </Text>
-
-            <Text
-              style={[
-                styles.statLabel,
-                {
-                  color:
-                    colors.secondaryText,
-                },
-              ]}
-            >
-              Today's Attendance
-            </Text>
-          </TouchableOpacity>
+          </View>
 
         </View>
 
@@ -1042,94 +861,103 @@ export default function OwnerTrainerDashboard() {
             QUICK ACTIONS
         ================================================== */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
+        <View
+          style={
+            styles.sectionHeaderSimple
+          }
         >
-          QUICK ACTIONS
-        </Text>
+          <Text
+            style={[
+              styles.sectionHeading,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            QUICK ACTIONS
+          </Text>
+        </View>
 
-        <ActionCard
-          icon="👥"
-          title="Manage Members"
-          subtitle="View and manage your gym members"
-          onPress={() =>
-            router.push(
-              "/admin/members"
-            )
+        <View
+          style={
+            styles.quickGrid
           }
-          colors={colors}
-        />
+        >
 
-        <ActionCard
-          icon="🏋️"
-          title="Manage Trainers"
-          subtitle="Add and manage gym trainers"
-          onPress={() =>
-            router.push(
-              "/admin/trainers"
-            )
-          }
-          colors={colors}
-        />
+          <QuickAction
+            icon="people-outline"
+            title="Manage Members"
+            subtitle="View and manage your gym members"
+            colors={colors}
+            onPress={() =>
+              router.push(
+                "/admin/members"
+              )
+            }
+          />
 
-        <ActionCard
-          icon="₹"
-          title="Record Payment"
-          subtitle="Record member payment"
-          onPress={() =>
-            router.push(
-              "/admin/recordpayment"
-            )
-          }
-          colors={colors}
-          payment
-        />
+          <QuickAction
+            icon="barbell-outline"
+            title="Manage Trainers"
+            subtitle="Add and manage gym trainers"
+            colors={colors}
+            onPress={() =>
+              router.push(
+                "/admin/trainers"
+              )
+            }
+          />
 
-        <ActionCard
-          icon="📊"
-          title="Revenue & Reports"
-          subtitle="View gym financial records"
-          onPress={() =>
-            router.push(
-              "/admin/revenue"
-            )
-          }
-          colors={colors}
-        />
+          <QuickAction
+            icon="wallet-outline"
+            title="Record Payment"
+            subtitle="Record member payment"
+            colors={colors}
+            onPress={() =>
+              router.push(
+                "/admin/recordpayment"
+              )
+            }
+          />
 
-        <ActionCard
-          icon="📱"
-          title="Registration QR"
-          subtitle="Let members register"
-          onPress={() =>
-            router.push(
-              "/admin/adminqr"
-            )
-          }
-          colors={colors}
-        />
+          <QuickAction
+            icon="stats-chart-outline"
+            title="Revenue & Reports"
+            subtitle="View gym financial records"
+            colors={colors}
+            onPress={() =>
+              router.push(
+                "/admin/revenue"
+              )
+            }
+          />
 
-        {/* ==================================================
-            TRAINER QUICK ACTION
-        ================================================== */}
+          <QuickAction
+            icon="qr-code-outline"
+            title="Registration QR"
+            subtitle="Let members register"
+            colors={colors}
+            onPress={() =>
+              router.push(
+                "/admin/adminqr"
+              )
+            }
+          />
 
-        <ActionCard
-          icon="🏃"
-          title="My Training Members"
-          subtitle="View members assigned to you"
-          onPress={() =>
-            router.push(
-              "/admin/members"
-            )
-          }
-          colors={colors}
-        />
+          <QuickAction
+            icon="walk-outline"
+            title="My Training Members"
+            subtitle="View members assigned to you"
+            colors={colors}
+            onPress={() =>
+              router.push(
+                "/admin/members"
+              )
+            }
+          />
+
+        </View>
 
         {/* ==================================================
             RECENT MEMBERS
@@ -1137,22 +965,25 @@ export default function OwnerTrainerDashboard() {
 
         <View
           style={
-            styles.sectionHeader
+            styles.sectionHeaderSimple
           }
         >
           <Text
             style={[
-              styles.sectionTitle,
+              styles.sectionHeading,
               {
                 color:
-                  colors.mutedText,
+                  colors.text,
               },
             ]}
           >
             RECENT MEMBERS
           </Text>
 
-          <TouchableOpacity
+          <Pressable
+            style={
+              styles.seeAllButton
+            }
             onPress={() =>
               router.push(
                 "/admin/members"
@@ -1161,7 +992,7 @@ export default function OwnerTrainerDashboard() {
           >
             <Text
               style={[
-                styles.viewAll,
+                styles.seeAllText,
                 {
                   color:
                     colors.primaryLight,
@@ -1170,22 +1001,46 @@ export default function OwnerTrainerDashboard() {
             >
               View All
             </Text>
-          </TouchableOpacity>
+
+            <Ionicons
+              name="chevron-forward"
+              size={15}
+              color={
+                colors.primaryLight
+              }
+            />
+          </Pressable>
         </View>
 
         {recentMembers.length === 0 ? (
           <View
-            style={
-              styles.emptyContainer
-            }
+            style={[
+              styles.emptyCard,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
           >
-            <Text
-              style={
-                styles.emptyIcon
-              }
+            <View
+              style={[
+                styles.emptyIcon,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                },
+              ]}
             >
-              👥
-            </Text>
+              <Ionicons
+                name="people-outline"
+                size={28}
+                color={
+                  colors.primaryLight
+                }
+              />
+            </View>
 
             <Text
               style={[
@@ -1201,7 +1056,7 @@ export default function OwnerTrainerDashboard() {
 
             <Text
               style={[
-                styles.emptyText,
+                styles.emptySubtitle,
                 {
                   color:
                     colors.mutedText,
@@ -1214,172 +1069,66 @@ export default function OwnerTrainerDashboard() {
         ) : (
           recentMembers.map(
             (member) => (
-              <TouchableOpacity
+              <MemberCard
                 key={
                   member.id
                 }
-                style={[
-                  styles.memberCard,
-                  {
-                    backgroundColor:
-                      colors.card,
-                    borderColor:
-                      colors.border,
-                  },
-                ]}
-                activeOpacity={0.8}
+                member={
+                  member
+                }
+                initials={getInitials(
+                  member.name
+                )}
+                colors={colors}
                 onPress={() =>
                   openMemberDetails(
                     member
                   )
                 }
-              >
-
-                {/* AVATAR */}
-
-                <View
-                  style={[
-                    styles.avatar,
-                    {
-                      backgroundColor:
-                        colors.iconBackground,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.avatarText,
-                      {
-                        color:
-                          colors.primaryLight,
-                      },
-                    ]}
-                  >
-                    {getInitials(
-                      member.name
-                    )}
-                  </Text>
-                </View>
-
-                {/* MEMBER INFO */}
-
-                <View
-                  style={
-                    styles.memberInfo
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.memberName,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {member.name}
-                  </Text>
-
-                  <Text
-                    style={[
-                      styles.memberDays,
-                      {
-                        color:
-                          colors.mutedText,
-                      },
-                    ]}
-                  >
-                    {member.status ===
-                    "EXPIRED"
-                      ? "Membership expired"
-                      : `${calculateDaysRemaining(
-                          member.membership_end
-                        )} days remaining`}
-                  </Text>
-                </View>
-
-                {/* STATUS */}
-
-                {member.status ===
-                  "ACTIVE" && (
-                  <View
-                    style={[
-                      styles.activeBadge,
-                      {
-                        backgroundColor:
-                          colors.successBackground,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.activeBadgeText,
-                        {
-                          color:
-                            colors.success,
-                        },
-                      ]}
-                    >
-                      ACTIVE
-                    </Text>
-                  </View>
-                )}
-
-                {member.status ===
-                  "EXPIRING" && (
-                  <View
-                    style={[
-                      styles.warningBadge,
-                      {
-                        backgroundColor:
-                          colors.warningBackground,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.warningBadgeText,
-                        {
-                          color:
-                            colors.warning,
-                        },
-                      ]}
-                    >
-                      EXPIRING
-                    </Text>
-                  </View>
-                )}
-
-                {member.status ===
-                  "EXPIRED" && (
-                  <View
-                    style={[
-                      styles.expiredBadge,
-                      {
-                        backgroundColor:
-                          colors.dangerBackground,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.expiredBadgeText,
-                        {
-                          color:
-                            colors.danger,
-                        },
-                      ]}
-                    >
-                      EXPIRED
-                    </Text>
-                  </View>
-                )}
-
-              </TouchableOpacity>
+              />
             )
           )
         )}
+
+        {/* ==================================================
+            FOOTER
+        ================================================== */}
+
+        <View
+          style={
+            styles.footer
+          }
+        >
+          <View
+            style={[
+              styles.footerIcon,
+              {
+                backgroundColor:
+                  colors.iconBackground,
+              },
+            ]}
+          >
+            <Ionicons
+              name="fitness-outline"
+              size={15}
+              color={
+                colors.primaryLight
+              }
+            />
+          </View>
+
+          <Text
+            style={[
+              styles.footerText,
+              {
+                color:
+                  colors.secondaryText,
+              },
+            ]}
+          >
+            GYMRyt • OWNER + TRAINER
+          </Text>
+        </View>
 
       </ScrollView>
 
@@ -1392,171 +1141,64 @@ export default function OwnerTrainerDashboard() {
           styles.bottomNav,
           {
             backgroundColor:
-              colors.nav,
-            borderTopColor:
+              colors.card,
+            borderColor:
               colors.border,
           },
         ]}
       >
 
-        {/* HOME */}
+        <BottomNavItem
+          icon="home"
+          label="Home"
+          active
+          colors={colors}
+          onPress={() => {}}
+        />
 
-        <TouchableOpacity
-          style={
-            styles.navItem
-          }
-          activeOpacity={0.7}
-        >
-          <Text
-            style={
-              styles.navIconActive
-            }
-          >
-            🏠
-          </Text>
-
-          <Text
-            style={[
-              styles.navTextActive,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            Home
-          </Text>
-        </TouchableOpacity>
-
-        {/* MEMBERS */}
-
-        <TouchableOpacity
-          style={
-            styles.navItem
-          }
+        <BottomNavItem
+          icon="people-outline"
+          label="Members"
+          colors={colors}
           onPress={() =>
             router.push(
               "/admin/members"
             )
           }
-          activeOpacity={0.7}
-        >
-          <Text
-            style={
-              styles.navIcon
-            }
-          >
-            👥
-          </Text>
+        />
 
-          <Text
-            style={[
-              styles.navText,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
-            Members
-          </Text>
-        </TouchableOpacity>
-
-        {/* REGISTRATION */}
-
-        <TouchableOpacity
-          style={[
-            styles.addButton,
-            {
-              backgroundColor:
-                colors.primary,
-              borderColor:
-                colors.background,
-            },
-          ]}
+        <BottomNavItem
+          icon="qr-code-outline"
+          label="Register"
+          colors={colors}
           onPress={() =>
             router.push(
               "/admin/adminqr"
             )
           }
-          activeOpacity={0.8}
-        >
-          <Text
-            style={
-              styles.addButtonText
-            }
-          >
-            +
-          </Text>
-        </TouchableOpacity>
+        />
 
-        {/* REPORTS */}
-
-        <TouchableOpacity
-          style={
-            styles.navItem
-          }
+        <BottomNavItem
+          icon="stats-chart-outline"
+          label="Reports"
+          colors={colors}
           onPress={() =>
             router.push(
               "/admin/revenue"
             )
           }
-          activeOpacity={0.7}
-        >
-          <Text
-            style={
-              styles.navIcon
-            }
-          >
-            📊
-          </Text>
+        />
 
-          <Text
-            style={[
-              styles.navText,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
-            Reports
-          </Text>
-        </TouchableOpacity>
-
-        {/* PROFILE */}
-
-        <TouchableOpacity
-          style={
-            styles.navItem
-          }
+        <BottomNavItem
+          icon="person-outline"
+          label="Profile"
+          colors={colors}
           onPress={() =>
             router.push(
               "/admin/profile"
             )
           }
-          activeOpacity={0.7}
-        >
-          <Text
-            style={
-              styles.navIcon
-            }
-          >
-            👤
-          </Text>
-
-          <Text
-            style={[
-              styles.navText,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
-            Profile
-          </Text>
-        </TouchableOpacity>
+        />
 
       </View>
     </View>
@@ -1564,21 +1206,97 @@ export default function OwnerTrainerDashboard() {
 }
 
 // ======================================================
-// ACTION CARD
+// OVERVIEW STAT
 // ======================================================
 
-function ActionCard({
+function OverviewStat({
+  value,
+  label,
+  icon,
+  iconColor,
+  colors,
+  onPress,
+}) {
+  return (
+    <Pressable
+      style={[
+        styles.statCard,
+        {
+          backgroundColor:
+            colors.background,
+          borderColor:
+            colors.border,
+        },
+      ]}
+      onPress={onPress}
+      disabled={!onPress}
+    >
+      <View
+        style={[
+          styles.statIcon,
+          {
+            backgroundColor:
+              `${iconColor}18`,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={24}
+          color={iconColor}
+        />
+      </View>
+
+      <View
+        style={
+          styles.statContent
+        }
+      >
+        <Text
+          style={[
+            styles.statValue,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {value}
+        </Text>
+
+        <Text
+          style={[
+            styles.statLabel,
+            {
+              color:
+                colors.secondaryText,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+// ======================================================
+// QUICK ACTION
+// ======================================================
+
+function QuickAction({
   icon,
   title,
   subtitle,
-  onPress,
   colors,
-  payment = false,
+  onPress,
 }) {
   return (
-    <TouchableOpacity
+    <Pressable
       style={[
-        styles.actionCard,
+        styles.quickCard,
         {
           backgroundColor:
             colors.card,
@@ -1587,70 +1305,287 @@ function ActionCard({
         },
       ]}
       onPress={onPress}
-      activeOpacity={0.8}
+      android_ripple={{
+        color:
+          colors.iconBackground,
+      }}
     >
       <View
         style={[
-          styles.actionIcon,
+          styles.quickIcon,
           {
             backgroundColor:
-              payment
-                ? "#15803D"
-                : colors.primary,
+              colors.iconBackground,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={25}
+          color={
+            colors.primaryLight
+          }
+        />
+      </View>
+
+      <Text
+        style={[
+          styles.quickTitle,
+          {
+            color:
+              colors.text,
+          },
+        ]}
+      >
+        {title}
+      </Text>
+
+      <Text
+        style={[
+          styles.quickSubtitle,
+          {
+            color:
+              colors.secondaryText,
+          },
+        ]}
+        numberOfLines={2}
+      >
+        {subtitle}
+      </Text>
+    </Pressable>
+  );
+}
+
+// ======================================================
+// MEMBER CARD
+// ======================================================
+
+function MemberCard({
+  member,
+  initials,
+  colors,
+  onPress,
+}) {
+  const status =
+    String(
+      member.status || ""
+    ).toUpperCase();
+
+  const isExpired =
+    status === "EXPIRED";
+
+  const isExpiring =
+    status === "EXPIRING";
+
+  const isActive =
+    status === "ACTIVE";
+
+  const statusColor =
+    isExpired
+      ? "#FF5870"
+      : isExpiring
+      ? "#FFB21C"
+      : isActive
+      ? "#45E0A5"
+      : colors.secondaryText;
+
+  return (
+    <Pressable
+      style={[
+        styles.memberCard,
+        {
+          backgroundColor:
+            colors.card,
+          borderColor:
+            colors.border,
+        },
+      ]}
+      onPress={onPress}
+      android_ripple={{
+        color:
+          colors.iconBackground,
+      }}
+    >
+
+      {/* AVATAR */}
+
+      <View
+        style={[
+          styles.memberAvatar,
+          {
+            backgroundColor:
+              colors.iconBackground,
+            borderColor:
+              `${statusColor}55`,
           },
         ]}
       >
         <Text
-          style={
-            styles.actionIconText
-          }
+          style={[
+            styles.memberInitials,
+            {
+              color:
+                statusColor,
+            },
+          ]}
         >
-          {icon}
+          {initials}
         </Text>
       </View>
 
+      {/* MEMBER INFO */}
+
       <View
         style={
-          styles.actionContent
+          styles.memberInfo
         }
       >
         <Text
           style={[
-            styles.actionTitle,
+            styles.memberName,
             {
               color:
                 colors.text,
             },
           ]}
+          numberOfLines={1}
         >
-          {title}
+          {member.name}
         </Text>
 
         <Text
           style={[
-            styles.actionSubtitle,
+            styles.memberDays,
             {
               color:
-                colors.mutedText,
+                isExpired
+                  ? "#FF5870"
+                  : isExpiring
+                  ? "#FFB21C"
+                  : colors.secondaryText,
             },
           ]}
         >
-          {subtitle}
+          {isExpired
+            ? "Membership expired"
+            : `${calculateDaysRemaining(
+                member.membership_end
+              )} days remaining`}
         </Text>
+      </View>
+
+      {/* STATUS */}
+
+      {status !== "" && (
+        <View
+          style={[
+            styles.statusBadge,
+            {
+              backgroundColor:
+                `${statusColor}18`,
+              borderColor:
+                `${statusColor}55`,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              {
+                color:
+                  statusColor,
+              },
+            ]}
+          >
+            {status}
+          </Text>
+        </View>
+      )}
+
+      <Ionicons
+        name="chevron-forward"
+        size={20}
+        color={
+          colors.secondaryText
+        }
+        style={
+          styles.memberArrow
+        }
+      />
+
+    </Pressable>
+  );
+}
+
+// ======================================================
+// BOTTOM NAV ITEM
+// ======================================================
+
+function BottomNavItem({
+  icon,
+  label,
+  active = false,
+  colors,
+  onPress,
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={
+        styles.bottomNavItem
+      }
+      android_ripple={{
+        color:
+          colors.iconBackground,
+      }}
+    >
+      <View
+        style={[
+          styles.bottomIconContainer,
+
+          active && {
+            backgroundColor:
+              colors.iconBackground,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={21}
+          color={
+            active
+              ? colors.primaryLight
+              : colors.secondaryText
+          }
+        />
       </View>
 
       <Text
         style={[
-          styles.arrow,
+          styles.bottomLabel,
           {
             color:
-              colors.primaryLight,
+              active
+                ? colors.primaryLight
+                : colors.secondaryText,
           },
         ]}
       >
-        →
+        {label}
       </Text>
-    </TouchableOpacity>
+
+      {active && (
+        <View
+          style={[
+            styles.activeIndicator,
+            {
+              backgroundColor:
+                colors.primaryLight,
+            },
+          ]}
+        />
+      )}
+    </Pressable>
   );
 }
 
@@ -1716,9 +1651,12 @@ const styles =
     },
 
     content: {
-      paddingHorizontal: 20,
-      paddingTop: 55,
-      paddingBottom: 120,
+      paddingHorizontal: 18,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
+      paddingBottom: 125,
     },
 
     loadingContainer: {
@@ -1728,8 +1666,9 @@ const styles =
     },
 
     loadingText: {
-      marginTop: 15,
-      fontSize: 13,
+      marginTop: 12,
+      fontSize: 12,
+      fontWeight: "700",
     },
 
     // ==================================================
@@ -1740,132 +1679,145 @@ const styles =
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: 15,
+      marginBottom: 22,
     },
 
     headerLeft: {
       flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
     },
 
-    profileCircle: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-
-    profileText: {
-      color: "#FFFFFF",
-      fontSize: 19,
-      fontWeight: "800",
-    },
-
-    adminNameContainer: {
-      flex: 1,
-      marginLeft: 12,
-    },
-
-    smallText: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 2,
-      marginBottom: 6,
-    },
-
-    title: {
-      fontSize: 28,
-      fontWeight: "900",
-    },
-
-    subtitle: {
-      fontSize: 14,
-      marginTop: 5,
-    },
-
-    // ==================================================
-    // ROLE BADGE
-    // ==================================================
-
-    roleBadge: {
-      alignSelf: "flex-start",
-      paddingHorizontal: 11,
-      paddingVertical: 6,
-      borderRadius: 9,
-      borderWidth: 1,
-      marginBottom: 22,
-    },
-
-    roleBadgeText: {
+    eyebrow: {
       fontSize: 9,
       fontWeight: "900",
-      letterSpacing: 1.3,
+      letterSpacing: 1.4,
+      marginBottom: 7,
     },
 
-    // ==================================================
-    // THEME
-    // ==================================================
-
-    themeSwitch: {
-      width: 66,
-      height: 34,
-      borderRadius: 18,
+    profileRow: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 7,
-      position: "relative",
-      marginLeft: 10,
     },
 
-    themeIcon: {
-      fontSize: 13,
-    },
-
-    themeKnob: {
-      position: "absolute",
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      left: 4,
+    profileAvatar: {
+      width: 52,
+      height: 52,
+      borderRadius: 18,
+      borderWidth: 1,
       alignItems: "center",
       justifyContent: "center",
-      elevation: 3,
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.2,
-      shadowRadius: 3,
+      overflow: "hidden",
     },
 
-    knobIcon: {
-      fontSize: 13,
+    profileImage: {
+      width: "100%",
+      height: "100%",
+    },
+
+    profileInitials: {
+      fontSize: 18,
+      fontWeight: "900",
+    },
+
+    headerText: {
+      flex: 1,
+      marginLeft: 11,
+      marginRight: 5,
+    },
+
+    ownerName: {
+      fontSize: 18,
+      fontWeight: "900",
+    },
+
+    ownerRole: {
+      fontSize: 10,
+      fontWeight: "600",
+      marginTop: 3,
     },
 
     // ==================================================
-    // SECTION
+    // HEADER ACTIONS
     // ==================================================
 
-    sectionTitle: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 1.8,
-      marginBottom: 14,
+    headerActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+    },
+
+    headerButton: {
+      width: 43,
+      height: 43,
+      borderRadius: 14,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      position: "relative",
+    },
+
+    notificationBadge: {
+      position: "absolute",
+      right: -3,
+      top: -4,
+      minWidth: 17,
+      height: 17,
+      paddingHorizontal: 4,
+      borderRadius: 9,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 2,
+      borderColor: "transparent",
+    },
+
+    notificationBadgeText: {
+      color: "#FFFFFF",
+      fontSize: 7,
+      fontWeight: "900",
+    },
+
+    // ==================================================
+    // OVERVIEW CARD
+    // ==================================================
+
+    overviewCard: {
+      borderWidth: 1,
+      borderRadius: 26,
+      padding: 16,
+      marginBottom: 21,
     },
 
     sectionHeader: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
-      marginTop: 28,
+      justifyContent: "space-between",
+      marginBottom: 15,
     },
 
-    viewAll: {
-      fontSize: 13,
-      fontWeight: "700",
+    sectionEyebrow: {
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 1.3,
+      marginBottom: 3,
+    },
+
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "900",
+    },
+
+    todayBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderRadius: 14,
+      paddingHorizontal: 9,
+      paddingVertical: 6,
+    },
+
+    todayText: {
+      fontSize: 8,
+      fontWeight: "800",
+      marginLeft: 4,
     },
 
     // ==================================================
@@ -1876,251 +1828,294 @@ const styles =
       flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
-      marginBottom: 12,
     },
 
     statCard: {
-      width: "48%",
-      borderRadius: 20,
-      padding: 16,
-      marginBottom: 12,
+      width: "48.2%",
+      minHeight: 105,
       borderWidth: 1,
-    },
-
-    iconBox: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      justifyContent: "center",
+      borderRadius: 20,
+      padding: 12,
+      marginBottom: 9,
+      flexDirection: "row",
       alignItems: "center",
-      marginBottom: 12,
     },
 
-    icon: {
-      fontSize: 18,
-      fontWeight: "900",
+    statIcon: {
+      width: 43,
+      height: 43,
+      borderRadius: 15,
+      alignItems: "center",
+      justifyContent: "center",
     },
 
-    statNumber: {
-      fontSize: 28,
-      fontWeight: "900",
+    statContent: {
+      flex: 1,
+      marginLeft: 9,
     },
 
-    revenueNumber: {
-      fontSize: 24,
+    statValue: {
+      fontSize: 25,
       fontWeight: "900",
-      minHeight: 32,
     },
 
     statLabel: {
-      fontSize: 12,
+      fontSize: 7,
+      fontWeight: "900",
+      letterSpacing: 0.4,
       marginTop: 3,
+      lineHeight: 10,
     },
 
-    warningText: {
+    // ==================================================
+    // SECTION HEADER
+    // ==================================================
+
+    sectionHeaderSimple: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 11,
+      marginTop: 2,
+    },
+
+    sectionHeading: {
       fontSize: 11,
-      fontWeight: "700",
-      marginTop: 8,
+      fontWeight: "900",
+      letterSpacing: 1.2,
+    },
+
+    seeAllButton: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+
+    seeAllText: {
+      fontSize: 10,
+      fontWeight: "800",
+      marginRight: 2,
     },
 
     // ==================================================
     // QUICK ACTIONS
     // ==================================================
 
-    actionCard: {
+    quickGrid: {
       flexDirection: "row",
-      alignItems: "center",
-      borderRadius: 18,
-      padding: 15,
-      marginBottom: 12,
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      marginBottom: 21,
+    },
+
+    quickCard: {
+      width: "48.2%",
+      minHeight: 116,
       borderWidth: 1,
+      borderRadius: 20,
+      padding: 13,
+      marginBottom: 9,
     },
 
-    actionIcon: {
-      width: 45,
-      height: 45,
+    quickIcon: {
+      width: 43,
+      height: 43,
       borderRadius: 14,
-      justifyContent: "center",
       alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 10,
     },
 
-    actionIconText: {
-      color: "#FFFFFF",
-      fontSize: 22,
-      fontWeight: "700",
-    },
-
-    actionContent: {
-      flex: 1,
-      marginLeft: 14,
-    },
-
-    actionTitle: {
-      fontSize: 15,
-      fontWeight: "800",
-    },
-
-    actionSubtitle: {
+    quickTitle: {
       fontSize: 12,
+      fontWeight: "900",
+    },
+
+    quickSubtitle: {
+      fontSize: 8,
+      fontWeight: "600",
+      lineHeight: 11,
       marginTop: 4,
     },
 
-    arrow: {
-      fontSize: 22,
+    // ==================================================
+    // EMPTY MEMBERS
+    // ==================================================
+
+    emptyCard: {
+      borderWidth: 1,
+      borderRadius: 21,
+      paddingVertical: 28,
+      paddingHorizontal: 18,
+      alignItems: "center",
+      marginBottom: 10,
+    },
+
+    emptyIcon: {
+      width: 55,
+      height: 55,
+      borderRadius: 17,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    emptyTitle: {
+      fontSize: 14,
+      fontWeight: "900",
+      marginTop: 11,
+    },
+
+    emptySubtitle: {
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 4,
+      textAlign: "center",
     },
 
     // ==================================================
-    // MEMBERS
+    // MEMBER CARD
     // ==================================================
 
     memberCard: {
+      minHeight: 78,
+      borderWidth: 1,
+      borderRadius: 20,
+      paddingVertical: 9,
+      paddingLeft: 9,
+      paddingRight: 8,
       flexDirection: "row",
       alignItems: "center",
-      borderRadius: 18,
-      padding: 14,
-      marginBottom: 10,
+      marginBottom: 8,
+    },
+
+    memberAvatar: {
+      width: 52,
+      height: 52,
+      borderRadius: 17,
       borderWidth: 1,
-    },
-
-    avatar: {
-      width: 45,
-      height: 45,
-      borderRadius: 23,
-      justifyContent: "center",
       alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
     },
 
-    avatarText: {
-      fontSize: 13,
-      fontWeight: "800",
+    memberInitials: {
+      fontSize: 16,
+      fontWeight: "900",
     },
 
     memberInfo: {
       flex: 1,
-      marginLeft: 12,
-      marginRight: 8,
+      marginLeft: 10,
+      marginRight: 6,
     },
 
     memberName: {
-      fontSize: 15,
-      fontWeight: "800",
+      fontSize: 12,
+      fontWeight: "900",
     },
 
     memberDays: {
-      fontSize: 12,
+      fontSize: 9,
+      fontWeight: "600",
       marginTop: 4,
     },
 
-    activeBadge: {
-      paddingHorizontal: 9,
-      paddingVertical: 6,
-      borderRadius: 8,
+    statusBadge: {
+      borderWidth: 1,
+      borderRadius: 13,
+      paddingHorizontal: 7,
+      paddingVertical: 5,
     },
 
-    activeBadgeText: {
-      fontSize: 9,
-      fontWeight: "800",
+    statusText: {
+      fontSize: 6.5,
+      fontWeight: "900",
+      letterSpacing: 0.3,
     },
 
-    warningBadge: {
-      paddingHorizontal: 9,
-      paddingVertical: 6,
-      borderRadius: 8,
-    },
-
-    warningBadgeText: {
-      fontSize: 9,
-      fontWeight: "800",
-    },
-
-    expiredBadge: {
-      paddingHorizontal: 9,
-      paddingVertical: 6,
-      borderRadius: 8,
-    },
-
-    expiredBadgeText: {
-      fontSize: 9,
-      fontWeight: "800",
-    },
-
-    emptyContainer: {
-      alignItems: "center",
-      paddingVertical: 35,
-    },
-
-    emptyIcon: {
-      fontSize: 35,
-      marginBottom: 10,
-    },
-
-    emptyTitle: {
-      fontSize: 16,
-      fontWeight: "800",
-    },
-
-    emptyText: {
-      fontSize: 12,
-      marginTop: 5,
+    memberArrow: {
+      marginLeft: 5,
     },
 
     // ==================================================
-    // BOTTOM NAV
+    // FOOTER
+    // ==================================================
+
+    footer: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingTop: 20,
+      paddingBottom: 8,
+      flexDirection: "row",
+    },
+
+    footerIcon: {
+      width: 27,
+      height: 27,
+      borderRadius: 9,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 7,
+    },
+
+    footerText: {
+      fontSize: 8,
+      fontWeight: "800",
+      letterSpacing: 0.7,
+    },
+
+    // ==================================================
+    // BOTTOM NAVIGATION
     // ==================================================
 
     bottomNav: {
       position: "absolute",
-      bottom: 0,
       left: 0,
       right: 0,
-      height: 78,
+      bottom: 0,
+      height: 82,
       borderTopWidth: 1,
+      borderTopLeftRadius: 27,
+      borderTopRightRadius: 27,
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "space-around",
-      paddingHorizontal: 8,
+      paddingTop: 8,
+      elevation: 20,
+      shadowOffset: {
+        width: 0,
+        height: -4,
+      },
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
     },
 
-    navItem: {
+    bottomNavItem: {
+      flex: 1,
+      height: 70,
+      alignItems: "center",
+      justifyContent: "flex-start",
+      position: "relative",
+    },
+
+    bottomIconContainer: {
+      width: 42,
+      height: 35,
+      borderRadius: 13,
       alignItems: "center",
       justifyContent: "center",
-      width: 65,
     },
 
-    navIcon: {
-      fontSize: 19,
-      opacity: 0.6,
+    bottomLabel: {
+      fontSize: 7.5,
+      fontWeight: "800",
+      marginTop: 2,
     },
 
-    navIconActive: {
-      fontSize: 19,
-    },
-
-    navText: {
-      fontSize: 10,
+    activeIndicator: {
+      width: 25,
+      height: 3,
+      borderRadius: 3,
       marginTop: 4,
-    },
-
-    navTextActive: {
-      fontSize: 10,
-      fontWeight: "700",
-      marginTop: 4,
-    },
-
-    addButton: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      justifyContent: "center",
-      alignItems: "center",
-      marginTop: -25,
-      borderWidth: 5,
-    },
-
-    addButtonText: {
-      color: "#FFFFFF",
-      fontSize: 30,
-      fontWeight: "300",
     },
 
   });

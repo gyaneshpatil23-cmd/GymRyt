@@ -44,10 +44,10 @@ import {
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 const BACKEND_BASE_URL =
-  "http://192.168.1.52:8000";
+  "http://192.168.1.43:8000";
 
 
 // ============================================================
@@ -265,12 +265,37 @@ export default function TrainerProfile() {
 
   // ==========================================================
   // LOAD WHEN SCREEN FOCUSES
+  //
+  // crop.js saves the cropped photo under
+  // "pendingProfilePictureUri" and returns here.
   // ==========================================================
 
   useFocusEffect(
     useCallback(() => {
 
-      loadTrainerProfile();
+      const refresh = async () => {
+
+        await loadTrainerProfile();
+
+        const pendingUri =
+          await AsyncStorage.getItem(
+            "pendingProfilePictureUri"
+          );
+
+        if (pendingUri) {
+
+          // Remove first so a refresh can't upload it twice.
+          await AsyncStorage.removeItem(
+            "pendingProfilePictureUri"
+          );
+
+          await uploadProfilePhoto({
+            uri: pendingUri,
+          });
+        }
+      };
+
+      refresh();
 
     }, [])
   );

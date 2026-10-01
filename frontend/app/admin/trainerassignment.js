@@ -15,6 +15,7 @@ import {
   Modal,
   Pressable,
   Image,
+  Platform,
 } from "react-native";
 
 import {
@@ -23,6 +24,8 @@ import {
 } from "expo-router";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   useTheme,
@@ -34,7 +37,7 @@ import {
 // ============================================================
 
 const BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 const MEMBERS_API =
   `${BASE_URL}/`;
@@ -46,7 +49,7 @@ const ASSIGN_API =
   `${BASE_URL}/trainer/assign/`;
 
 const BACKEND_BASE_URL =
-  "http://192.168.1.52:8000";
+  "http://192.168.1.43:8000";
 
 
 // ============================================================
@@ -55,8 +58,11 @@ const BACKEND_BASE_URL =
 
 export default function TrainerAssignment() {
 
-  const { colors } =
-    useTheme();
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
 
   // ==========================================================
@@ -709,6 +715,13 @@ export default function TrainerAssignment() {
   // MAIN SCREEN
   // ==========================================================
 
+  const unassignedCount =
+    members.filter(
+      (member) =>
+        !member.trainer
+    ).length;
+
+
   return (
 
     <View
@@ -729,33 +742,27 @@ export default function TrainerAssignment() {
         showsVerticalScrollIndicator={
           false
         }
-
         contentContainerStyle={
           styles.content
         }
-
         refreshControl={
-
           <RefreshControl
             refreshing={
               refreshing
             }
-
             onRefresh={() => {
-
               setRefreshing(
                 true
               );
-
               loadData(false);
-
             }}
-
             tintColor={
               colors.primary
             }
+            colors={[
+              colors.primary,
+            ]}
           />
-
         }
       >
 
@@ -768,38 +775,6 @@ export default function TrainerAssignment() {
             styles.header
           }
         >
-
-          <TouchableOpacity
-            style={[
-              styles.back,
-              {
-                backgroundColor:
-                  colors.card,
-
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.back()
-            }
-            activeOpacity={0.8}
-          >
-
-            <Text
-              style={[
-                styles.backText,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ‹
-            </Text>
-
-          </TouchableOpacity>
-
 
           <View
             style={
@@ -816,9 +791,8 @@ export default function TrainerAssignment() {
                 },
               ]}
             >
-              GYMRYT MANAGEMENT
+              GYMRYT • TRAINING TEAM
             </Text>
-
 
             <Text
               style={[
@@ -832,18 +806,71 @@ export default function TrainerAssignment() {
               Trainer Assignment
             </Text>
 
+          </View>
 
-            <Text
+
+          <View
+            style={
+              styles.headerActions
+            }
+          >
+
+            {/* THEME */}
+
+            <TouchableOpacity
               style={[
-                styles.subtitle,
+                styles.back,
                 {
-                  color:
-                    colors.mutedText,
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
                 },
               ]}
+              onPress={
+                toggleTheme
+              }
+              activeOpacity={0.8}
             >
-              Assign members to your training team.
-            </Text>
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </TouchableOpacity>
+
+
+            {/* BACK */}
+
+            <TouchableOpacity
+              style={[
+                styles.back,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={() =>
+                router.back()
+              }
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </TouchableOpacity>
 
           </View>
 
@@ -860,7 +887,6 @@ export default function TrainerAssignment() {
             {
               backgroundColor:
                 colors.card,
-
               borderColor:
                 colors.border,
             },
@@ -869,104 +895,70 @@ export default function TrainerAssignment() {
 
           <View
             style={
-              styles.summaryItem
+              styles.summaryHeader
             }
           >
 
-            <Text
-              style={[
-                styles.summaryNumber,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {members.length}
-            </Text>
+            <View>
 
-            <Text
-              style={[
-                styles.summaryLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Members
-            </Text>
+              <Text
+                style={[
+                  styles.summaryEyebrow,
+                  {
+                    color:
+                      colors.primaryLight,
+                  },
+                ]}
+              >
+                YOUR TEAM
+              </Text>
+
+              <Text
+                style={[
+                  styles.summaryTitle,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                Assignment Overview
+              </Text>
+
+            </View>
 
           </View>
 
 
           <View
             style={
-              styles.summaryItem
+              styles.summaryGrid
             }
           >
 
-            <Text
-              style={[
-                styles.summaryNumber,
-                {
-                  color:
-                    colors.primaryLight,
-                },
-              ]}
-            >
-              {trainers.length}
-            </Text>
+            <SummaryStat
+              value={members.length}
+              label="MEMBERS"
+              icon="people-outline"
+              iconColor="#36B7FF"
+              colors={colors}
+            />
 
-            <Text
-              style={[
-                styles.summaryLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Active Trainers
-            </Text>
+            <SummaryStat
+              value={trainers.length}
+              label="TRAINERS"
+              icon="barbell-outline"
+              iconColor="#45E0A5"
+              colors={colors}
+            />
 
-          </View>
-
-
-          <View
-            style={
-              styles.summaryItem
-            }
-          >
-
-            <Text
-              style={[
-                styles.summaryNumber,
-                {
-                  color:
-                    colors.warning,
-                },
-              ]}
-            >
-              {
-                members.filter(
-                  (member) =>
-                    !member.trainer
-                ).length
-              }
-            </Text>
-
-            <Text
-              style={[
-                styles.summaryLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Unassigned
-            </Text>
+            <SummaryStat
+              value={unassignedCount}
+              label="UNASSIGNED"
+              icon="alert-circle-outline"
+              iconColor="#FFB21C"
+              colors={colors}
+            />
 
           </View>
 
@@ -977,17 +969,37 @@ export default function TrainerAssignment() {
             SECTION TITLE
         ==================================================== */}
 
-        <Text
-          style={[
-            styles.section,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
+        <View
+          style={
+            styles.sectionRow
+          }
         >
-          MEMBER ASSIGNMENTS
-        </Text>
+
+          <Text
+            style={[
+              styles.section,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            MEMBER ASSIGNMENTS
+          </Text>
+
+          <Text
+            style={[
+              styles.sectionCount,
+              {
+                color:
+                  colors.primaryLight,
+              },
+            ]}
+          >
+            {members.length}
+          </Text>
+
+        </View>
 
 
         {/* ====================================================
@@ -1002,20 +1014,29 @@ export default function TrainerAssignment() {
               {
                 borderColor:
                   colors.border,
-
                 backgroundColor:
                   colors.card,
               },
             ]}
           >
 
-            <Text
-              style={
-                styles.emptyIcon
-              }
+            <View
+              style={[
+                styles.emptyIcon,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                },
+              ]}
             >
-              👥
-            </Text>
+              <Ionicons
+                name="people-outline"
+                size={28}
+                color={
+                  colors.primaryLight
+                }
+              />
+            </View>
 
             <Text
               style={[
@@ -1050,166 +1071,48 @@ export default function TrainerAssignment() {
           ================================================== */
 
           members.map(
-            (member) => (
+            (member) => {
 
-              <View
-                key={
-                  member.id
-                }
-                style={[
-                  styles.memberCard,
-                  {
-                    backgroundColor:
-                      colors.card,
+              const assignColor =
+                member.trainer
+                  ? "#45E0A5"
+                  : "#FFB21C";
 
-                    borderColor:
-                      colors.border,
-                  },
-                ]}
-              >
-
-                {/* ==========================================
-                    MEMBER AVATAR
-                ========================================== */}
+              return (
 
                 <View
-                  style={[
-                    styles.avatar,
-                    {
-                      backgroundColor:
-                        colors.iconBackground,
-                    },
-                  ]}
-                >
-
-                  <Text
-                    style={[
-                      styles.avatarText,
-                      {
-                        color:
-                          colors.primaryLight,
-                      },
-                    ]}
-                  >
-                    {
-                      (
-                        member.name ||
-                        "?"
-                      )
-                        .charAt(0)
-                        .toUpperCase()
-                    }
-                  </Text>
-
-                </View>
-
-
-                {/* ==========================================
-                    MEMBER INFORMATION
-                ========================================== */}
-
-                <View
-                  style={
-                    styles.memberInfo
+                  key={
+                    member.id
                   }
-                >
-
-                  <Text
-                    style={[
-                      styles.memberName,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {
-                      member.name ||
-                      "Unknown Member"
-                    }
-                  </Text>
-
-
-                  <Text
-                    style={[
-                      styles.memberMeta,
-                      {
-                        color:
-                          colors.mutedText,
-                      },
-                    ]}
-                  >
-                    {
-                      member.phone ||
-                      "No phone"
-                    }
-                  </Text>
-
-
-                  <Text
-                    style={[
-                      styles.trainerLabel,
-                      {
-                        color:
-                          member.trainer
-                            ? colors.success
-                            : colors.warning,
-                      },
-                    ]}
-                  >
-                    {
-                      member.trainer
-                        ? `TRAINER • ${getTrainerLabel(member)}`
-                        : "UNASSIGNED"
-                    }
-                  </Text>
-
-                </View>
-
-
-                {/* ==========================================
-                    ASSIGN BUTTON
-                ========================================== */}
-
-                <TouchableOpacity
                   style={[
-                    styles.assignButton,
+                    styles.memberCard,
                     {
                       backgroundColor:
-                        colors.iconBackground,
-
+                        colors.card,
                       borderColor:
                         colors.border,
                     },
                   ]}
-                  disabled={
-                    savingId ===
-                    member.id
-                  }
-                  onPress={() =>
-                    chooseTrainer(
-                      member
-                    )
-                  }
-                  activeOpacity={0.8}
                 >
 
-                  {savingId ===
-                  member.id ? (
+                  {/* ==========================================
+                      MEMBER AVATAR
+                  ========================================== */}
 
-                    <ActivityIndicator
-                      size="small"
-                      color={
-                        colors.primaryLight
-                      }
-                    />
-
-                  ) : (
-
+                  <View
+                    style={[
+                      styles.avatar,
+                      {
+                        backgroundColor:
+                          colors.iconBackground,
+                        borderColor:
+                          `${assignColor}55`,
+                      },
+                    ]}
+                  >
                     <Text
                       style={[
-                        styles.assignText,
+                        styles.avatarText,
                         {
                           color:
                             colors.primaryLight,
@@ -1217,19 +1120,167 @@ export default function TrainerAssignment() {
                       ]}
                     >
                       {
-                        member.trainer
-                          ? "CHANGE"
-                          : "ASSIGN"
+                        (
+                          member.name ||
+                          "?"
+                        )
+                          .charAt(0)
+                          .toUpperCase()
+                      }
+                    </Text>
+                  </View>
+
+
+                  {/* ==========================================
+                      MEMBER INFORMATION
+                  ========================================== */}
+
+                  <View
+                    style={
+                      styles.memberInfo
+                    }
+                  >
+
+                    <Text
+                      style={[
+                        styles.memberName,
+                        {
+                          color:
+                            colors.text,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {
+                        member.name ||
+                        "Unknown Member"
                       }
                     </Text>
 
-                  )}
+                    <Text
+                      style={[
+                        styles.memberMeta,
+                        {
+                          color:
+                            colors.secondaryText,
+                        },
+                      ]}
+                    >
+                      {
+                        member.phone ||
+                        "No phone"
+                      }
+                    </Text>
 
-                </TouchableOpacity>
+                    <View
+                      style={[
+                        styles.trainerBadge,
+                        {
+                          backgroundColor:
+                            `${assignColor}18`,
+                          borderColor:
+                            `${assignColor}55`,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.trainerLabel,
+                          {
+                            color:
+                              assignColor,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {
+                          member.trainer
+                            ? `TRAINER • ${getTrainerLabel(member)}`
+                            : "UNASSIGNED"
+                        }
+                      </Text>
+                    </View>
 
-              </View>
+                  </View>
 
-            )
+
+                  {/* ==========================================
+                      ASSIGN BUTTON
+                  ========================================== */}
+
+                  <TouchableOpacity
+                    style={[
+                      styles.assignButton,
+                      {
+                        backgroundColor:
+                          colors.iconBackground,
+                        borderColor:
+                          colors.border,
+                      },
+                    ]}
+                    disabled={
+                      savingId ===
+                      member.id
+                    }
+                    onPress={() =>
+                      chooseTrainer(
+                        member
+                      )
+                    }
+                    activeOpacity={0.8}
+                  >
+
+                    {savingId ===
+                    member.id ? (
+
+                      <ActivityIndicator
+                        size="small"
+                        color={
+                          colors.primaryLight
+                        }
+                      />
+
+                    ) : (
+
+                      <>
+
+                        <Ionicons
+                          name={
+                            member.trainer
+                              ? "swap-horizontal"
+                              : "add"
+                          }
+                          size={14}
+                          color={
+                            colors.primaryLight
+                          }
+                        />
+
+                        <Text
+                          style={[
+                            styles.assignText,
+                            {
+                              color:
+                                colors.primaryLight,
+                            },
+                          ]}
+                        >
+                          {
+                            member.trainer
+                              ? "CHANGE"
+                              : "ASSIGN"
+                          }
+                        </Text>
+
+                      </>
+
+                    )}
+
+                  </TouchableOpacity>
+
+                </View>
+              );
+            }
           )
 
         )}
@@ -1245,11 +1296,8 @@ export default function TrainerAssignment() {
         visible={
           assignmentModalVisible
         }
-
         transparent={true}
-
         animationType="fade"
-
         onRequestClose={
           closeAssignmentModal
         }
@@ -1269,7 +1317,6 @@ export default function TrainerAssignment() {
             style={
               styles.modalBackdrop
             }
-
             onPress={
               closeAssignmentModal
             }
@@ -1281,9 +1328,15 @@ export default function TrainerAssignment() {
           ================================================== */}
 
           <View
-            style={
-              styles.assignmentSheet
-            }
+            style={[
+              styles.assignmentSheet,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
           >
 
             {/* ==================================================
@@ -1291,9 +1344,13 @@ export default function TrainerAssignment() {
             ================================================== */}
 
             <View
-              style={
-                styles.dragHandle
-              }
+              style={[
+                styles.dragHandle,
+                {
+                  backgroundColor:
+                    colors.border,
+                },
+              ]}
             />
 
 
@@ -1318,19 +1375,21 @@ export default function TrainerAssignment() {
                 ============================================ */}
 
                 <View
-                  style={
-                    styles.modalHeaderIcon
-                  }
+                  style={[
+                    styles.modalHeaderIcon,
+                    {
+                      backgroundColor:
+                        colors.iconBackground,
+                    },
+                  ]}
                 >
-
-                  <Text
-                    style={
-                      styles.modalHeaderIconText
+                  <Ionicons
+                    name="person-add-outline"
+                    size={22}
+                    color={
+                      colors.primaryLight
                     }
-                  >
-                    👤
-                  </Text>
-
+                  />
                 </View>
 
 
@@ -1345,32 +1404,41 @@ export default function TrainerAssignment() {
                 >
 
                   <Text
-                    style={
-                      styles.modalTitle
-                    }
+                    style={[
+                      styles.modalTitle,
+                      {
+                        color:
+                          colors.text,
+                      },
+                    ]}
                   >
                     Assign Trainer
                   </Text>
 
-
                   <Text
-                    style={
-                      styles.modalSubtitle
-                    }
+                    style={[
+                      styles.modalSubtitle,
+                      {
+                        color:
+                          colors.secondaryText,
+                      },
+                    ]}
                   >
                     Choose a trainer for{" "}
-
                     <Text
-                      style={
-                        styles.modalMemberName
-                      }
+                      style={[
+                        styles.modalMemberName,
+                        {
+                          color:
+                            colors.primaryLight,
+                        },
+                      ]}
                     >
                       {
                         selectedMember?.name ||
                         "member"
                       }.
                     </Text>
-
                   </Text>
 
                 </View>
@@ -1383,29 +1451,30 @@ export default function TrainerAssignment() {
               ============================================ */}
 
               <TouchableOpacity
-                style={
-                  styles.modalCloseButton
-                }
-
+                style={[
+                  styles.modalCloseButton,
+                  {
+                    backgroundColor:
+                      colors.background,
+                    borderColor:
+                      colors.border,
+                  },
+                ]}
                 onPress={
                   closeAssignmentModal
                 }
-
                 disabled={
                   !!savingId
                 }
-
                 activeOpacity={0.8}
               >
-
-                <Text
-                  style={
-                    styles.modalCloseText
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={
+                    colors.text
                   }
-                >
-                  ×
-                </Text>
-
+                />
               </TouchableOpacity>
 
             </View>
@@ -1419,11 +1488,9 @@ export default function TrainerAssignment() {
               showsVerticalScrollIndicator={
                 false
               }
-
               style={
                 styles.trainerOptionsScroll
               }
-
               contentContainerStyle={{
                 paddingBottom: 10,
               }}
@@ -1435,21 +1502,25 @@ export default function TrainerAssignment() {
 
               <TouchableOpacity
                 activeOpacity={0.82}
-
                 onPress={() =>
                   selectTrainer(
                     null
                   )
                 }
-
                 style={[
                   styles.trainerOption,
-
-                  styles.unassignOption,
-
-                  selectedTrainerId ===
-                    null &&
-                    styles.selectedUnassignOption,
+                  {
+                    backgroundColor:
+                      selectedTrainerId ===
+                      null
+                        ? "#FF587012"
+                        : colors.background,
+                    borderColor:
+                      selectedTrainerId ===
+                      null
+                        ? "#FF5870"
+                        : colors.border,
+                  },
                 ]}
               >
 
@@ -1460,18 +1531,17 @@ export default function TrainerAssignment() {
                 <View
                   style={[
                     styles.optionIcon,
-                    styles.unassignIcon,
+                    {
+                      backgroundColor:
+                        "#FF587018",
+                    },
                   ]}
                 >
-
-                  <Text
-                    style={
-                      styles.unassignIconText
-                    }
-                  >
-                    ⊘
-                  </Text>
-
+                  <Ionicons
+                    name="remove-circle-outline"
+                    size={22}
+                    color="#FF5870"
+                  />
                 </View>
 
 
@@ -1486,18 +1556,25 @@ export default function TrainerAssignment() {
                 >
 
                   <Text
-                    style={
-                      styles.optionTitle
-                    }
+                    style={[
+                      styles.optionTitle,
+                      {
+                        color:
+                          colors.text,
+                      },
+                    ]}
                   >
                     Unassign Trainer
                   </Text>
 
-
                   <Text
-                    style={
-                      styles.optionSubtitle
-                    }
+                    style={[
+                      styles.optionSubtitle,
+                      {
+                        color:
+                          colors.secondaryText,
+                      },
+                    ]}
                   >
                     Remove current trainer from{" "}
                     {
@@ -1513,28 +1590,21 @@ export default function TrainerAssignment() {
                     RADIO
                 ============================================== */}
 
-                <View
-                  style={[
-                    styles.radioOuter,
-
+                <Ionicons
+                  name={
                     selectedTrainerId ===
-                      null &&
-                      styles.radioOuterSelected,
-                  ]}
-                >
-
-                  {selectedTrainerId ===
-                    null && (
-
-                    <View
-                      style={
-                        styles.radioInner
-                      }
-                    />
-
-                  )}
-
-                </View>
+                    null
+                      ? "radio-button-on"
+                      : "radio-button-off"
+                  }
+                  size={22}
+                  color={
+                    selectedTrainerId ===
+                    null
+                      ? "#FF5870"
+                      : colors.secondaryText
+                  }
+                />
 
               </TouchableOpacity>
 
@@ -1554,25 +1624,21 @@ export default function TrainerAssignment() {
                       trainer.id
                     );
 
-
                   const trainerName =
                     trainer.name ||
                     trainer.full_name ||
                     trainer.username ||
                     "Trainer";
 
-
                   const specialization =
                     trainer.specialization ||
                     "Personal Training";
-
 
                   const profileImage =
                     trainer.profile_picture ||
                     trainer.profile_image ||
                     trainer.image ||
                     null;
-
 
                   const imageUrl =
                     getTrainerImageUrl(
@@ -1586,20 +1652,24 @@ export default function TrainerAssignment() {
                       key={
                         trainer.id
                       }
-
                       activeOpacity={0.82}
-
                       onPress={() =>
                         selectTrainer(
                           trainer.id
                         )
                       }
-
                       style={[
                         styles.trainerOption,
-
-                        isSelected &&
-                          styles.selectedTrainerOption,
+                        {
+                          backgroundColor:
+                            isSelected
+                              ? colors.iconBackground
+                              : colors.background,
+                          borderColor:
+                            isSelected
+                              ? colors.primaryLight
+                              : colors.border,
+                        },
                       ]}
                     >
 
@@ -1608,9 +1678,15 @@ export default function TrainerAssignment() {
                       ======================================== */}
 
                       <View
-                        style={
-                          styles.trainerAvatar
-                        }
+                        style={[
+                          styles.trainerAvatar,
+                          {
+                            backgroundColor:
+                              colors.iconBackground,
+                            borderColor:
+                              colors.border,
+                          },
+                        ]}
                       >
 
                         {imageUrl ? (
@@ -1620,7 +1696,6 @@ export default function TrainerAssignment() {
                               uri:
                                 imageUrl,
                             }}
-
                             style={
                               styles.trainerAvatarImage
                             }
@@ -1629,9 +1704,13 @@ export default function TrainerAssignment() {
                         ) : (
 
                           <Text
-                            style={
-                              styles.trainerAvatarText
-                            }
+                            style={[
+                              styles.trainerAvatarText,
+                              {
+                                color:
+                                  colors.primaryLight,
+                              },
+                            ]}
                           >
                             {
                               trainerName
@@ -1656,10 +1735,13 @@ export default function TrainerAssignment() {
                       >
 
                         <Text
-                          style={
-                            styles.optionTitle
-                          }
-
+                          style={[
+                            styles.optionTitle,
+                            {
+                              color:
+                                colors.text,
+                            },
+                          ]}
                           numberOfLines={
                             1
                           }
@@ -1669,27 +1751,29 @@ export default function TrainerAssignment() {
                           }
                         </Text>
 
-
                         <View
                           style={
                             styles.specializationRow
                           }
                         >
 
-                          <Text
-                            style={
-                              styles.dumbbellIcon
+                          <Ionicons
+                            name="barbell-outline"
+                            size={12}
+                            color={
+                              colors.secondaryText
                             }
-                          >
-                            🏋
-                          </Text>
-
+                          />
 
                           <Text
-                            style={
-                              styles.optionSubtitle
-                            }
-
+                            style={[
+                              styles.optionSubtitle,
+                              styles.specializationText,
+                              {
+                                color:
+                                  colors.secondaryText,
+                              },
+                            ]}
                             numberOfLines={
                               1
                             }
@@ -1708,29 +1792,21 @@ export default function TrainerAssignment() {
                           RADIO
                       ======================================== */}
 
-                      <View
-                        style={[
-                          styles.radioOuter,
-
-                          isSelected &&
-                            styles.radioOuterSelected,
-                        ]}
-                      >
-
-                        {isSelected && (
-
-                          <View
-                            style={
-                              styles.radioInner
-                            }
-                          />
-
-                        )}
-
-                      </View>
+                      <Ionicons
+                        name={
+                          isSelected
+                            ? "radio-button-on"
+                            : "radio-button-off"
+                        }
+                        size={22}
+                        color={
+                          isSelected
+                            ? colors.primaryLight
+                            : colors.secondaryText
+                        }
+                      />
 
                     </TouchableOpacity>
-
                   );
                 }
               )}
@@ -1753,29 +1829,34 @@ export default function TrainerAssignment() {
               ================================================= */}
 
               <TouchableOpacity
-                style={
-                  styles.modalCancelButton
-                }
-
+                style={[
+                  styles.modalCancelButton,
+                  {
+                    backgroundColor:
+                      colors.background,
+                    borderColor:
+                      colors.border,
+                  },
+                ]}
                 onPress={
                   closeAssignmentModal
                 }
-
                 disabled={
                   !!savingId
                 }
-
                 activeOpacity={0.8}
               >
-
                 <Text
-                  style={
-                    styles.modalCancelText
-                  }
+                  style={[
+                    styles.modalCancelText,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
                 >
                   Cancel
                 </Text>
-
               </TouchableOpacity>
 
 
@@ -1786,19 +1867,22 @@ export default function TrainerAssignment() {
               <TouchableOpacity
                 style={[
                   styles.modalAssignButton,
-
+                  {
+                    backgroundColor:
+                      selectedTrainerId ===
+                      null
+                        ? "#FF5870"
+                        : colors.primary,
+                  },
                   savingId &&
                     styles.modalAssignButtonDisabled,
                 ]}
-
                 onPress={
                   confirmTrainerAssignment
                 }
-
                 disabled={
                   !!savingId
                 }
-
                 activeOpacity={0.85}
               >
 
@@ -1842,6 +1926,77 @@ export default function TrainerAssignment() {
 
 
 // ============================================================
+// SUMMARY STAT
+// ============================================================
+
+function SummaryStat({
+  value,
+  label,
+  icon,
+  iconColor,
+  colors,
+}) {
+
+  return (
+
+    <View
+      style={[
+        styles.summaryItem,
+        {
+          backgroundColor:
+            colors.background,
+          borderColor:
+            colors.border,
+        },
+      ]}
+    >
+
+      <View
+        style={[
+          styles.summaryIcon,
+          {
+            backgroundColor:
+              `${iconColor}18`,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={19}
+          color={iconColor}
+        />
+      </View>
+
+      <Text
+        style={[
+          styles.summaryNumber,
+          {
+            color:
+              colors.text,
+          },
+        ]}
+      >
+        {value}
+      </Text>
+
+      <Text
+        style={[
+          styles.summaryLabel,
+          {
+            color:
+              colors.secondaryText,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
+    </View>
+  );
+}
+
+
+// ============================================================
 // STYLES
 // ============================================================
 
@@ -1856,37 +2011,27 @@ const styles =
       flex: 1,
     },
 
+    content: {
+      paddingHorizontal: 18,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
+      paddingBottom: 40,
+    },
 
     center: {
       flex: 1,
-
       alignItems:
         "center",
-
       justifyContent:
         "center",
     },
 
-
     loadingText: {
       marginTop: 12,
-
       fontSize: 12,
-
       fontWeight: "700",
-    },
-
-
-    // ========================================================
-    // CONTENT
-    // ========================================================
-
-    content: {
-      paddingHorizontal: 20,
-
-      paddingTop: 55,
-
-      paddingBottom: 50,
     },
 
 
@@ -1897,68 +2042,47 @@ const styles =
     header: {
       flexDirection:
         "row",
-
       alignItems:
         "center",
-
-      marginBottom: 24,
-    },
-
-
-    back: {
-      width: 45,
-      height: 45,
-
-      borderRadius: 14,
-
-      borderWidth: 1,
-
-      alignItems:
-        "center",
-
       justifyContent:
-        "center",
+        "space-between",
+      marginBottom: 18,
     },
-
-
-    backText: {
-      fontSize: 34,
-
-      fontWeight: "300",
-
-      marginTop: -4,
-    },
-
 
     headerText: {
       flex: 1,
-
-      marginLeft: 14,
+      marginRight: 10,
     },
-
 
     eyebrow: {
       fontSize: 9,
-
       fontWeight: "900",
-
-      letterSpacing: 1.5,
+      letterSpacing: 1.4,
     },
-
 
     title: {
-      fontSize: 27,
-
+      fontSize: 22,
       fontWeight: "900",
-
-      marginTop: 3,
+      marginTop: 4,
     },
 
+    headerActions: {
+      flexDirection:
+        "row",
+      alignItems:
+        "center",
+      gap: 7,
+    },
 
-    subtitle: {
-      fontSize: 10,
-
-      marginTop: 4,
+    back: {
+      width: 43,
+      height: 43,
+      borderRadius: 14,
+      borderWidth: 1,
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
     },
 
 
@@ -1968,42 +2092,63 @@ const styles =
 
     summary: {
       borderWidth: 1,
-
-      borderRadius: 18,
-
-      padding: 17,
-
-      flexDirection:
-        "row",
-
-      justifyContent:
-        "space-between",
-
-      marginBottom: 28,
+      borderRadius: 26,
+      padding: 16,
+      marginBottom: 21,
     },
 
-
-    summaryItem: {
-      flex: 1,
-
-      alignItems:
-        "flex-start",
+    summaryHeader: {
+      marginBottom: 14,
     },
 
+    summaryEyebrow: {
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 1.3,
+      marginBottom: 3,
+    },
 
-    summaryNumber: {
-      fontSize: 23,
-
+    summaryTitle: {
+      fontSize: 18,
       fontWeight: "900",
     },
 
+    summaryGrid: {
+      flexDirection:
+        "row",
+      gap: 8,
+    },
+
+    summaryItem: {
+      flex: 1,
+      borderWidth: 1,
+      borderRadius: 18,
+      paddingVertical: 12,
+      alignItems:
+        "center",
+    },
+
+    summaryIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 13,
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+    },
+
+    summaryNumber: {
+      fontSize: 22,
+      fontWeight: "900",
+      marginTop: 7,
+    },
 
     summaryLabel: {
-      fontSize: 8,
-
-      fontWeight: "800",
-
-      marginTop: 4,
+      fontSize: 7,
+      fontWeight: "900",
+      letterSpacing: 0.6,
+      marginTop: 2,
     },
 
 
@@ -2011,14 +2156,63 @@ const styles =
     // SECTION
     // ========================================================
 
+    sectionRow: {
+      flexDirection:
+        "row",
+      alignItems:
+        "center",
+      justifyContent:
+        "space-between",
+      marginBottom: 11,
+    },
+
     section: {
-      fontSize: 10,
-
+      fontSize: 11,
       fontWeight: "900",
+      letterSpacing: 1.2,
+    },
 
-      letterSpacing: 1.3,
+    sectionCount: {
+      fontSize: 10,
+      fontWeight: "800",
+    },
 
-      marginBottom: 12,
+
+    // ========================================================
+    // EMPTY
+    // ========================================================
+
+    empty: {
+      borderWidth: 1,
+      borderRadius: 21,
+      paddingVertical: 31,
+      paddingHorizontal: 20,
+      alignItems:
+        "center",
+    },
+
+    emptyIcon: {
+      width: 58,
+      height: 58,
+      borderRadius: 18,
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+    },
+
+    emptyTitle: {
+      fontSize: 15,
+      fontWeight: "900",
+      marginTop: 12,
+    },
+
+    emptyText: {
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 5,
+      textAlign:
+        "center",
     },
 
 
@@ -2028,632 +2222,269 @@ const styles =
 
     memberCard: {
       minHeight: 84,
-
       borderWidth: 1,
-
-      borderRadius: 17,
-
-      padding: 12,
-
+      borderRadius: 20,
+      paddingVertical: 10,
+      paddingLeft: 10,
+      paddingRight: 10,
       flexDirection:
         "row",
-
       alignItems:
         "center",
-
-      marginBottom: 10,
+      marginBottom: 8,
     },
 
-
     avatar: {
-      width: 48,
-      height: 48,
-
-      borderRadius: 15,
-
+      width: 52,
+      height: 52,
+      borderRadius: 17,
+      borderWidth: 1,
       alignItems:
         "center",
-
       justifyContent:
         "center",
     },
-
 
     avatarText: {
       fontSize: 18,
-
       fontWeight: "900",
     },
-
 
     memberInfo: {
       flex: 1,
-
-      marginHorizontal: 10,
+      marginLeft: 11,
+      marginRight: 8,
     },
-
 
     memberName: {
       fontSize: 13,
-
       fontWeight: "900",
     },
-
 
     memberMeta: {
       fontSize: 9,
-
+      fontWeight: "600",
       marginTop: 3,
     },
 
+    trainerBadge: {
+      alignSelf:
+        "flex-start",
+      borderWidth: 1,
+      borderRadius: 11,
+      paddingHorizontal: 7,
+      paddingVertical: 4,
+      marginTop: 6,
+      maxWidth: "100%",
+    },
 
     trainerLabel: {
-      fontSize: 8,
-
+      fontSize: 7,
       fontWeight: "900",
-
       letterSpacing: 0.4,
-
-      marginTop: 5,
     },
-
-
-    // ========================================================
-    // ASSIGN BUTTON
-    // ========================================================
 
     assignButton: {
-      minWidth: 68,
-
       height: 38,
-
-      borderRadius: 11,
-
       borderWidth: 1,
-
+      borderRadius: 13,
+      paddingHorizontal: 11,
+      flexDirection:
+        "row",
       alignItems:
         "center",
-
       justifyContent:
         "center",
-
-      paddingHorizontal: 8,
+      gap: 4,
     },
-
 
     assignText: {
       fontSize: 8,
-
       fontWeight: "900",
-
-      letterSpacing: 0.6,
+      letterSpacing: 0.8,
     },
 
 
     // ========================================================
-    // EMPTY STATE
-    // ========================================================
-
-    empty: {
-      borderWidth: 1,
-
-      borderRadius: 18,
-
-      padding: 30,
-
-      alignItems:
-        "center",
-    },
-
-
-    emptyIcon: {
-      fontSize: 28,
-    },
-
-
-    emptyTitle: {
-      fontSize: 15,
-
-      fontWeight: "900",
-
-      marginTop: 10,
-    },
-
-
-    emptyText: {
-      fontSize: 10,
-
-      marginTop: 5,
-
-      textAlign:
-        "center",
-    },
-
-
-    // ========================================================
-    // MODAL ROOT
+    // MODAL
     // ========================================================
 
     modalRoot: {
       flex: 1,
-
       justifyContent:
         "flex-end",
     },
 
-
-    // ========================================================
-    // MODAL BACKDROP
-    // ========================================================
-
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
-
       backgroundColor:
-        "rgba(0, 0, 0, 0.78)",
+        "rgba(0,0,0,0.6)",
     },
-
-
-    // ========================================================
-    // ASSIGNMENT SHEET
-    // ========================================================
 
     assignmentSheet: {
-      backgroundColor:
-        "#0B1424",
-
-      borderTopLeftRadius: 32,
-
-      borderTopRightRadius: 32,
-
-      borderWidth: 1,
-
-      borderBottomWidth: 0,
-
-      borderColor:
-        "#173A70",
-
-      paddingHorizontal: 22,
-
-      paddingTop: 13,
-
-      paddingBottom: 28,
-
       maxHeight: "82%",
-
-      shadowColor:
-        "#000000",
-
-      shadowOffset: {
-        width: 0,
-        height: -8,
-      },
-
-      shadowOpacity:
-        0.45,
-
-      shadowRadius: 25,
-
-      elevation: 25,
+      borderWidth: 1,
+      borderTopLeftRadius: 27,
+      borderTopRightRadius: 27,
+      paddingHorizontal: 18,
+      paddingTop: 10,
+      paddingBottom:
+        Platform.OS === "ios"
+          ? 34
+          : 20,
     },
-
-
-    // ========================================================
-    // DRAG HANDLE
-    // ========================================================
 
     dragHandle: {
+      width: 42,
+      height: 4,
+      borderRadius: 3,
       alignSelf:
         "center",
-
-      width: 82,
-
-      height: 7,
-
-      borderRadius: 10,
-
-      backgroundColor:
-        "#71809A",
-
-      marginBottom: 20,
-
-      opacity: 0.85,
+      marginBottom: 14,
     },
-
-
-    // ========================================================
-    // MODAL HEADER
-    // ========================================================
 
     modalHeader: {
       flexDirection:
         "row",
-
       alignItems:
         "center",
-
       justifyContent:
         "space-between",
-
-      marginBottom: 20,
+      marginBottom: 14,
     },
-
 
     modalHeaderLeft: {
+      flex: 1,
       flexDirection:
         "row",
-
       alignItems:
         "center",
-
-      flex: 1,
-    },
-
-
-    modalHeaderIcon: {
-      width: 70,
-      height: 70,
-
-      borderRadius: 21,
-
-      backgroundColor:
-        "#193D88",
-
-      borderWidth: 1,
-
-      borderColor:
-        "#2D65D4",
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      marginRight: 15,
-    },
-
-
-    modalHeaderIconText: {
-      fontSize: 31,
-    },
-
-
-    modalHeaderText: {
-      flex: 1,
-    },
-
-
-    modalTitle: {
-      color:
-        "#FFFFFF",
-
-      fontSize: 25,
-
-      fontWeight: "900",
-
-      letterSpacing: 0.2,
-    },
-
-
-    modalSubtitle: {
-      color:
-        "#8D9CB2",
-
-      fontSize: 13,
-
-      marginTop: 5,
-
-      lineHeight: 18,
-    },
-
-
-    modalMemberName: {
-      color:
-        "#4DA3FF",
-
-      fontWeight: "900",
-    },
-
-
-    // ========================================================
-    // CLOSE BUTTON
-    // ========================================================
-
-    modalCloseButton: {
-      width: 49,
-      height: 49,
-
-      borderRadius: 25,
-
-      backgroundColor:
-        "#172235",
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      marginLeft: 10,
-    },
-
-
-    modalCloseText: {
-      color:
-        "#B7C1D0",
-
-      fontSize: 35,
-
-      fontWeight: "300",
-
-      lineHeight: 37,
-
-      marginTop: -3,
-    },
-
-
-    // ========================================================
-    // TRAINER OPTIONS SCROLL
-    // ========================================================
-
-    trainerOptionsScroll: {
-      marginBottom: 12,
-    },
-
-
-    // ========================================================
-    // TRAINER OPTION
-    // ========================================================
-
-    trainerOption: {
-      minHeight: 91,
-
-      borderRadius: 21,
-
-      borderWidth: 1,
-
-      borderColor:
-        "#183762",
-
-      backgroundColor:
-        "#101D31",
-
-      flexDirection:
-        "row",
-
-      alignItems:
-        "center",
-
-      paddingHorizontal: 15,
-
-      paddingVertical: 12,
-
-      marginBottom: 11,
-    },
-
-
-    selectedTrainerOption: {
-      backgroundColor:
-        "#142C4E",
-
-      borderColor:
-        "#2F80FF",
-
-      borderWidth: 1.5,
-    },
-
-
-    // ========================================================
-    // UNASSIGN OPTION
-    // ========================================================
-
-    unassignOption: {
-      backgroundColor:
-        "#241B29",
-
-      borderColor:
-        "#5A2840",
-    },
-
-
-    selectedUnassignOption: {
-      backgroundColor:
-        "#2D1C2A",
-
-      borderColor:
-        "#FF4D67",
-
-      borderWidth: 1.5,
-    },
-
-
-    // ========================================================
-    // OPTION ICON
-    // ========================================================
-
-    optionIcon: {
-      width: 58,
-      height: 58,
-
-      borderRadius: 29,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      marginRight: 14,
-    },
-
-
-    unassignIcon: {
-      backgroundColor:
-        "#3A1D2D",
-
-      borderWidth: 1,
-
-      borderColor:
-        "#713149",
-    },
-
-
-    unassignIconText: {
-      color:
-        "#FF5069",
-
-      fontSize: 30,
-
-      fontWeight: "500",
-    },
-
-
-    // ========================================================
-    // TRAINER AVATAR
-    // ========================================================
-
-    trainerAvatar: {
-      width: 58,
-      height: 58,
-
-      borderRadius: 29,
-
-      backgroundColor:
-        "#203E7C",
-
-      borderWidth: 1,
-
-      borderColor:
-        "#315D9D",
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      overflow: "hidden",
-
-      marginRight: 14,
-    },
-
-
-    trainerAvatarImage: {
-      width: "100%",
-
-      height: "100%",
-
-      resizeMode:
-        "cover",
-    },
-
-
-    trainerAvatarText: {
-      color:
-        "#FFFFFF",
-
-      fontSize: 21,
-
-      fontWeight: "900",
-    },
-
-
-    // ========================================================
-    // OPTION INFORMATION
-    // ========================================================
-
-    optionInfo: {
-      flex: 1,
-
-      justifyContent:
-        "center",
-
       marginRight: 10,
     },
 
+    modalHeaderIcon: {
+      width: 46,
+      height: 46,
+      borderRadius: 15,
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+    },
 
-    optionTitle: {
-      color:
-        "#FFFFFF",
+    modalHeaderText: {
+      flex: 1,
+      marginLeft: 11,
+    },
 
-      fontSize: 16,
-
+    modalTitle: {
+      fontSize: 18,
       fontWeight: "900",
     },
 
+    modalSubtitle: {
+      fontSize: 10,
+      fontWeight: "600",
+      marginTop: 3,
+    },
 
-    optionSubtitle: {
-      color:
-        "#8292AA",
+    modalMemberName: {
+      fontWeight: "900",
+    },
 
-      fontSize: 12,
+    modalCloseButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      borderWidth: 1,
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+    },
 
-      marginTop: 4,
+    trainerOptionsScroll: {
+      flexGrow: 0,
     },
 
 
     // ========================================================
-    // SPECIALIZATION
+    // OPTIONS
     // ========================================================
+
+    trainerOption: {
+      minHeight: 70,
+      borderWidth: 1,
+      borderRadius: 18,
+      paddingHorizontal: 11,
+      flexDirection:
+        "row",
+      alignItems:
+        "center",
+      marginBottom: 8,
+    },
+
+    optionIcon: {
+      width: 46,
+      height: 46,
+      borderRadius: 15,
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+    },
+
+    trainerAvatar: {
+      width: 46,
+      height: 46,
+      borderRadius: 15,
+      borderWidth: 1,
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+      overflow:
+        "hidden",
+    },
+
+    trainerAvatarImage: {
+      width: "100%",
+      height: "100%",
+    },
+
+    trainerAvatarText: {
+      fontSize: 17,
+      fontWeight: "900",
+    },
+
+    optionInfo: {
+      flex: 1,
+      marginLeft: 11,
+      marginRight: 8,
+    },
+
+    optionTitle: {
+      fontSize: 13,
+      fontWeight: "900",
+    },
+
+    optionSubtitle: {
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 3,
+    },
 
     specializationRow: {
       flexDirection:
         "row",
-
       alignItems:
         "center",
-
-      marginTop: 2,
+      marginTop: 3,
     },
 
-
-    dumbbellIcon: {
-      fontSize: 15,
-
-      marginRight: 7,
-
-      opacity: 0.9,
-    },
-
-
-    // ========================================================
-    // RADIO
-    // ========================================================
-
-    radioOuter: {
-      width: 27,
-      height: 27,
-
-      borderRadius: 14,
-
-      borderWidth: 3,
-
-      borderColor:
-        "#687992",
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-    },
-
-
-    radioOuterSelected: {
-      borderColor:
-        "#4DA3FF",
-    },
-
-
-    radioInner: {
-      width: 13,
-      height: 13,
-
-      borderRadius: 7,
-
-      backgroundColor:
-        "#4DA3FF",
+    specializationText: {
+      marginTop: 0,
+      marginLeft: 4,
     },
 
 
@@ -2664,110 +2495,44 @@ const styles =
     modalButtons: {
       flexDirection:
         "row",
-
-      gap: 12,
-
-      marginTop: 5,
+      gap: 9,
+      marginTop: 8,
     },
-
-
-    // ========================================================
-    // CANCEL BUTTON
-    // ========================================================
 
     modalCancelButton: {
       flex: 1,
-
-      height: 60,
-
+      height: 52,
+      borderWidth: 1,
       borderRadius: 17,
-
-      backgroundColor:
-        "#0D1625",
-
-      borderWidth: 2,
-
-      borderColor:
-        "#67758A",
-
       alignItems:
         "center",
-
       justifyContent:
         "center",
     },
-
 
     modalCancelText: {
-      color:
-        "#B5BFCE",
-
-      fontSize: 15,
-
-      fontWeight: "800",
+      fontSize: 12,
+      fontWeight: "900",
     },
-
-
-    // ========================================================
-    // ASSIGN BUTTON
-    // ========================================================
 
     modalAssignButton: {
-      flex: 1,
-
-      height: 60,
-
+      flex: 1.5,
+      height: 52,
       borderRadius: 17,
-
-      backgroundColor:
-        "#1976E8",
-
-      borderWidth: 1,
-
-      borderColor:
-        "#318EFF",
-
       alignItems:
         "center",
-
       justifyContent:
         "center",
-
-      shadowColor:
-        "#1677FF",
-
-      shadowOffset: {
-        width: 0,
-        height: 5,
-      },
-
-      shadowOpacity:
-        0.28,
-
-      shadowRadius:
-        10,
-
-      elevation: 8,
     },
-
 
     modalAssignButtonDisabled: {
-      opacity: 0.55,
+      opacity: 0.7,
     },
-
 
     modalAssignText: {
-      color:
-        "#FFFFFF",
-
-      fontSize: 14,
-
+      color: "#FFFFFF",
+      fontSize: 12,
       fontWeight: "900",
-
-      letterSpacing: 0.4,
-
-      textAlign:
-        "center",
     },
 
-  });
+  }); 

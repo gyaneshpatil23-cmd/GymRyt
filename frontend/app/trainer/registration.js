@@ -6,7 +6,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ImageBackground,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -14,19 +13,23 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 
 // ============================================================
 // API
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members/trainer-applications/";
+  "http://192.168.1.43:8000/api/members/trainer-applications/";
 
 // ============================================================
 // TRAINER REGISTRATION
 // ============================================================
 
 export default function TrainerRegisterScreen() {
+  const { colors, isDark, toggleTheme } = useTheme();
+
   // ============================================================
   // QR TOKEN
   // ============================================================
@@ -506,541 +509,628 @@ export default function TrainerRegisterScreen() {
   // ============================================================
 
   return (
-    <ImageBackground
-      source={require("../../assets/images/gymryt-bg.png")}
-      style={styles.background}
-      resizeMode="cover"
+    <View
+      style={[
+        styles.background,
+        {
+          backgroundColor:
+            colors.background,
+        },
+      ]}
     >
-      <View
-        style={
-          styles.backgroundOverlay
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : "height"
+        }
+        keyboardVerticalOffset={
+          Platform.OS === "ios"
+            ? 0
+            : 20
         }
       >
-        <KeyboardAvoidingView
-          style={
-            styles.keyboardContainer
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={
+            styles.scrollContainer
           }
-          behavior={
-            Platform.OS === "ios"
-              ? "padding"
-              : "height"
-          }
-          keyboardVerticalOffset={
-            Platform.OS === "ios"
-              ? 0
-              : 20
-          }
+          keyboardShouldPersistTaps="always"
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="none"
         >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={
-              styles.scrollContainer
-            }
-            keyboardShouldPersistTaps="always"
-            showsVerticalScrollIndicator={
-              false
-            }
-            keyboardDismissMode="none"
-          >
-            <View
-              style={styles.content}
-            >
-              {/* ==================================================
-                  HEADER
-              ================================================== */}
+          <View style={styles.content}>
 
-              <View
-                style={styles.header}
-              >
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
                 <Text
-                  style={styles.title}
+                  style={[
+                    styles.eyebrow,
+                    {
+                      color:
+                        colors.primaryLight,
+                    },
+                  ]}
                 >
                   JOIN GYMRYT
                 </Text>
 
                 <Text
-                  style={styles.subtitle}
+                  style={[
+                    styles.title,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                >
+                  Create Account
+                </Text>
+
+                <Text
+                  style={[
+                    styles.subtitle,
+                    {
+                      color:
+                        colors.secondaryText,
+                    },
+                  ]}
                 >
                   Create your trainer account
                 </Text>
               </View>
 
-              {/* ==================================================
-                  REGISTRATION CARD
-              ================================================== */}
+              <TouchableOpacity
+                style={[
+                  styles.headerButton,
+                  {
+                    backgroundColor:
+                      colors.card,
+                    borderColor:
+                      colors.border,
+                  },
+                ]}
+                onPress={toggleTheme}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={
+                    isDark
+                      ? "sunny-outline"
+                      : "moon-outline"
+                  }
+                  size={20}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* ==================================================
+                QR CONNECTION
+            ================================================== */}
+
+            <View
+              style={[
+                styles.qrConnectedBox,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    "#45E0A555",
+                },
+              ]}
+            >
+              <View
+                style={
+                  styles.qrIconCircle
+                }
+              >
+                <Ionicons
+                  name="checkmark-circle"
+                  size={24}
+                  color="#45E0A5"
+                />
+              </View>
 
               <View
-                style={styles.card}
+                style={
+                  styles.qrConnectedTextContainer
+                }
               >
-                {/* ==================================================
-                    QR CONNECTION
-                ================================================== */}
-
-                <View
-                  style={
-                    styles.qrConnectedBox
-                  }
+                <Text
+                  style={[
+                    styles.qrConnectedTitle,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
                 >
-                  <View
-                    style={
-                      styles.qrIconCircle
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.qrIcon
-                      }
-                    >
-                      ✓
-                    </Text>
-                  </View>
+                  Gym Connected
+                </Text>
 
-                  <View
-                    style={
-                      styles.qrConnectedTextContainer
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.qrConnectedTitle
-                      }
-                    >
-                      Gym Connected
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.qrConnectedSubtitle
-                      }
-                    >
-                      Your trainer application is
-                      linked to this gym
-                    </Text>
-                  </View>
-                </View>
-
-                {/* ==================================================
-                    FULL NAME
-                ================================================== */}
-
-                <View
-                  style={
-                    styles.inputContainer
-                  }
+                <Text
+                  style={[
+                    styles.qrConnectedSubtitle,
+                    {
+                      color:
+                        colors.secondaryText,
+                    },
+                  ]}
                 >
-                  <Text
-                    style={[
-                      styles.floatingLabel,
-                      fullNameFocused &&
-                        styles.floatingLabelFocused,
-                    ]}
-                  >
-                    Full Name
-                  </Text>
+                  Your trainer application is
+                  linked to this gym
+                </Text>
+              </View>
+            </View>
 
-                  <TextInput
-                    style={[
-                      styles.input,
-                      fullNameFocused &&
-                        styles.inputFocused,
-                    ]}
-                    value={fullName}
-                    onChangeText={
-                      setFullName
-                    }
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                    editable={!loading}
-                    returnKeyType="next"
-                    onFocus={() =>
-                      setFullNameFocused(
-                        true
-                      )
-                    }
-                    onBlur={() =>
-                      setFullNameFocused(
-                        false
-                      )
-                    }
-                    selectionColor="#9DBEFF"
-                  />
-                </View>
+            {/* ==================================================
+                REGISTRATION CARD
+            ================================================== */}
 
-                {/* ==================================================
-                    EMAIL
-                ================================================== */}
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.cardEyebrow,
+                  {
+                    color:
+                      colors.primaryLight,
+                  },
+                ]}
+              >
+                TRAINER DETAILS
+              </Text>
 
-                <View
-                  style={
-                    styles.inputContainer
+              <Text
+                style={[
+                  styles.cardTitle,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                Your Information
+              </Text>
+
+              {/* ==================================================
+                  FULL NAME
+              ================================================== */}
+
+              <FormField
+                icon="person-outline"
+                label="FULL NAME"
+                focused={fullNameFocused}
+                colors={colors}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                  value={fullName}
+                  onChangeText={
+                    setFullName
                   }
-                >
-                  <Text
-                    style={[
-                      styles.floatingLabel,
-                      emailFocused &&
-                        styles.floatingLabelFocused,
-                    ]}
-                  >
-                    Email
-                  </Text>
-
-                  <TextInput
-                    style={[
-                      styles.input,
-                      emailFocused &&
-                        styles.inputFocused,
-                    ]}
-                    value={email}
-                    onChangeText={
-                      setEmail
-                    }
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!loading}
-                    returnKeyType="next"
-                    onFocus={() =>
-                      setEmailFocused(
-                        true
-                      )
-                    }
-                    onBlur={() =>
-                      setEmailFocused(
-                        false
-                      )
-                    }
-                    selectionColor="#9DBEFF"
-                  />
-                </View>
-
-                {/* ==================================================
-                    PHONE
-                ================================================== */}
-
-                <View
-                  style={
-                    styles.inputContainer
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  editable={!loading}
+                  returnKeyType="next"
+                  onFocus={() =>
+                    setFullNameFocused(
+                      true
+                    )
                   }
-                >
-                  <Text
-                    style={[
-                      styles.floatingLabel,
-                      phoneFocused &&
-                        styles.floatingLabelFocused,
-                    ]}
-                  >
-                    Phone Number
-                  </Text>
-
-                  <TextInput
-                    style={[
-                      styles.input,
-                      phoneFocused &&
-                        styles.inputFocused,
-                    ]}
-                    value={phone}
-                    onChangeText={(
-                      text
-                    ) => {
-                      const numbersOnly =
-                        text.replace(
-                          /\D/g,
-                          ""
-                        );
-
-                      if (
-                        numbersOnly.length <=
-                        10
-                      ) {
-                        setPhone(
-                          numbersOnly
-                        );
-                      }
-                    }}
-                    keyboardType="phone-pad"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!loading}
-                    returnKeyType="next"
-                    onFocus={() =>
-                      setPhoneFocused(
-                        true
-                      )
-                    }
-                    onBlur={() =>
-                      setPhoneFocused(
-                        false
-                      )
-                    }
-                    selectionColor="#9DBEFF"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.floatingLabel}>Specialization</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={specialization}
-                    onChangeText={setSpecialization}
-                    autoCapitalize="words"
-                    editable={!loading}
-                    returnKeyType="next"
-                    selectionColor="#9DBEFF"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.floatingLabel}>Experience (Years)</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={experienceYears}
-                    onChangeText={(value) => setExperienceYears(value.replace(/[^0-9]/g, ""))}
-                    keyboardType="number-pad"
-                    editable={!loading}
-                    returnKeyType="next"
-                    selectionColor="#9DBEFF"
-                  />
-                </View>
-
-                {/* ==================================================
-                    USERNAME
-                ================================================== */}
-
-                <View
-                  style={
-                    styles.inputContainer
+                  onBlur={() =>
+                    setFullNameFocused(
+                      false
+                    )
                   }
-                >
-                  <Text
-                    style={[
-                      styles.floatingLabel,
-                      usernameFocused &&
-                        styles.floatingLabelFocused,
-                    ]}
-                  >
-                    Username
-                  </Text>
-
-                  <TextInput
-                    style={[
-                      styles.input,
-                      usernameFocused &&
-                        styles.inputFocused,
-                    ]}
-                    value={username}
-                    onChangeText={
-                      setUsername
-                    }
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!loading}
-                    returnKeyType="next"
-                    onFocus={() =>
-                      setUsernameFocused(
-                        true
-                      )
-                    }
-                    onBlur={() =>
-                      setUsernameFocused(
-                        false
-                      )
-                    }
-                    selectionColor="#9DBEFF"
-                  />
-                </View>
-
-                {/* ==================================================
-                    PASSWORD
-                ================================================== */}
-
-                <View
-                  style={
-                    styles.inputContainer
+                  selectionColor={
+                    colors.primaryLight
                   }
-                >
-                  <Text
-                    style={[
-                      styles.floatingLabel,
-                      passwordFocused &&
-                        styles.floatingLabelFocused,
-                    ]}
-                  >
-                    Password
-                  </Text>
+                />
+              </FormField>
 
-                  <View
-                    style={
-                      styles.passwordWrapper
-                    }
-                  >
-                    <TextInput
-                      style={[
-                        styles.input,
-                        styles.passwordTextInput,
-                        passwordFocused &&
-                          styles.inputFocused,
-                      ]}
-                      value={password}
-                      onChangeText={
-                        setPassword
-                      }
-                      secureTextEntry={
-                        !showPassword
-                      }
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      editable={!loading}
-                      returnKeyType="next"
-                      blurOnSubmit={false}
-                      onFocus={() =>
-                        setPasswordFocused(
-                          true
-                        )
-                      }
-                      onBlur={() =>
-                        setPasswordFocused(
-                          false
-                        )
-                      }
-                      selectionColor="#9DBEFF"
-                    />
+              {/* ==================================================
+                  EMAIL
+              ================================================== */}
 
-                    <TouchableOpacity
-                      style={
-                        styles.showButton
-                      }
-                      onPress={() =>
-                        setShowPassword(
-                          (value) =>
-                            !value
-                        )
-                      }
-                      disabled={loading}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={
-                          styles.showText
-                        }
-                      >
-                        {showPassword
-                          ? "HIDE"
-                          : "SHOW"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* ==================================================
-                    CONFIRM PASSWORD
-                ================================================== */}
-
-                <View
-                  style={
-                    styles.inputContainer
+              <FormField
+                icon="mail-outline"
+                label="EMAIL"
+                focused={emailFocused}
+                colors={colors}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                  value={email}
+                  onChangeText={
+                    setEmail
                   }
-                >
-                  <Text
-                    style={[
-                      styles.floatingLabel,
-                      confirmPasswordFocused &&
-                        styles.floatingLabelFocused,
-                    ]}
-                  >
-                    Confirm Password
-                  </Text>
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  returnKeyType="next"
+                  onFocus={() =>
+                    setEmailFocused(
+                      true
+                    )
+                  }
+                  onBlur={() =>
+                    setEmailFocused(
+                      false
+                    )
+                  }
+                  selectionColor={
+                    colors.primaryLight
+                  }
+                />
+              </FormField>
 
-                  <View
-                    style={
-                      styles.passwordWrapper
+              {/* ==================================================
+                  PHONE
+              ================================================== */}
+
+              <FormField
+                icon="call-outline"
+                label="PHONE NUMBER"
+                focused={phoneFocused}
+                colors={colors}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                  value={phone}
+                  onChangeText={(text) => {
+                    const numbersOnly =
+                      text.replace(
+                        /\D/g,
+                        ""
+                      );
+
+                    if (
+                      numbersOnly.length <=
+                      10
+                    ) {
+                      setPhone(
+                        numbersOnly
+                      );
                     }
-                  >
-                    <TextInput
-                      style={[
-                        styles.input,
-                        styles.passwordTextInput,
-                        confirmPasswordFocused &&
-                          styles.inputFocused,
-                      ]}
-                      value={
-                        confirmPassword
-                      }
-                      onChangeText={
-                        setConfirmPassword
-                      }
-                      secureTextEntry={
-                        !showConfirmPassword
-                      }
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      editable={!loading}
-                      returnKeyType="done"
-                      blurOnSubmit={false}
-                      onFocus={() =>
-                        setConfirmPasswordFocused(
-                          true
-                        )
-                      }
-                      onBlur={() =>
-                        setConfirmPasswordFocused(
-                          false
-                        )
-                      }
-                      selectionColor="#9DBEFF"
-                      onSubmitEditing={
-                        handleRegister
-                      }
-                    />
+                  }}
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  returnKeyType="next"
+                  onFocus={() =>
+                    setPhoneFocused(
+                      true
+                    )
+                  }
+                  onBlur={() =>
+                    setPhoneFocused(
+                      false
+                    )
+                  }
+                  selectionColor={
+                    colors.primaryLight
+                  }
+                />
+              </FormField>
 
-                    <TouchableOpacity
-                      style={
-                        styles.showButton
-                      }
-                      onPress={() =>
-                        setShowConfirmPassword(
-                          (value) =>
-                            !value
-                        )
-                      }
-                      disabled={loading}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={
-                          styles.showText
-                        }
-                      >
-                        {showConfirmPassword
-                          ? "HIDE"
-                          : "SHOW"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+              {/* ==================================================
+                  SPECIALIZATION
+              ================================================== */}
 
-                {/* ==================================================
-                    SUBMIT APPLICATION
-                ================================================== */}
+              <FormField
+                icon="barbell-outline"
+                label="SPECIALIZATION"
+                focused={false}
+                colors={colors}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                  value={specialization}
+                  onChangeText={setSpecialization}
+                  autoCapitalize="words"
+                  editable={!loading}
+                  returnKeyType="next"
+                  selectionColor={
+                    colors.primaryLight
+                  }
+                />
+              </FormField>
+
+              {/* ==================================================
+                  EXPERIENCE
+              ================================================== */}
+
+              <FormField
+                icon="trophy-outline"
+                label="EXPERIENCE (YEARS)"
+                focused={false}
+                colors={colors}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                  value={experienceYears}
+                  onChangeText={(value) => setExperienceYears(value.replace(/[^0-9]/g, ""))}
+                  keyboardType="number-pad"
+                  editable={!loading}
+                  returnKeyType="next"
+                  selectionColor={
+                    colors.primaryLight
+                  }
+                />
+              </FormField>
+
+              {/* ==================================================
+                  USERNAME
+              ================================================== */}
+
+              <FormField
+                icon="at-outline"
+                label="USERNAME"
+                focused={usernameFocused}
+                colors={colors}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                  value={username}
+                  onChangeText={
+                    setUsername
+                  }
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  returnKeyType="next"
+                  onFocus={() =>
+                    setUsernameFocused(
+                      true
+                    )
+                  }
+                  onBlur={() =>
+                    setUsernameFocused(
+                      false
+                    )
+                  }
+                  selectionColor={
+                    colors.primaryLight
+                  }
+                />
+              </FormField>
+
+              {/* ==================================================
+                  PASSWORD
+              ================================================== */}
+
+              <FormField
+                icon="lock-closed-outline"
+                label="PASSWORD"
+                focused={passwordFocused}
+                colors={colors}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                  value={password}
+                  onChangeText={
+                    setPassword
+                  }
+                  secureTextEntry={
+                    !showPassword
+                  }
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onFocus={() =>
+                    setPasswordFocused(
+                      true
+                    )
+                  }
+                  onBlur={() =>
+                    setPasswordFocused(
+                      false
+                    )
+                  }
+                  selectionColor={
+                    colors.primaryLight
+                  }
+                />
 
                 <TouchableOpacity
-                  style={[
-                    styles.registerButton,
-                    loading &&
-                      styles.buttonDisabled,
-                  ]}
-                  onPress={
-                    handleRegister
+                  style={
+                    styles.showButton
+                  }
+                  onPress={() =>
+                    setShowPassword(
+                      (value) =>
+                        !value
+                    )
                   }
                   disabled={loading}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                 >
-                  {loading ? (
-                    <ActivityIndicator
-                      size="small"
+                  <Ionicons
+                    name={
+                      showPassword
+                        ? "eye-off-outline"
+                        : "eye-outline"
+                    }
+                    size={19}
+                    color={
+                      colors.secondaryText
+                    }
+                  />
+                </TouchableOpacity>
+              </FormField>
+
+              {/* ==================================================
+                  CONFIRM PASSWORD
+              ================================================== */}
+
+              <FormField
+                icon="shield-checkmark-outline"
+                label="CONFIRM PASSWORD"
+                focused={confirmPasswordFocused}
+                colors={colors}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
+                  value={
+                    confirmPassword
+                  }
+                  onChangeText={
+                    setConfirmPassword
+                  }
+                  secureTextEntry={
+                    !showConfirmPassword
+                  }
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  returnKeyType="done"
+                  blurOnSubmit={false}
+                  onFocus={() =>
+                    setConfirmPasswordFocused(
+                      true
+                    )
+                  }
+                  onBlur={() =>
+                    setConfirmPasswordFocused(
+                      false
+                    )
+                  }
+                  selectionColor={
+                    colors.primaryLight
+                  }
+                  onSubmitEditing={
+                    handleRegister
+                  }
+                />
+
+                <TouchableOpacity
+                  style={
+                    styles.showButton
+                  }
+                  onPress={() =>
+                    setShowConfirmPassword(
+                      (value) =>
+                        !value
+                    )
+                  }
+                  disabled={loading}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={
+                      showConfirmPassword
+                        ? "eye-off-outline"
+                        : "eye-outline"
+                    }
+                    size={19}
+                    color={
+                      colors.secondaryText
+                    }
+                  />
+                </TouchableOpacity>
+              </FormField>
+
+              {/* ==================================================
+                  SUBMIT APPLICATION
+              ================================================== */}
+
+              <TouchableOpacity
+                style={[
+                  styles.registerButton,
+                  {
+                    backgroundColor:
+                      colors.primary,
+                  },
+                  loading &&
+                    styles.buttonDisabled,
+                ]}
+                onPress={
+                  handleRegister
+                }
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color="#FFFFFF"
+                  />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="send-outline"
+                      size={17}
                       color="#FFFFFF"
                     />
-                  ) : (
+
                     <Text
                       style={
                         styles.registerButtonText
@@ -1048,82 +1138,182 @@ export default function TrainerRegisterScreen() {
                     >
                       SUBMIT TRAINER APPLICATION
                     </Text>
-                  )}
-                </TouchableOpacity>
-
-                {/* ==================================================
-                    BACK TO LOGIN
-                ================================================== */}
-
-                <TouchableOpacity
-                  style={
-                    styles.backToLoginButton
-                  }
-                  onPress={() =>
-                    router.replace("/")
-                  }
-                  disabled={loading}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={
-                      styles.backToLoginText
-                    }
-                  >
-                    Already have an account?{" "}
-                    <Text
-                      style={
-                        styles.loginLink
-                      }
-                    >
-                      LOGIN
-                    </Text>
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  </>
+                )}
+              </TouchableOpacity>
 
               {/* ==================================================
-                  PENDING INFORMATION
+                  BACK TO LOGIN
               ================================================== */}
 
-              <View
+              <TouchableOpacity
                 style={
-                  styles.pendingBox
+                  styles.backToLoginButton
                 }
+                onPress={() =>
+                  router.replace("/")
+                }
+                disabled={loading}
+                activeOpacity={0.7}
               >
                 <Text
-                  style={
-                    styles.pendingIcon
-                  }
+                  style={[
+                    styles.backToLoginText,
+                    {
+                      color:
+                        colors.secondaryText,
+                    },
+                  ]}
                 >
-                  ⓘ
+                  Already have an account?{" "}
+                  <Text
+                    style={[
+                      styles.loginLink,
+                      {
+                        color:
+                          colors.primaryLight,
+                      },
+                    ]}
+                  >
+                    LOGIN
+                  </Text>
                 </Text>
+              </TouchableOpacity>
+            </View>
 
-                <Text
-                  style={
-                    styles.pendingText
-                  }
-                >
-                  Your application will remain
-                  pending until the gym owner
-                  approves your trainer account.
-                </Text>
-              </View>
+            {/* ==================================================
+                PENDING INFORMATION
+            ================================================== */}
 
-              {/* ==================================================
-                  FOOTER
-              ================================================== */}
+            <View
+              style={[
+                styles.pendingBox,
+                {
+                  backgroundColor:
+                    "#FFB21C12",
+                  borderColor:
+                    "#FFB21C55",
+                },
+              ]}
+            >
+              <Ionicons
+                name="time-outline"
+                size={20}
+                color="#FFB21C"
+              />
 
               <Text
-                style={styles.footer}
+                style={[
+                  styles.pendingText,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
+              >
+                Your application will remain
+                pending until the gym owner
+                approves your trainer account.
+              </Text>
+            </View>
+
+            {/* ==================================================
+                FOOTER
+            ================================================== */}
+
+            <View style={styles.footerRow}>
+              <View
+                style={[
+                  styles.footerIcon,
+                  {
+                    backgroundColor:
+                      colors.iconBackground,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="fitness-outline"
+                  size={15}
+                  color={
+                    colors.primaryLight
+                  }
+                />
+              </View>
+
+              <Text
+                style={[
+                  styles.footer,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
               >
                 GYMRYT • TRAIN • TRACK • TRANSFORM
               </Text>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+// ============================================================
+// FORM FIELD
+// ============================================================
+
+function FormField({
+  icon,
+  label,
+  focused,
+  colors,
+  children,
+}) {
+  return (
+    <View
+      style={
+        styles.inputContainer
+      }
+    >
+      <Text
+        style={[
+          styles.floatingLabel,
+          {
+            color: focused
+              ? colors.primaryLight
+              : colors.secondaryText,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
+      <View
+        style={[
+          styles.inputRow,
+          {
+            backgroundColor:
+              colors.background,
+            borderColor: focused
+              ? colors.primaryLight
+              : colors.border,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={
+            focused
+              ? colors.primaryLight
+              : colors.secondaryText
+          }
+        />
+
+        {children}
       </View>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -1132,15 +1322,9 @@ export default function TrainerRegisterScreen() {
 // ============================================================
 
 const styles = StyleSheet.create({
+
   background: {
     flex: 1,
-    backgroundColor: "#050816",
-  },
-
-  backgroundOverlay: {
-    flex: 1,
-    backgroundColor:
-      "rgba(2, 8, 23, 0.34)",
   },
 
   keyboardContainer: {
@@ -1153,280 +1337,175 @@ const styles = StyleSheet.create({
 
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 30,
+    paddingHorizontal: 18,
+    paddingTop:
+      Platform.OS === "ios"
+        ? 54
+        : 44,
+    paddingBottom: 40,
   },
 
   content: {
     width: "100%",
-    alignItems: "stretch",
+    maxWidth: 480,
+    alignSelf: "center",
   },
 
-  // ==========================================================
+  // ============================================================
   // HEADER
-  // ==========================================================
+  // ============================================================
 
   header: {
-    alignItems: "center",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
     marginBottom: 18,
   },
 
+  headerLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
+  },
+
   title: {
-    color: "#FFFFFF",
-    fontSize: 25,
-    fontWeight: "800",
-    letterSpacing: 1.2,
+    fontSize: 24,
+    fontWeight: "900",
+    marginTop: 4,
   },
 
   subtitle: {
-    color: "#94A3B8",
-    fontSize: 12,
-    marginTop: 5,
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 4,
   },
 
-  // ==========================================================
-  // CARD
-  // ==========================================================
-
-  card: {
-    backgroundColor:
-      "rgba(5, 15, 30, 0.40)",
-
-    borderRadius: 22,
-
-    padding: 18,
-
-    shadowColor: "#006EFF",
-
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-
-    shadowOpacity: 0.2,
-
-    shadowRadius: 15,
-
-    elevation: 6,
+  headerButton: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  // ==========================================================
+  // ============================================================
   // QR CONNECTION
-  // ==========================================================
+  // ============================================================
 
   qrConnectedBox: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    backgroundColor:
-      "rgba(34, 197, 94, 0.08)",
-
+    minHeight: 76,
     borderWidth: 1,
-
-    borderColor:
-      "rgba(34, 197, 94, 0.30)",
-
-    borderRadius: 14,
-
-    padding: 12,
-
-    marginBottom: 22,
+    borderRadius: 21,
+    paddingHorizontal: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
   },
 
   qrIconCircle: {
-    width: 34,
-
-    height: 34,
-
-    borderRadius: 17,
-
-    backgroundColor:
-      "rgba(34, 197, 94, 0.18)",
-
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#45E0A518",
     alignItems: "center",
-
     justifyContent: "center",
-
-    marginRight: 11,
-  },
-
-  qrIcon: {
-    color: "#22C55E",
-
-    fontSize: 19,
-
-    fontWeight: "800",
   },
 
   qrConnectedTextContainer: {
     flex: 1,
+    marginLeft: 11,
   },
 
   qrConnectedTitle: {
-    color: "#FFFFFF",
-
     fontSize: 13,
-
-    fontWeight: "700",
-
-    marginBottom: 2,
+    fontWeight: "900",
   },
 
   qrConnectedSubtitle: {
-    color: "#94A3B8",
-
-    fontSize: 10,
-
-    lineHeight: 14,
+    fontSize: 9,
+    fontWeight: "600",
+    marginTop: 3,
   },
 
-  // ==========================================================
+  // ============================================================
+  // CARD
+  // ============================================================
+
+  card: {
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 16,
+  },
+
+  cardEyebrow: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1.3,
+    marginBottom: 3,
+  },
+
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 16,
+  },
+
+  // ============================================================
   // INPUT
-  // ==========================================================
+  // ============================================================
 
   inputContainer: {
-    position: "relative",
-
-    marginBottom: 20,
+    marginBottom: 14,
   },
 
   floatingLabel: {
-    position: "absolute",
-
-    left: 16,
-
-    top: -8,
-
-    zIndex: 10,
-
-    backgroundColor:
-      "rgba(4, 14, 28, 0.90)",
-
-    paddingHorizontal: 5,
-
-    color: "#9DBEFF",
-
-    fontSize: 13,
-
-    fontWeight: "500",
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 7,
   },
 
-  floatingLabelFocused: {
-    color: "#A8C7FF",
+  inputRow: {
+    height: 52,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingLeft: 14,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   input: {
-    height: 54,
-
-    backgroundColor:
-      "rgba(0, 0, 0, 0.08)",
-
-    borderWidth: 2,
-
-    borderColor: "#64748B",
-
-    borderRadius: 5,
-
-    paddingHorizontal: 16,
-
-    color: "#FFFFFF",
-
-    fontSize: 15,
-  },
-
-  inputFocused: {
-    borderColor: "#9DBEFF",
-
-    backgroundColor:
-      "rgba(0, 0, 0, 0.04)",
-
-    shadowColor: "#258DFF",
-
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-
-    shadowOpacity: 0.25,
-
-    shadowRadius: 6,
-
-    elevation: 3,
-  },
-
-  // ==========================================================
-  // PASSWORD
-  // ==========================================================
-
-  passwordWrapper: {
-    position: "relative",
-
-    width: "100%",
-  },
-
-  passwordTextInput: {
-    paddingRight: 65,
+    flex: 1,
+    height: "100%",
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   showButton: {
-    position: "absolute",
-
-    right: 16,
-
-    top: 0,
-
-    height: 54,
-
+    height: "100%",
+    paddingHorizontal: 14,
     justifyContent: "center",
-
-    alignItems: "center",
-
-    zIndex: 20,
   },
 
-  showText: {
-    color: "#9DBEFF",
-
-    fontSize: 10,
-
-    fontWeight: "800",
-
-    letterSpacing: 0.8,
-  },
-
-  // ==========================================================
+  // ============================================================
   // REGISTER BUTTON
-  // ==========================================================
+  // ============================================================
 
   registerButton: {
     height: 54,
-
-    backgroundColor: "#2563EB",
-
-    borderRadius: 14,
-
+    borderRadius: 17,
+    flexDirection: "row",
     alignItems: "center",
-
     justifyContent: "center",
-
-    shadowColor: "#2563EB",
-
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-
-    shadowOpacity: 0.3,
-
-    shadowRadius: 10,
-
-    elevation: 6,
-
-    marginTop: 2,
-
-    paddingHorizontal: 10,
+    gap: 8,
+    marginTop: 6,
   },
 
   buttonDisabled: {
@@ -1435,101 +1514,73 @@ const styles = StyleSheet.create({
 
   registerButtonText: {
     color: "#FFFFFF",
-
     fontSize: 12,
-
-    fontWeight: "800",
-
-    letterSpacing: 0.5,
-
-    textAlign: "center",
+    fontWeight: "900",
+    letterSpacing: 1,
   },
 
-  // ==========================================================
+  // ============================================================
   // BACK TO LOGIN
-  // ==========================================================
+  // ============================================================
 
   backToLoginButton: {
     alignItems: "center",
-
-    marginTop: 18,
+    paddingVertical: 16,
   },
 
   backToLoginText: {
-    color: "#94A3B8",
-
     fontSize: 11,
+    fontWeight: "600",
   },
 
   loginLink: {
-    color: "#60A5FA",
-
-    fontWeight: "800",
-
-    letterSpacing: 0.5,
+    fontWeight: "900",
   },
 
-  // ==========================================================
+  // ============================================================
   // PENDING INFORMATION
-  // ==========================================================
+  // ============================================================
 
   pendingBox: {
     flexDirection: "row",
-
     alignItems: "center",
-
-    backgroundColor:
-      "rgba(59, 130, 246, 0.08)",
-
     borderWidth: 1,
-
-    borderColor:
-      "rgba(96, 165, 250, 0.20)",
-
-    borderRadius: 14,
-
-    paddingHorizontal: 14,
-
-    paddingVertical: 12,
-
-    marginTop: 14,
-  },
-
-  pendingIcon: {
-    color: "#60A5FA",
-
-    fontSize: 20,
-
-    marginRight: 10,
+    borderRadius: 18,
+    padding: 13,
+    marginTop: 12,
   },
 
   pendingText: {
     flex: 1,
-
-    color: "#94A3B8",
-
-    fontSize: 11,
-
-    lineHeight: 16,
+    fontSize: 10,
+    fontWeight: "600",
+    lineHeight: 15,
+    marginLeft: 10,
   },
 
-  // ==========================================================
+  // ============================================================
   // FOOTER
-  // ==========================================================
+  // ============================================================
+
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 20,
+  },
+
+  footerIcon: {
+    width: 27,
+    height: 27,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 7,
+  },
 
   footer: {
-    textAlign: "center",
-
-    color: "#64748B",
-
-    fontSize: 9,
-
-    fontWeight: "700",
-
-    letterSpacing: 1.5,
-
-    marginTop: 18,
-
-    marginBottom: 2,
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.7,
   },
 });

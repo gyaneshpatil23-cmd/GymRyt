@@ -8,11 +8,12 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Platform,
 } from "react-native";
 
 import {
@@ -21,13 +22,17 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
+import { useTheme } from "../../context/ThemeContext";
+
 
 // ============================================================
 // API
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 const NOTIFICATIONS_API =
   API_BASE_URL + "/notifications/";
@@ -41,6 +46,12 @@ const MARK_ALL_READ_API =
 // ============================================================
 
 export default function Notifications() {
+
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
   // ==========================================================
   // STATE
@@ -901,7 +912,7 @@ export default function Notifications() {
         ) {
 
           router.push(
-            "/trainer/workouts"
+            "/trainer/workout"
           );
         }
 
@@ -1077,37 +1088,70 @@ export default function Notifications() {
       switch (type) {
 
         case "TRAINER_APPLICATION":
-          return "🏋️";
+          return {
+            name: "barbell-outline",
+            color: "#36B7FF",
+          };
 
         case "NEW_MEMBER":
-          return "👤";
+          return {
+            name: "person-add-outline",
+            color: "#45E0A5",
+          };
 
         case "TRAINER_ASSIGNED":
-          return "🤝";
+          return {
+            name: "git-network-outline",
+            color: "#60A5FA",
+          };
 
         case "WORKOUT_UPLOADED":
-          return "💪";
+          return {
+            name: "fitness-outline",
+            color: "#A78BFA",
+          };
 
         case "MEMBERSHIP_EXPIRING":
-          return "⏳";
+          return {
+            name: "time-outline",
+            color: "#FFB21C",
+          };
 
         case "MEMBERSHIP_EXPIRED":
-          return "⚠️";
+          return {
+            name: "alert-circle-outline",
+            color: "#FF5870",
+          };
 
         case "PAYMENT_RECEIVED":
-          return "💰";
+          return {
+            name: "cash-outline",
+            color: "#45E0A5",
+          };
 
         case "PAYMENT_FAILED":
-          return "❌";
+          return {
+            name: "close-circle-outline",
+            color: "#FF5870",
+          };
 
         case "MEMBER_REMOVED":
-          return "🚫";
+          return {
+            name: "person-remove-outline",
+            color: "#FF5870",
+          };
 
         case "WELCOME":
-          return "👋";
+          return {
+            name: "hand-left-outline",
+            color: "#36B7FF",
+          };
 
         default:
-          return "🔔";
+          return {
+            name: "notifications-outline",
+            color: "#60A5FA",
+          };
       }
     };
 
@@ -1285,19 +1329,31 @@ export default function Notifications() {
       const isUnread =
         !item.is_read;
 
-
       const isProcessing =
         processingId === item.id;
+
+      const icon =
+        getNotificationIcon(
+          item.notification_type
+        );
 
 
       return (
 
-        <TouchableOpacity
+        <Pressable
+
           style={[
             styles.notificationCard,
 
-            isUnread &&
-              styles.unreadCard,
+            {
+              backgroundColor:
+                colors.card,
+
+              borderColor:
+                isUnread
+                  ? `${icon.color}66`
+                  : colors.border,
+            },
           ]}
 
           onPress={() =>
@@ -1306,11 +1362,15 @@ export default function Notifications() {
             )
           }
 
-          activeOpacity={0.8}
+          android_ripple={{
+            color:
+              colors.iconBackground,
+          }}
 
           disabled={
             isProcessing
           }
+
         >
 
           {/* =================================================
@@ -1321,20 +1381,22 @@ export default function Notifications() {
             style={[
               styles.iconContainer,
 
-              isUnread &&
-                styles.unreadIconContainer,
+              {
+                backgroundColor:
+                  `${icon.color}18`,
+              },
             ]}
           >
 
-            <Text
-              style={
-                styles.notificationIcon
+            <Ionicons
+              name={
+                icon.name
               }
-            >
-              {getNotificationIcon(
-                item.notification_type
-              )}
-            </Text>
+              size={22}
+              color={
+                icon.color
+              }
+            />
 
           </View>
 
@@ -1356,9 +1418,14 @@ export default function Notifications() {
             >
 
               <Text
-                style={
-                  styles.categoryText
-                }
+                style={[
+                  styles.categoryText,
+
+                  {
+                    color:
+                      icon.color,
+                  },
+                ]}
               >
                 {getNotificationCategory(
                   item.notification_type
@@ -1367,20 +1434,32 @@ export default function Notifications() {
 
 
               {isUnread && (
+
                 <View
-                  style={
-                    styles.unreadDot
-                  }
+                  style={[
+                    styles.unreadDot,
+
+                    {
+                      backgroundColor:
+                        colors.primaryLight,
+                    },
+                  ]}
                 />
+
               )}
 
             </View>
 
 
             <Text
-              style={
-                styles.notificationTitle
-              }
+              style={[
+                styles.notificationTitle,
+
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
             >
               {item.title ||
                 "Notification"}
@@ -1388,10 +1467,14 @@ export default function Notifications() {
 
 
             <Text
-              style={
-                styles.notificationMessage
-              }
+              style={[
+                styles.notificationMessage,
 
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
               numberOfLines={3}
             >
               {item.message ||
@@ -1399,15 +1482,36 @@ export default function Notifications() {
             </Text>
 
 
-            <Text
+            <View
               style={
-                styles.timeText
+                styles.timeRow
               }
             >
-              {getRelativeTime(
-                item.created_at
-              )}
-            </Text>
+
+              <Ionicons
+                name="time-outline"
+                size={10}
+                color={
+                  colors.mutedText
+                }
+              />
+
+              <Text
+                style={[
+                  styles.timeText,
+
+                  {
+                    color:
+                      colors.mutedText,
+                  },
+                ]}
+              >
+                {getRelativeTime(
+                  item.created_at
+                )}
+              </Text>
+
+            </View>
 
           </View>
 
@@ -1420,21 +1524,24 @@ export default function Notifications() {
 
             <ActivityIndicator
               size="small"
-              color="#2563EB"
+              color={
+                colors.primary
+              }
             />
 
           ) : (
 
-            <Text
-              style={
-                styles.arrow
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={
+                colors.secondaryText
               }
-            >
-              ›
-            </Text>
+            />
+
           )}
 
-        </TouchableOpacity>
+        </Pressable>
       );
     };
 
@@ -1454,43 +1561,66 @@ export default function Notifications() {
       return (
 
         <View
-          style={
-            styles.emptyContainer
-          }
+          style={[
+            styles.emptyCard,
+
+            {
+              backgroundColor:
+                colors.card,
+
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
 
           <View
-            style={
-              styles.emptyIconContainer
-            }
+            style={[
+              styles.emptyIconContainer,
+
+              {
+                backgroundColor:
+                  colors.iconBackground,
+              },
+            ]}
           >
 
-            <Text
-              style={
-                styles.emptyIcon
+            <Ionicons
+              name="notifications-outline"
+              size={28}
+              color={
+                colors.primaryLight
               }
-            >
-              🔔
-            </Text>
+            />
 
           </View>
 
 
           <Text
-            style={
-              styles.emptyTitle
-            }
+            style={[
+              styles.emptyTitle,
+
+              {
+                color:
+                  colors.text,
+              },
+            ]}
           >
             No Notifications
           </Text>
 
 
           <Text
-            style={
-              styles.emptyMessage
-            }
+            style={[
+              styles.emptyMessage,
+
+              {
+                color:
+                  colors.secondaryText,
+              },
+            ]}
           >
-            You're all caught up.
+            You&apos;re all caught up.
             {"\n"}
             New gym updates and
             applications will appear here.
@@ -1510,32 +1640,36 @@ export default function Notifications() {
     return (
 
       <View
-        style={
-          styles.container
-        }
+        style={[
+          styles.loadingContainer,
+
+          {
+            backgroundColor:
+              colors.background,
+          },
+        ]}
       >
 
-        <View
-          style={
-            styles.loadingContainer
+        <ActivityIndicator
+          size="large"
+          color={
+            colors.primary
           }
+        />
+
+
+        <Text
+          style={[
+            styles.loadingText,
+
+            {
+              color:
+                colors.mutedText,
+            },
+          ]}
         >
-
-          <ActivityIndicator
-            size="large"
-            color="#2563EB"
-          />
-
-
-          <Text
-            style={
-              styles.loadingText
-            }
-          >
-            Loading notifications...
-          </Text>
-
-        </View>
+          Loading notifications...
+        </Text>
 
       </View>
     );
@@ -1549,9 +1683,14 @@ export default function Notifications() {
   return (
 
     <View
-      style={
-        styles.container
-      }
+      style={[
+        styles.container,
+
+        {
+          backgroundColor:
+            colors.background,
+        },
+      ]}
     >
 
       {/* =====================================================
@@ -1566,55 +1705,120 @@ export default function Notifications() {
 
         <View
           style={
-            styles.headerLeft
+            styles.headerTop
           }
         >
 
-          <TouchableOpacity
-            style={
-              styles.backButton
-            }
-
-            onPress={() =>
-              router.back()
-            }
-
-            activeOpacity={0.75}
-          >
-
-            <Text
-              style={
-                styles.backText
-              }
-            >
-              ‹
-            </Text>
-
-          </TouchableOpacity>
-
-
           <View
             style={
-              styles.headerTextContainer
+              styles.headerLeft
             }
           >
 
             <Text
-              style={
-                styles.headerSmallTitle
-              }
+              style={[
+                styles.eyebrow,
+
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
             >
-              GYMRyt
+              GYMRYT • UPDATES
             </Text>
 
 
             <Text
-              style={
-                styles.headerTitle
-              }
+              style={[
+                styles.title,
+
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
             >
               Notifications
             </Text>
+
+          </View>
+
+
+          {/* ===================================================
+              HEADER ACTIONS
+          =================================================== */}
+
+          <View
+            style={
+              styles.headerActions
+            }
+          >
+
+            {/* THEME */}
+
+            <Pressable
+              style={[
+                styles.headerButton,
+
+                {
+                  backgroundColor:
+                    colors.card,
+
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+
+              onPress={
+                toggleTheme
+              }
+            >
+
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+
+            </Pressable>
+
+
+            {/* BACK */}
+
+            <Pressable
+              style={[
+                styles.headerButton,
+
+                {
+                  backgroundColor:
+                    colors.card,
+
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+
+              onPress={() =>
+                router.back()
+              }
+            >
+
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+
+            </Pressable>
 
           </View>
 
@@ -1622,101 +1826,164 @@ export default function Notifications() {
 
 
         {/* ===================================================
-            MARK ALL
+            SUMMARY
         =================================================== */}
 
-        {unreadCount > 0 && (
+        <View
+          style={[
+            styles.summaryCard,
 
-          <TouchableOpacity
-            style={
-              styles.markAllButton
-            }
+            {
+              backgroundColor:
+                colors.card,
 
-            onPress={
-              markAllAsRead
-            }
+              borderColor:
+                colors.border,
+            },
+          ]}
+        >
 
-            disabled={
-              processingId === "all"
-            }
+          <View
+            style={[
+              styles.summaryIcon,
 
-            activeOpacity={0.75}
+              {
+                backgroundColor:
+                  colors.iconBackground,
+              },
+            ]}
           >
 
-            {processingId === "all" ? (
+            <Ionicons
+              name="notifications-outline"
+              size={22}
+              color={
+                colors.primaryLight
+              }
+            />
 
-              <ActivityIndicator
-                size="small"
-                color="#60A5FA"
-              />
+          </View>
 
-            ) : (
-
-              <Text
-                style={
-                  styles.markAllText
-                }
-              >
-                Mark all
-              </Text>
-            )}
-
-          </TouchableOpacity>
-        )}
-
-      </View>
-
-
-      {/* =====================================================
-          SUMMARY
-      ===================================================== */}
-
-      <View
-        style={
-          styles.summaryContainer
-        }
-      >
-
-        <View>
-
-          <Text
-            style={
-              styles.summaryTitle
-            }
-          >
-            Recent Activity
-          </Text>
-
-
-          <Text
-            style={
-              styles.summarySubtitle
-            }
-          >
-            Stay updated with your gym
-          </Text>
-
-        </View>
-
-
-        {unreadCount > 0 && (
 
           <View
             style={
-              styles.unreadBadge
+              styles.summaryInfo
             }
           >
 
             <Text
-              style={
-                styles.unreadBadgeText
-              }
+              style={[
+                styles.summaryLabel,
+
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              RECENT ACTIVITY
+            </Text>
+
+
+            <Text
+              style={[
+                styles.summaryValue,
+
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
             >
               {unreadCount}
+              <Text
+                style={[
+                  styles.summaryValueSuffix,
+
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
+              >
+                {" "}unread
+              </Text>
             </Text>
 
           </View>
-        )}
+
+
+          {/* =================================================
+              MARK ALL
+          ================================================= */}
+
+          {unreadCount > 0 && (
+
+            <Pressable
+              style={[
+                styles.markAllButton,
+
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+
+              onPress={
+                markAllAsRead
+              }
+
+              disabled={
+                processingId === "all"
+              }
+            >
+
+              {processingId === "all" ? (
+
+                <ActivityIndicator
+                  size="small"
+                  color={
+                    colors.primaryLight
+                  }
+                />
+
+              ) : (
+
+                <>
+
+                  <Ionicons
+                    name="checkmark-done-outline"
+                    size={14}
+                    color={
+                      colors.primaryLight
+                    }
+                  />
+
+                  <Text
+                    style={[
+                      styles.markAllText,
+
+                      {
+                        color:
+                          colors.primaryLight,
+                      },
+                    ]}
+                  >
+                    Mark all
+                  </Text>
+
+                </>
+
+              )}
+
+            </Pressable>
+
+          )}
+
+        </View>
 
       </View>
 
@@ -1758,17 +2025,19 @@ export default function Notifications() {
         }
 
         refreshControl={
-
           <RefreshControl
             refreshing={
               refreshing
             }
-
             onRefresh={
               onRefresh
             }
-
-            tintColor="#2563EB"
+            tintColor={
+              colors.primary
+            }
+            colors={[
+              colors.primary,
+            ]}
           />
         }
 
@@ -1791,11 +2060,28 @@ const styles =
     // ========================================================
 
     container: {
+      flex: 1,
+    },
 
+
+    // ========================================================
+    // LOADING
+    // ========================================================
+
+    loadingContainer: {
       flex: 1,
 
-      backgroundColor:
-        "#050816",
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+    },
+
+    loadingText: {
+      marginTop: 12,
+      fontSize: 12,
+      fontWeight: "700",
     },
 
 
@@ -1804,129 +2090,74 @@ const styles =
     // ========================================================
 
     header: {
+      paddingHorizontal: 18,
 
-      paddingHorizontal: 20,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
 
-      paddingTop: 55,
-
-      paddingBottom: 18,
-
-      flexDirection: "row",
-
-      alignItems: "center",
-
-      justifyContent: "space-between",
-
-      borderBottomWidth: 1,
-
-      borderBottomColor:
-        "#172554",
+      paddingBottom: 6,
     },
 
+    headerTop: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "space-between",
+
+      marginBottom: 17,
+    },
 
     headerLeft: {
-
-      flexDirection: "row",
-
-      alignItems: "center",
-
       flex: 1,
+      marginRight: 10,
+    },
+
+    eyebrow: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.4,
+    },
+
+    title: {
+      fontSize: 22,
+      fontWeight: "900",
+      marginTop: 4,
     },
 
 
-    backButton: {
+    // ========================================================
+    // HEADER ACTIONS
+    // ========================================================
 
-      width: 45,
+    headerActions: {
+      flexDirection:
+        "row",
 
-      height: 45,
+      alignItems:
+        "center",
+
+      gap: 7,
+    },
+
+    headerButton: {
+      width: 43,
+      height: 43,
 
       borderRadius: 14,
 
-      backgroundColor:
-        "#0B1220",
-
       borderWidth: 1,
 
-      borderColor:
-        "#172554",
+      alignItems:
+        "center",
 
-      alignItems: "center",
-
-      justifyContent: "center",
-    },
-
-
-    backText: {
-
-      color: "#FFFFFF",
-
-      fontSize: 34,
-
-      fontWeight: "300",
-
-      marginTop: -4,
-    },
-
-
-    headerTextContainer: {
-
-      marginLeft: 14,
-    },
-
-
-    headerSmallTitle: {
-
-      color: "#38BDF8",
-
-      fontSize: 9,
-
-      fontWeight: "900",
-
-      letterSpacing: 2,
-    },
-
-
-    headerTitle: {
-
-      color: "#FFFFFF",
-
-      fontSize: 21,
-
-      fontWeight: "900",
-
-      marginTop: 3,
-    },
-
-
-    // ========================================================
-    // MARK ALL BUTTON
-    // ========================================================
-
-    markAllButton: {
-
-      paddingHorizontal: 12,
-
-      paddingVertical: 9,
-
-      borderRadius: 12,
-
-      backgroundColor:
-        "#0B1220",
-
-      borderWidth: 1,
-
-      borderColor:
-        "#1D4ED8",
-    },
-
-
-    markAllText: {
-
-      color: "#60A5FA",
-
-      fontSize: 10,
-
-      fontWeight: "900",
+      justifyContent:
+        "center",
     },
 
 
@@ -1934,66 +2165,76 @@ const styles =
     // SUMMARY
     // ========================================================
 
-    summaryContainer: {
+    summaryCard: {
+      minHeight: 78,
 
-      paddingHorizontal: 20,
+      borderWidth: 1,
+      borderRadius: 21,
 
-      paddingVertical: 18,
+      paddingHorizontal: 13,
 
-      flexDirection: "row",
+      flexDirection:
+        "row",
 
-      alignItems: "center",
+      alignItems:
+        "center",
 
-      justifyContent: "space-between",
+      marginBottom: 6,
     },
 
+    summaryIcon: {
+      width: 44,
+      height: 44,
 
-    summaryTitle: {
+      borderRadius: 14,
 
-      color: "#FFFFFF",
+      alignItems:
+        "center",
 
-      fontSize: 16,
+      justifyContent:
+        "center",
+    },
 
+    summaryInfo: {
+      flex: 1,
+      marginLeft: 11,
+    },
+
+    summaryLabel: {
+      fontSize: 7,
       fontWeight: "900",
+      letterSpacing: 1,
     },
 
-
-    summarySubtitle: {
-
-      color: "#64748B",
-
-      fontSize: 11,
-
-      marginTop: 4,
-    },
-
-
-    unreadBadge: {
-
-      minWidth: 30,
-
-      height: 30,
-
-      paddingHorizontal: 8,
-
-      borderRadius: 15,
-
-      backgroundColor:
-        "#DC2626",
-
-      alignItems: "center",
-
-      justifyContent: "center",
-    },
-
-
-    unreadBadgeText: {
-
-      color: "#FFFFFF",
-
-      fontSize: 11,
-
+    summaryValue: {
+      fontSize: 23,
       fontWeight: "900",
+      marginTop: 2,
+    },
+
+    summaryValueSuffix: {
+      fontSize: 10,
+      fontWeight: "700",
+    },
+
+    markAllButton: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      borderWidth: 1,
+      borderRadius: 14,
+
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+    },
+
+    markAllText: {
+      fontSize: 10,
+      fontWeight: "900",
+      marginLeft: 4,
     },
 
 
@@ -2002,19 +2243,16 @@ const styles =
     // ========================================================
 
     listContent: {
-
-      paddingHorizontal: 20,
-
-      paddingBottom: 30,
+      paddingHorizontal: 18,
+      paddingTop: 12,
+      paddingBottom: 40,
     },
 
-
     emptyList: {
-
       flexGrow: 1,
 
-      paddingHorizontal: 20,
-
+      paddingHorizontal: 18,
+      paddingTop: 12,
       paddingBottom: 40,
     },
 
@@ -2024,263 +2262,141 @@ const styles =
     // ========================================================
 
     notificationCard: {
-
-      flexDirection: "row",
-
-      alignItems: "flex-start",
-
-      backgroundColor:
-        "#0B1220",
-
       borderWidth: 1,
+      borderRadius: 20,
 
-      borderColor:
-        "#172554",
+      paddingVertical: 12,
+      paddingLeft: 11,
+      paddingRight: 10,
 
-      borderRadius: 18,
+      flexDirection:
+        "row",
 
-      padding: 15,
+      alignItems:
+        "center",
 
-      marginBottom: 12,
+      marginBottom: 8,
     },
-
-
-    unreadCard: {
-
-      borderColor:
-        "#1D4ED8",
-
-      backgroundColor:
-        "#0C162B",
-    },
-
-
-    // ========================================================
-    // ICON
-    // ========================================================
 
     iconContainer: {
-
-      width: 48,
-
-      height: 48,
+      width: 46,
+      height: 46,
 
       borderRadius: 15,
 
-      backgroundColor:
-        "#111827",
+      alignItems:
+        "center",
 
-      alignItems: "center",
+      justifyContent:
+        "center",
 
-      justifyContent: "center",
-
-      marginRight: 13,
+      alignSelf:
+        "flex-start",
     },
-
-
-    unreadIconContainer: {
-
-      backgroundColor:
-        "#172554",
-    },
-
-
-    notificationIcon: {
-
-      fontSize: 22,
-    },
-
-
-    // ========================================================
-    // CONTENT
-    // ========================================================
 
     notificationContent: {
-
       flex: 1,
 
-      paddingRight: 5,
+      marginLeft: 11,
+      marginRight: 6,
     },
-
 
     titleRow: {
+      flexDirection:
+        "row",
 
-      flexDirection: "row",
+      alignItems:
+        "center",
 
-      alignItems: "center",
-
-      marginBottom: 4,
+      justifyContent:
+        "space-between",
     },
-
 
     categoryText: {
-
-      color: "#38BDF8",
-
-      fontSize: 8,
-
+      fontSize: 7.5,
       fontWeight: "900",
-
-      letterSpacing: 1.2,
+      letterSpacing: 1,
     },
-
 
     unreadDot: {
-
-      width: 7,
-
-      height: 7,
+      width: 8,
+      height: 8,
 
       borderRadius: 4,
-
-      backgroundColor:
-        "#EF4444",
-
-      marginLeft: 7,
     },
-
 
     notificationTitle: {
-
-      color: "#FFFFFF",
-
-      fontSize: 14,
-
+      fontSize: 13,
       fontWeight: "900",
-
-      marginTop: 2,
+      marginTop: 4,
     },
-
 
     notificationMessage: {
-
-      color: "#94A3B8",
-
-      fontSize: 11,
-
-      lineHeight: 17,
-
-      marginTop: 5,
+      fontSize: 10,
+      fontWeight: "600",
+      lineHeight: 14,
+      marginTop: 3,
     },
 
+    timeRow: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      marginTop: 6,
+    },
 
     timeText: {
-
-      color: "#475569",
-
-      fontSize: 9,
-
+      fontSize: 8,
       fontWeight: "700",
-
-      marginTop: 8,
-    },
-
-
-    arrow: {
-
-      color: "#475569",
-
-      fontSize: 28,
-
-      fontWeight: "300",
-
-      marginLeft: 5,
-
-      marginTop: 8,
+      marginLeft: 4,
     },
 
 
     // ========================================================
-    // EMPTY STATE
+    // EMPTY
     // ========================================================
 
-    emptyContainer: {
+    emptyCard: {
+      borderWidth: 1,
+      borderRadius: 21,
 
-      flex: 1,
+      paddingVertical: 31,
+      paddingHorizontal: 20,
 
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      paddingHorizontal: 30,
+      alignItems:
+        "center",
     },
-
 
     emptyIconContainer: {
+      width: 58,
+      height: 58,
 
-      width: 80,
+      borderRadius: 18,
 
-      height: 80,
+      alignItems:
+        "center",
 
-      borderRadius: 25,
-
-      backgroundColor:
-        "#0B1220",
-
-      borderWidth: 1,
-
-      borderColor:
-        "#172554",
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      marginBottom: 18,
+      justifyContent:
+        "center",
     },
-
-
-    emptyIcon: {
-
-      fontSize: 32,
-    },
-
 
     emptyTitle: {
-
-      color: "#FFFFFF",
-
-      fontSize: 19,
-
+      fontSize: 15,
       fontWeight: "900",
+      marginTop: 12,
     },
-
 
     emptyMessage: {
+      fontSize: 9,
+      fontWeight: "600",
+      lineHeight: 14,
+      marginTop: 5,
 
-      color: "#64748B",
-
-      fontSize: 12,
-
-      lineHeight: 19,
-
-      textAlign: "center",
-
-      marginTop: 8,
-    },
-
-
-    // ========================================================
-    // LOADING
-    // ========================================================
-
-    loadingContainer: {
-
-      flex: 1,
-
-      alignItems: "center",
-
-      justifyContent: "center",
-    },
-
-
-    loadingText: {
-
-      color: "#64748B",
-
-      fontSize: 12,
-
-      marginTop: 14,
+      textAlign:
+        "center",
     },
 
   });

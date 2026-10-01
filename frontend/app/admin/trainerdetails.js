@@ -7,11 +7,12 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
 } from "react-native";
 
 import {
@@ -22,6 +23,8 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../context/ThemeContext";
 
 
@@ -30,12 +33,16 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 
 export default function TrainerDetailsScreen() {
 
-  const { colors } = useTheme();
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
   const { id } =
     useLocalSearchParams();
@@ -454,7 +461,7 @@ export default function TrainerDetailsScreen() {
                        */
 
                       router.replace(
-                        "/admin/trainer"
+                        "/admin/trainers"
                       );
                     },
                   },
@@ -497,6 +504,7 @@ export default function TrainerDetailsScreen() {
   if (loading) {
 
     return (
+
       <View
         style={[
           styles.loadingContainer,
@@ -536,6 +544,7 @@ export default function TrainerDetailsScreen() {
   if (!trainer) {
 
     return (
+
       <View
         style={[
           styles.loadingContainer,
@@ -545,6 +554,24 @@ export default function TrainerDetailsScreen() {
           },
         ]}
       >
+
+        <View
+          style={[
+            styles.errorIcon,
+            {
+              backgroundColor:
+                colors.iconBackground,
+            },
+          ]}
+        >
+          <Ionicons
+            name="person-outline"
+            size={28}
+            color={
+              colors.primaryLight
+            }
+          />
+        </View>
 
         <Text
           style={[
@@ -558,10 +585,9 @@ export default function TrainerDetailsScreen() {
           Trainer Not Found
         </Text>
 
-
-        <TouchableOpacity
+        <Pressable
           style={[
-            styles.backButton,
+            styles.errorButton,
             {
               backgroundColor:
                 colors.primary,
@@ -569,20 +595,24 @@ export default function TrainerDetailsScreen() {
           ]}
           onPress={() =>
             router.replace(
-              "/admin/trainer"
+              "/admin/trainers"
             )
           }
         >
+          <Ionicons
+            name="arrow-back"
+            size={15}
+            color="#FFFFFF"
+          />
 
           <Text
             style={
-              styles.backButtonText
+              styles.errorButtonText
             }
           >
             Back to Trainers
           </Text>
-
-        </TouchableOpacity>
+        </Pressable>
 
       </View>
     );
@@ -596,31 +626,30 @@ export default function TrainerDetailsScreen() {
   const isActive =
     trainer.is_active !== false;
 
+  const statusColor =
+    isActive
+      ? "#45E0A5"
+      : "#FF5870";
 
   const trainerName =
     trainer.name ||
     "Unnamed Trainer";
 
-
   const trainerUsername =
     trainer.username ||
     "username";
-
 
   const trainerEmail =
     trainer.email ||
     "No email";
 
-
   const trainerPhone =
     trainer.phone ||
     "No phone number";
 
-
   const specialization =
     trainer.specialization ||
     "Not specified";
-
 
   const experience =
     trainer.experience_years ??
@@ -632,6 +661,7 @@ export default function TrainerDetailsScreen() {
   // ==========================================================
 
   return (
+
     <View
       style={[
         styles.container,
@@ -648,55 +678,23 @@ export default function TrainerDetailsScreen() {
 
       <View style={styles.header}>
 
-        <TouchableOpacity
-          style={[
-            styles.headerBack,
-            {
-              backgroundColor:
-                colors.card,
-
-              borderColor:
-                colors.border,
-            },
-          ]}
-          onPress={() =>
-            router.back()
-          }
-        >
-
-          <Text
-            style={[
-              styles.backIcon,
-              {
-                color:
-                  colors.text,
-              },
-            ]}
-          >
-            ‹
-          </Text>
-
-        </TouchableOpacity>
-
-
         <View
           style={
-            styles.headerText
+            styles.headerLeft
           }
         >
 
           <Text
             style={[
-              styles.smallTitle,
+              styles.eyebrow,
               {
                 color:
-                  colors.mutedText,
+                  colors.primaryLight,
               },
             ]}
           >
-            GYM STAFF
+            GYMRYT • GYM STAFF
           </Text>
-
 
           <Text
             style={[
@@ -709,6 +707,70 @@ export default function TrainerDetailsScreen() {
           >
             Trainer Details
           </Text>
+
+        </View>
+
+
+        <View
+          style={
+            styles.headerActions
+          }
+        >
+
+          {/* THEME */}
+
+          <Pressable
+            style={[
+              styles.headerButton,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+            onPress={
+              toggleTheme
+            }
+          >
+            <Ionicons
+              name={
+                isDark
+                  ? "sunny-outline"
+                  : "moon-outline"
+              }
+              size={20}
+              color={
+                colors.text
+              }
+            />
+          </Pressable>
+
+
+          {/* BACK */}
+
+          <Pressable
+            style={[
+              styles.headerButton,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+            onPress={() =>
+              router.back()
+            }
+          >
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={
+                colors.text
+              }
+            />
+          </Pressable>
 
         </View>
 
@@ -738,7 +800,6 @@ export default function TrainerDetailsScreen() {
             {
               backgroundColor:
                 colors.card,
-
               borderColor:
                 colors.border,
             },
@@ -747,29 +808,31 @@ export default function TrainerDetailsScreen() {
 
           {/* PROFILE IMAGE */}
 
-          {trainer.profile_picture ? (
+          <View
+            style={[
+              styles.profileImage,
+              {
+                backgroundColor:
+                  colors.iconBackground,
+                borderColor:
+                  `${statusColor}88`,
+              },
+            ]}
+          >
 
-            <Image
-              source={{
-                uri:
-                  trainer.profile_picture,
-              }}
-              style={
-                styles.profileImage
-              }
-            />
+            {trainer.profile_picture ? (
 
-          ) : (
+              <Image
+                source={{
+                  uri:
+                    trainer.profile_picture,
+                }}
+                style={
+                  styles.profilePhoto
+                }
+              />
 
-            <View
-              style={[
-                styles.profileImage,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
+            ) : (
 
               <Text
                 style={[
@@ -792,9 +855,9 @@ export default function TrainerDetailsScreen() {
                   .toUpperCase()}
               </Text>
 
-            </View>
+            )}
 
-          )}
+          </View>
 
 
           {/* NAME */}
@@ -812,79 +875,115 @@ export default function TrainerDetailsScreen() {
           </Text>
 
 
-          {/* ROLE */}
-
-          <Text
-            style={[
-              styles.profileRole,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            TRAINER
-          </Text>
-
-
-          {/* WORKSPACE */}
-
-          <Text
-            style={[
-              styles.profileWorkspace,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
-            {trainer.workspace_name ||
-              "GymRyt"}
-          </Text>
-
-
-          {/* STATUS */}
+          {/* ROLE + STATUS */}
 
           <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor:
-                  isActive
-                    ? colors.successBackground
-                    : colors.dangerBackground,
-              },
-            ]}
+            style={
+              styles.badgeRow
+            }
           >
 
             <View
               style={[
-                styles.statusDot,
+                styles.badge,
                 {
                   backgroundColor:
-                    isActive
-                      ? colors.success
-                      : colors.danger,
+                    colors.iconBackground,
+                  borderColor:
+                    colors.border,
                 },
               ]}
+            >
+              <Ionicons
+                name="fitness-outline"
+                size={12}
+                color={
+                  colors.primaryLight
+                }
+              />
+
+              <Text
+                style={[
+                  styles.badgeText,
+                  styles.badgeTextIcon,
+                  {
+                    color:
+                      colors.primaryLight,
+                  },
+                ]}
+              >
+                TRAINER
+              </Text>
+            </View>
+
+
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor:
+                    `${statusColor}18`,
+                  borderColor:
+                    `${statusColor}55`,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.statusDot,
+                  {
+                    backgroundColor:
+                      statusColor,
+                  },
+                ]}
+              />
+
+              <Text
+                style={[
+                  styles.badgeText,
+                  {
+                    color:
+                      statusColor,
+                  },
+                ]}
+              >
+                {isActive
+                  ? "ACTIVE"
+                  : "INACTIVE"}
+              </Text>
+            </View>
+
+          </View>
+
+
+          {/* WORKSPACE */}
+
+          <View
+            style={
+              styles.gymRow
+            }
+          >
+            <Ionicons
+              name="location-outline"
+              size={14}
+              color={
+                colors.secondaryText
+              }
             />
 
             <Text
               style={[
-                styles.statusText,
+                styles.profileWorkspace,
                 {
                   color:
-                    isActive
-                      ? colors.success
-                      : colors.danger,
+                    colors.secondaryText,
                 },
               ]}
+              numberOfLines={1}
             >
-              {isActive
-                ? "ACTIVE"
-                : "INACTIVE"}
+              {trainer.workspace_name ||
+                "GymRyt"}
             </Text>
-
           </View>
 
         </View>
@@ -899,13 +998,12 @@ export default function TrainerDetailsScreen() {
             styles.sectionTitle,
             {
               color:
-                colors.primaryLight,
+                colors.text,
             },
           ]}
         >
           ACCOUNT INFORMATION
         </Text>
-
 
         <View
           style={[
@@ -913,139 +1011,36 @@ export default function TrainerDetailsScreen() {
             {
               backgroundColor:
                 colors.card,
-
               borderColor:
                 colors.border,
             },
           ]}
         >
 
-          {/* USERNAME */}
-
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={[
-                styles.infoLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Username
-            </Text>
-
-            <Text
-              style={[
-                styles.infoValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              @{trainerUsername}
-            </Text>
-
-          </View>
-
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor:
-                  colors.border,
-              },
-            ]}
+          <InfoRow
+            icon="person-outline"
+            label="Username"
+            value={`@${trainerUsername}`}
+            colors={colors}
           />
 
+          <Divider colors={colors} />
 
-          {/* EMAIL */}
-
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={[
-                styles.infoLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Email
-            </Text>
-
-            <Text
-              style={[
-                styles.infoValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-              numberOfLines={2}
-            >
-              {trainerEmail}
-            </Text>
-
-          </View>
-
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor:
-                  colors.border,
-              },
-            ]}
+          <InfoRow
+            icon="mail-outline"
+            label="Email"
+            value={trainerEmail}
+            colors={colors}
           />
 
+          <Divider colors={colors} />
 
-          {/* PHONE */}
-
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={[
-                styles.infoLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Phone
-            </Text>
-
-            <Text
-              style={[
-                styles.infoValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {trainerPhone}
-            </Text>
-
-          </View>
+          <InfoRow
+            icon="call-outline"
+            label="Phone"
+            value={trainerPhone}
+            colors={colors}
+          />
 
         </View>
 
@@ -1059,13 +1054,12 @@ export default function TrainerDetailsScreen() {
             styles.sectionTitle,
             {
               color:
-                colors.primaryLight,
+                colors.text,
             },
           ]}
         >
           TRAINER INFORMATION
         </Text>
-
 
         <View
           style={[
@@ -1073,95 +1067,31 @@ export default function TrainerDetailsScreen() {
             {
               backgroundColor:
                 colors.card,
-
               borderColor:
                 colors.border,
             },
           ]}
         >
 
-          {/* SPECIALIZATION */}
-
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={[
-                styles.infoLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Specialization
-            </Text>
-
-            <Text
-              style={[
-                styles.infoValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {specialization}
-            </Text>
-
-          </View>
-
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor:
-                  colors.border,
-              },
-            ]}
+          <InfoRow
+            icon="barbell-outline"
+            label="Specialization"
+            value={specialization}
+            colors={colors}
           />
 
+          <Divider colors={colors} />
 
-          {/* EXPERIENCE */}
-
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={[
-                styles.infoLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Experience
-            </Text>
-
-            <Text
-              style={[
-                styles.infoValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {experience}{" "}
-              {experience === 1
+          <InfoRow
+            icon="trophy-outline"
+            label="Experience"
+            value={`${experience} ${
+              experience === 1
                 ? "year"
-                : "years"}
-            </Text>
-
-          </View>
+                : "years"
+            }`}
+            colors={colors}
+          />
 
         </View>
 
@@ -1175,7 +1105,7 @@ export default function TrainerDetailsScreen() {
             styles.sectionTitle,
             {
               color:
-                colors.primaryLight,
+                colors.text,
             },
           ]}
         >
@@ -1185,7 +1115,7 @@ export default function TrainerDetailsScreen() {
 
         {/* EDIT BUTTON */}
 
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.editButton,
             {
@@ -1193,12 +1123,16 @@ export default function TrainerDetailsScreen() {
                 colors.primary,
             },
           ]}
-          activeOpacity={0.8}
           onPress={
             openEditTrainer
           }
           disabled={deleting}
         >
+          <Ionicons
+            name="create-outline"
+            size={19}
+            color="#FFFFFF"
+          />
 
           <Text
             style={
@@ -1207,63 +1141,61 @@ export default function TrainerDetailsScreen() {
           >
             Edit Trainer
           </Text>
-
-        </TouchableOpacity>
+        </Pressable>
 
 
         {/* DELETE BUTTON */}
 
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.deleteButton,
             {
               backgroundColor:
-                colors.dangerBackground,
-
+                isDark
+                  ? "#100D15"
+                  : "#FFF5F6",
               borderColor:
-                colors.danger,
-
+                "#55202B",
               opacity:
                 deleting ? 0.6 : 1,
             },
           ]}
-          activeOpacity={0.8}
           onPress={
             deleteTrainer
           }
           disabled={deleting}
         >
-
           {deleting ? (
 
             <ActivityIndicator
-              color={
-                colors.danger
-              }
+              color="#FF4D5E"
             />
 
           ) : (
 
-            <Text
-              style={[
-                styles.deleteButtonText,
-                {
-                  color:
-                    colors.danger,
-                },
-              ]}
-            >
-              Delete Trainer
-            </Text>
+            <>
+              <Ionicons
+                name="trash-outline"
+                size={19}
+                color="#FF4D5E"
+              />
+
+              <Text
+                style={
+                  styles.deleteButtonText
+                }
+              >
+                Delete Trainer
+              </Text>
+            </>
 
           )}
-
-        </TouchableOpacity>
+        </Pressable>
 
 
         {/* CANCEL / BACK */}
 
-        <TouchableOpacity
+        <Pressable
           style={
             styles.cancelButton
           }
@@ -1272,22 +1204,136 @@ export default function TrainerDetailsScreen() {
             router.back()
           }
         >
+          <View
+            style={[
+              styles.cancelIcon,
+              {
+                backgroundColor:
+                  colors.iconBackground,
+              },
+            ]}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={14}
+              color={
+                colors.primaryLight
+              }
+            />
+          </View>
 
           <Text
             style={[
               styles.cancelText,
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
-            Back
+            BACK
           </Text>
-
-        </TouchableOpacity>
+        </Pressable>
 
       </ScrollView>
+
+    </View>
+  );
+}
+
+
+// ============================================================
+// DIVIDER
+// ============================================================
+
+function Divider({
+  colors,
+}) {
+
+  return (
+    <View
+      style={[
+        styles.divider,
+        {
+          backgroundColor:
+            colors.border,
+        },
+      ]}
+    />
+  );
+}
+
+
+// ============================================================
+// INFO ROW
+// ============================================================
+
+function InfoRow({
+  icon,
+  label,
+  value,
+  colors,
+}) {
+
+  return (
+
+    <View
+      style={
+        styles.infoRow
+      }
+    >
+
+      <View
+        style={[
+          styles.infoIcon,
+          {
+            backgroundColor:
+              colors.iconBackground,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={21}
+          color={
+            colors.primaryLight
+          }
+        />
+      </View>
+
+
+      <View
+        style={
+          styles.infoTextContainer
+        }
+      >
+
+        <Text
+          style={[
+            styles.infoLabel,
+            {
+              color:
+                colors.secondaryText,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+
+        <Text
+          style={[
+            styles.infoValue,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {value}
+        </Text>
+
+      </View>
 
     </View>
   );
@@ -1302,7 +1348,6 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    paddingHorizontal: 20,
   },
 
 
@@ -1318,8 +1363,9 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    marginTop: 14,
-    fontSize: 13,
+    marginTop: 12,
+    fontSize: 12,
+    fontWeight: "700",
   },
 
 
@@ -1327,22 +1373,34 @@ const styles = StyleSheet.create({
   // ERROR
   // ==========================================================
 
+  errorIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   errorTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "900",
-    marginBottom: 20,
+    marginTop: 12,
   },
 
-  backButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+  errorButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    marginTop: 16,
   },
 
-  backButtonText: {
+  errorButtonText: {
     color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: 11,
+    fontWeight: "900",
+    marginLeft: 6,
   },
 
 
@@ -1351,42 +1409,47 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   header: {
-    marginTop: 55,
-    marginBottom: 22,
+    paddingHorizontal: 18,
+    paddingTop:
+      Platform.OS === "ios"
+        ? 54
+        : 44,
+    paddingBottom: 14,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
 
-  headerBack: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 13,
-  },
-
-  backIcon: {
-    fontSize: 30,
-    lineHeight: 30,
-    marginTop: -3,
-  },
-
-  headerText: {
+  headerLeft: {
     flex: 1,
   },
 
-  smallTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 2,
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
   },
 
   title: {
-    fontSize: 27,
+    fontSize: 22,
     fontWeight: "900",
     marginTop: 4,
+  },
+
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    marginLeft: 10,
+  },
+
+  headerButton: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
 
@@ -1395,7 +1458,9 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   content: {
-    paddingBottom: 50,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 40,
   },
 
 
@@ -1404,70 +1469,85 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   profileCard: {
-    borderRadius: 20,
     borderWidth: 1,
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
     alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    marginBottom: 28,
+    marginBottom: 4,
   },
 
   profileImage: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
+    width: 100,
+    height: 100,
+    borderRadius: 30,
+    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+
+  profilePhoto: {
+    width: "100%",
+    height: "100%",
   },
 
   profileInitials: {
-    fontSize: 24,
+    fontSize: 31,
     fontWeight: "900",
   },
 
   profileName: {
     fontSize: 22,
     fontWeight: "900",
+    textAlign: "center",
     marginTop: 12,
   },
 
-  profileRole: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.8,
-    marginTop: 4,
-  },
-
-  profileWorkspace: {
-    fontSize: 12,
-    marginTop: 5,
-  },
-
-
-  // ==========================================================
-  // STATUS
-  // ==========================================================
-
-  statusBadge: {
+  badgeRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 10,
-    marginTop: 13,
+    gap: 7,
+    marginTop: 9,
+  },
+
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+
+  badgeText: {
+    fontSize: 7.5,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+  },
+
+  badgeTextIcon: {
+    marginLeft: 4,
   },
 
   statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    marginRight: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
   },
 
-  statusText: {
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 0.5,
+  gymRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 9,
+    maxWidth: "90%",
+  },
+
+  profileWorkspace: {
+    fontSize: 10,
+    fontWeight: "600",
+    marginLeft: 4,
   },
 
 
@@ -1478,8 +1558,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 10,
     fontWeight: "900",
-    letterSpacing: 1.7,
-    marginBottom: 13,
+    letterSpacing: 1.2,
+    marginTop: 20,
+    marginBottom: 9,
   },
 
 
@@ -1488,35 +1569,45 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   infoCard: {
-    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 16,
-    marginBottom: 27,
+    borderRadius: 21,
+    paddingHorizontal: 13,
+    paddingVertical: 3,
   },
 
   infoRow: {
-    minHeight: 58,
+    minHeight: 67,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+  },
+
+  infoIcon: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+  },
+
+  infoTextContainer: {
+    flex: 1,
   },
 
   infoLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    flex: 0.8,
+    fontSize: 8,
+    fontWeight: "700",
+    marginBottom: 3,
   },
 
   infoValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
-    textAlign: "right",
-    flex: 1.2,
   },
 
   divider: {
     height: 1,
-    width: "100%",
+    marginLeft: 54,
   },
 
 
@@ -1525,17 +1616,20 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   editButton: {
-    height: 52,
-    borderRadius: 15,
+    height: 54,
+    borderRadius: 17,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 11,
+    marginBottom: 10,
   },
 
   editButtonText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
+    letterSpacing: 0.8,
+    marginLeft: 8,
   },
 
 
@@ -1544,17 +1638,20 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   deleteButton: {
-    height: 52,
-    borderRadius: 15,
+    height: 54,
+    borderRadius: 17,
     borderWidth: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
   },
 
   deleteButtonText: {
-    fontSize: 13,
+    color: "#FF4D5E",
+    fontSize: 12,
     fontWeight: "900",
+    letterSpacing: 0.8,
+    marginLeft: 8,
   },
 
 
@@ -1563,14 +1660,26 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   cancelButton: {
-    height: 48,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingTop: 22,
+    paddingBottom: 8,
+  },
+
+  cancelIcon: {
+    width: 27,
+    height: 27,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 7,
   },
 
   cancelText: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.7,
   },
 
 });

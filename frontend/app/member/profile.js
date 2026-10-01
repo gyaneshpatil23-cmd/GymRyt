@@ -16,63 +16,196 @@ import { router, useFocusEffect } from "expo-router";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import * as ImagePicker from "expo-image-picker";
+
+import { File } from "expo-file-system";
+
+import { fetch as expoFetch } from "expo/fetch";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
 
-const API =
-  "http://192.168.1.52:8000/api/members/trainer/profile/";
+const PROFILE_PICTURE_API =
+  "http://192.168.1.43:8000/api/members/profile-picture/";
 
-export default function TrainerProfile() {
-  const { colors } = useTheme();
+// Every key the member session is stored under.
+const MEMBER_SESSION_KEYS = [
+  "memberToken",
+  "memberId",
+  "memberName",
+  "memberUsername",
+  "memberEmail",
+  "memberPhone",
+  "memberStatus",
+  "memberMembershipStart",
+  "memberMembershipEnd",
+  "memberWorkspaceId",
+  "memberWorkspaceName",
+  "memberProfilePicture",
+];
 
-  const [trainer, setTrainer] = useState(null);
+export default function MemberProfile() {
+  const { colors, isDark, toggleTheme } = useTheme();
+
+  const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [uploadingPhoto, setUploadingPhoto] =
+    useState(false);
+
+  // ==========================================================
+  // SESSION
+  // ==========================================================
+
+  const clearSession = async () => {
+    await AsyncStorage.multiRemove(
+      MEMBER_SESSION_KEYS
+    );
+
+    router.replace("/");
+  };
+
+  // ==========================================================
+  // UPLOAD PROFILE PHOTO
+  // ==========================================================
+
+  const uploadProfilePhoto = async (
+    uri,
+    token
+  ) => {
+    try {
+      setUploadingPhoto(true);
+
+      const formData = new FormData();
+
+      formData.append(
+        "profile_picture",
+        new File(uri)
+      );
+
+      const response = await expoFetch(
+        PROFILE_PICTURE_API,
+        {
+          method: "POST",
+          headers: {
+            "X-Member-Token": token,
+          },
+          body: formData,
+        }
+      );
+
+      if (response.status === 401) {
+        return clearSession();
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        Alert.alert(
+          "Upload Failed",
+          data.message ||
+            "Unable to upload profile picture."
+        );
+        return;
+      }
+
+      if (data.profile_picture) {
+        await AsyncStorage.setItem(
+          "memberProfilePicture",
+          data.profile_picture
+        );
+
+        setMember((current) => ({
+          ...current,
+          profilePicture:
+            data.profile_picture,
+        }));
+      }
+
+      Alert.alert(
+        "Success",
+        "Profile picture updated successfully."
+      );
+    } catch (error) {
+      console.log(
+        "MEMBER PHOTO UPLOAD ERROR:",
+        error
+      );
+
+      Alert.alert(
+        "Upload Error",
+        "Unable to upload profile picture. Please try again."
+      );
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  // ==========================================================
+  // LOAD PROFILE
+  // ==========================================================
 
   const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
 
-      const token =
-        await AsyncStorage.getItem("adminToken");
+      const values =
+        await AsyncStorage.multiGet(
+          MEMBER_SESSION_KEYS
+        );
 
-      if (!token) {
-        router.replace("/");
-        return;
+      const session = Object.fromEntries(
+        values
+      );
+
+      if (!session.memberToken) {
+        return clearSession();
       }
 
-      const response = await fetch(API, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Token ${token}`,
-        },
+      setMember({
+        id: session.memberId || "",
+        name: session.memberName || "Member",
+        username: session.memberUsername || "",
+        email: session.memberEmail || "",
+        phone: session.memberPhone || "",
+        status: session.memberStatus || "ACTIVE",
+        membershipStart:
+          session.memberMembershipStart || "",
+        membershipEnd:
+          session.memberMembershipEnd || "",
+        workspaceName:
+          session.memberWorkspaceName || "My Gym",
+        profilePicture:
+          session.memberProfilePicture || "",
       });
 
-      if (response.status === 401) {
-        router.replace("/");
-        return;
-      }
+      // crop.js saves the cropped photo here and
+      // returns to this screen.
+      const pendingUri =
+        await AsyncStorage.getItem(
+          "pendingProfilePictureUri"
+        );
 
-      const data = await response.json();
+      if (pendingUri) {
+        // Remove first so a refresh can't upload it twice.
+        await AsyncStorage.removeItem(
+          "pendingProfilePictureUri"
+        );
 
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message ||
-            "Could not load trainer profile."
+        await uploadProfilePhoto(
+          pendingUri,
+          session.memberToken
         );
       }
-
-      setTrainer(data.trainer);
     } catch (error) {
       console.log(
-        "TRAINER PROFILE ERROR:",
+        "MEMBER PROFILE ERROR:",
         error
       );
 
       Alert.alert(
         "Error",
-        error.message ||
-          "Could not load trainer profile."
+        "Could not load your profile."
       );
     } finally {
       setLoading(false);
@@ -85,27 +218,138 @@ export default function TrainerProfile() {
     }, [loadProfile])
   );
 
-  const getInitials = (name) => {
-    if (!name) return "T";
+  // ==========================================================
+  // PICK PROFILE PHOTO
+  // ==========================================================
 
-    const parts = name
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-
-    if (parts.length === 1) {
-      return parts[0]
-        .charAt(0)
-        .toUpperCase();
+  const pickProfilePhoto = async () => {
+    if (uploadingPhoto) {
+      return;
     }
 
-    return (
-      parts[0].charAt(0) +
-      parts[parts.length - 1].charAt(0)
-    ).toUpperCase();
+    try {
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Please allow photo library access to select a profile picture."
+        );
+        return;
+      }
+
+      const result =
+        await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          allowsEditing: false,
+          quality: 0.85,
+        });
+
+      if (
+        result.canceled ||
+        !result.assets?.[0]
+      ) {
+        return;
+      }
+
+      router.push({
+        pathname: "/crop",
+        params: {
+          uri: result.assets[0].uri,
+        },
+      });
+    } catch (error) {
+      console.log(
+        "MEMBER IMAGE PICKER ERROR:",
+        error
+      );
+
+      Alert.alert(
+        "Photo Error",
+        "Unable to select the photo."
+      );
+    }
   };
 
-  const logout = async () => {
+  // ==========================================================
+  // REMOVE PROFILE PHOTO
+  // ==========================================================
+
+  const removeProfilePhoto = () => {
+    Alert.alert(
+      "Remove Profile Picture",
+      "Are you sure you want to remove your profile picture?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setUploadingPhoto(true);
+
+              const token =
+                await AsyncStorage.getItem(
+                  "memberToken"
+                );
+
+              const response = await fetch(
+                PROFILE_PICTURE_API,
+                {
+                  method: "DELETE",
+                  headers: {
+                    "X-Member-Token":
+                      token || "",
+                  },
+                }
+              );
+
+              if (response.status === 401) {
+                return clearSession();
+              }
+
+              if (!response.ok) {
+                throw new Error(
+                  "Remove failed"
+                );
+              }
+
+              await AsyncStorage.removeItem(
+                "memberProfilePicture"
+              );
+
+              setMember((current) => ({
+                ...current,
+                profilePicture: "",
+              }));
+            } catch (error) {
+              console.log(
+                "MEMBER PHOTO REMOVE ERROR:",
+                error
+              );
+
+              Alert.alert(
+                "Error",
+                "Unable to remove profile picture."
+              );
+            } finally {
+              setUploadingPhoto(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // ==========================================================
+  // LOGOUT
+  // ==========================================================
+
+  const logout = () => {
     Alert.alert(
       "Logout",
       "Are you sure you want to logout?",
@@ -117,24 +361,28 @@ export default function TrainerProfile() {
         {
           text: "Logout",
           style: "destructive",
-          onPress: async () => {
-            await AsyncStorage.multiRemove([
-              "adminToken",
-              "adminUsername",
-              "adminId",
-              "userRole",
-              "workspaceId",
-              "workspaceName",
-            ]);
-
-            router.replace("/");
-          },
+          onPress: clearSession,
         },
       ]
     );
   };
 
-  if (loading) {
+  // ==========================================================
+  // COMING SOON
+  // ==========================================================
+
+  const showComingSoon = (title) => {
+    Alert.alert(
+      title,
+      `${title} will be connected in the next phase.`
+    );
+  };
+
+  // ==========================================================
+  // LOADING
+  // ==========================================================
+
+  if (loading || !member) {
     return (
       <View
         style={[
@@ -165,19 +413,22 @@ export default function TrainerProfile() {
     );
   }
 
-  const trainerName =
-    trainer?.name ||
-    trainer?.username ||
-    "Trainer";
+  const statusColor =
+    member.status === "EXPIRED"
+      ? "#FF5870"
+      : member.status === "EXPIRING"
+      ? "#FFB21C"
+      : "#45E0A5";
 
-  const profilePicture =
-    trainer?.profile_picture ||
-    trainer?.profile_image ||
-    null;
-
-  const specialization =
-    trainer?.specialization ||
-    "Personal Training";
+  const headerButton = [
+    styles.headerButton,
+    {
+      backgroundColor:
+        colors.card,
+      borderColor:
+        colors.border,
+    },
+  ];
 
   return (
     <View
@@ -190,61 +441,74 @@ export default function TrainerProfile() {
       ]}
     >
 
+      {/* HEADER */}
+
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text
+            style={[
+              styles.eyebrow,
+              {
+                color:
+                  colors.primaryLight,
+              },
+            ]}
+          >
+            GYMRYT • MEMBER
+          </Text>
+
+          <Text
+            style={[
+              styles.title,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            My Profile
+          </Text>
+        </View>
+
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={headerButton}
+            onPress={toggleTheme}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={
+                isDark
+                  ? "sunny-outline"
+                  : "moon-outline"
+              }
+              size={20}
+              color={colors.text}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={headerButton}
+            onPress={() =>
+              router.back()
+            }
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={colors.text}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={
           styles.content
         }
       >
-
-        {/* BACK */}
-
-        <TouchableOpacity
-          style={[
-            styles.backButton,
-            {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
-            },
-          ]}
-          onPress={() =>
-            router.back()
-          }
-        >
-          <Ionicons
-            name="chevron-back"
-            size={24}
-            color={colors.text}
-          />
-        </TouchableOpacity>
-
-        {/* HEADER */}
-
-        <Text
-          style={[
-            styles.eyebrow,
-            {
-              color:
-                colors.primaryLight,
-            },
-          ]}
-        >
-          GYMRYT • TRAINER
-        </Text>
-
-        <Text
-          style={[
-            styles.title,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          My Profile
-        </Text>
 
         {/* PROFILE CARD */}
 
@@ -259,79 +523,76 @@ export default function TrainerProfile() {
             },
           ]}
         >
-
-          {/* PROFILE PHOTO */}
-
-          <View
-            style={[
-              styles.profilePhotoWrapper,
-              {
-                backgroundColor:
-                  colors.iconBackground,
-                borderColor:
-                  colors.primary,
-              },
-            ]}
-          >
-
-            {profilePicture ? (
-              <Image
-                source={{
-                  uri: profilePicture,
-                }}
-                style={
-                  styles.profilePhoto
-                }
-              />
-            ) : (
-              <Text
-                style={[
-                  styles.profileInitials,
-                  {
-                    color:
-                      colors.primaryLight,
-                  },
-                ]}
-              >
-                {getInitials(
-                  trainerName
-                )}
-              </Text>
-            )}
-
-          </View>
-
-          {/* CHANGE PHOTO */}
-
-          <TouchableOpacity
-            style={styles.changePhotoButton}
-            onPress={() => {
-              Alert.alert(
-                "Profile Photo",
-                "Photo upload will be connected here."
-              );
-            }}
-          >
-            <Ionicons
-              name="camera-outline"
-              size={14}
-              color={
-                colors.primaryLight
-              }
-            />
-
-            <Text
+          <View style={styles.avatarWrapper}>
+            <TouchableOpacity
+              onPress={pickProfilePhoto}
+              disabled={uploadingPhoto}
+              activeOpacity={0.85}
               style={[
-                styles.changePhotoText,
+                styles.profilePhotoWrapper,
                 {
-                  color:
-                    colors.primaryLight,
+                  backgroundColor:
+                    colors.iconBackground,
+                  borderColor:
+                    `${statusColor}88`,
                 },
               ]}
             >
-              CHANGE PHOTO
-            </Text>
-          </TouchableOpacity>
+              {member.profilePicture ? (
+                <Image
+                  source={{
+                    uri: member.profilePicture,
+                  }}
+                  style={
+                    styles.profilePhoto
+                  }
+                />
+              ) : (
+                <Text
+                  style={[
+                    styles.profileInitials,
+                    {
+                      color:
+                        colors.primaryLight,
+                    },
+                  ]}
+                >
+                  {getInitials(
+                    member.name
+                  )}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* CHANGE PHOTO */}
+
+            <TouchableOpacity
+              style={[
+                styles.cameraButton,
+                {
+                  backgroundColor:
+                    colors.primaryLight,
+                  borderColor:
+                    colors.card,
+                },
+              ]}
+              onPress={pickProfilePhoto}
+              disabled={uploadingPhoto}
+            >
+              {uploadingPhoto ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#FFFFFF"
+                />
+              ) : (
+                <Ionicons
+                  name="camera"
+                  size={17}
+                  color="#FFFFFF"
+                />
+              )}
+            </TouchableOpacity>
+          </View>
 
           {/* NAME */}
 
@@ -344,114 +605,112 @@ export default function TrainerProfile() {
               },
             ]}
           >
-            {trainerName}
+            {member.name}
           </Text>
 
-          {/* USERNAME */}
+          {/* STATUS */}
 
-          <Text
+          <View
             style={[
-              styles.username,
+              styles.statusBadge,
               {
-                color:
-                  colors.mutedText,
+                backgroundColor:
+                  `${statusColor}18`,
+                borderColor:
+                  `${statusColor}55`,
               },
             ]}
           >
-            @{trainer?.username || "trainer"}
-          </Text>
+            <View
+              style={[
+                styles.statusDot,
+                {
+                  backgroundColor:
+                    statusColor,
+                },
+              ]}
+            />
 
-          {/* SPECIALIZATION */}
+            <Text
+              style={[
+                styles.statusText,
+                {
+                  color:
+                    statusColor,
+                },
+              ]}
+            >
+              {member.status}
+            </Text>
+          </View>
 
-          <Text
-            style={[
-              styles.specialization,
-              {
-                color:
-                  colors.secondaryText,
-              },
-            ]}
-          >
-            {specialization}
-          </Text>
+          {/* GYM */}
 
+          <View style={styles.gymRow}>
+            <Ionicons
+              name="location-outline"
+              size={14}
+              color={
+                colors.secondaryText
+              }
+            />
+
+            <Text
+              style={[
+                styles.gymText,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {member.workspaceName}
+            </Text>
+          </View>
+
+          {/* REMOVE PHOTO */}
+
+          {member.profilePicture &&
+            !uploadingPhoto ? (
+            <TouchableOpacity
+              onPress={removeProfilePhoto}
+              style={styles.removePhotoButton}
+            >
+              <Ionicons
+                name="trash-outline"
+                size={12}
+                color="#FF4D5E"
+              />
+
+              <Text
+                style={
+                  styles.removePhotoText
+                }
+              >
+                REMOVE PHOTO
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
-        {/* PERSONAL INFORMATION */}
+        {/* ACCOUNT INFORMATION */}
 
         <Text
           style={[
             styles.sectionTitle,
             {
               color:
-                colors.mutedText,
+                colors.text,
             },
           ]}
         >
-          PERSONAL INFORMATION
+          ACCOUNT INFORMATION
         </Text>
 
-        <Info
-          label="EMAIL"
-          value={trainer?.email}
-          colors={colors}
-        />
-
-        <Info
-          label="PHONE"
-          value={trainer?.phone}
-          colors={colors}
-        />
-
-        <Info
-          label="SPECIALIZATION"
-          value={
-            trainer?.specialization
-          }
-          colors={colors}
-        />
-
-        <Info
-          label="EXPERIENCE"
-          value={`${trainer?.experience_years || 0} years`}
-          colors={colors}
-        />
-
-        <Info
-          label="GYM"
-          value={
-            trainer?.workspace_name
-          }
-          colors={colors}
-        />
-
-        {trainer?.bio ? (
-          <Info
-            label="BIO"
-            value={trainer.bio}
-            colors={colors}
-          />
-        ) : null}
-
-        {/* ACCOUNT */}
-
-        <Text
+        <View
           style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          ACCOUNT
-        </Text>
-
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={logout}
-          style={[
-            styles.logoutCard,
+            styles.infoCard,
             {
               backgroundColor:
                 colors.card,
@@ -460,71 +719,228 @@ export default function TrainerProfile() {
             },
           ]}
         >
-
-          <View
-            style={[
-              styles.logoutIcon,
-              {
-                backgroundColor:
-                  colors.dangerBackground,
-              },
-            ]}
-          >
-            <Ionicons
-              name="log-out-outline"
-              size={24}
-              color={colors.danger}
-            />
-          </View>
-
-          <View
-            style={
-              styles.logoutContent
+          <Info
+            icon="at-outline"
+            label="Username"
+            value={
+              member.username
+                ? `@${member.username}`
+                : ""
             }
-          >
-            <Text
-              style={[
-                styles.logoutTitle,
-                {
-                  color:
-                    colors.danger,
-                },
-              ]}
-            >
-              Logout
-            </Text>
-
-            <Text
-              style={[
-                styles.logoutSubtitle,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Sign out of your account
-            </Text>
-          </View>
-
-          <Ionicons
-            name="chevron-forward"
-            size={22}
-            color={colors.secondaryText}
+            colors={colors}
           />
 
-        </TouchableOpacity>
+          <Divider colors={colors} />
 
+          <Info
+            icon="mail-outline"
+            label="Email"
+            value={member.email}
+            colors={colors}
+          />
+
+          <Divider colors={colors} />
+
+          <Info
+            icon="call-outline"
+            label="Phone"
+            value={member.phone}
+            colors={colors}
+          />
+
+          <Divider colors={colors} />
+
+          <Info
+            icon="card-outline"
+            label="Member ID"
+            value={
+              member.id
+                ? `#${member.id}`
+                : ""
+            }
+            colors={colors}
+          />
+        </View>
+
+        {/* MEMBERSHIP */}
+
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+        >
+          MEMBERSHIP
+        </Text>
+
+        <View
+          style={[
+            styles.infoCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
+        >
+          <Info
+            icon="calendar-outline"
+            label="Start Date"
+            value={member.membershipStart}
+            colors={colors}
+          />
+
+          <Divider colors={colors} />
+
+          <Info
+            icon="calendar-clear-outline"
+            label="End Date"
+            value={member.membershipEnd}
+            colors={colors}
+          />
+
+          <Divider colors={colors} />
+
+          <Info
+            icon="location-outline"
+            label="Gym"
+            value={member.workspaceName}
+            colors={colors}
+          />
+        </View>
+
+        {/* LOGOUT */}
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={logout}
+          style={[
+            styles.logoutButton,
+            {
+              backgroundColor:
+                isDark
+                  ? "#100D15"
+                  : "#FFF5F6",
+            },
+          ]}
+        >
+          <Ionicons
+            name="log-out-outline"
+            size={21}
+            color="#FF4D5E"
+          />
+
+          <Text
+            style={
+              styles.logoutTitle
+            }
+          >
+            Logout
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
-      {/* CONSTANT NAVBAR */}
+      {/* MEMBER NAVBAR */}
 
-      <TrainerBottomNav
-        colors={colors}
-        active="profile"
-      />
+      <View
+        style={[
+          styles.bottomNav,
+          {
+            backgroundColor:
+              colors.card,
+            borderColor:
+              colors.border,
+          },
+        ]}
+      >
+        <BottomNavItem
+          icon="home"
+          label="Home"
+          colors={colors}
+          onPress={() =>
+            router.replace(
+              "/member/dashboard"
+            )
+          }
+        />
 
+        <BottomNavItem
+          icon="checkmark-circle-outline"
+          label="Attendance"
+          colors={colors}
+          onPress={() =>
+            showComingSoon(
+              "Attendance"
+            )
+          }
+        />
+
+        <BottomNavItem
+          icon="card-outline"
+          label="Payments"
+          colors={colors}
+          onPress={() =>
+            showComingSoon(
+              "Payments"
+            )
+          }
+        />
+
+        <BottomNavItem
+          icon="person-outline"
+          label="Profile"
+          active
+          colors={colors}
+          onPress={() => {}}
+        />
+      </View>
     </View>
+  );
+}
+
+/* =====================================================
+   INITIALS
+===================================================== */
+
+function getInitials(name) {
+  const parts = String(name || "M")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 1) {
+    return parts[0]
+      .charAt(0)
+      .toUpperCase();
+  }
+
+  return (
+    parts[0].charAt(0) +
+    parts[parts.length - 1].charAt(0)
+  ).toUpperCase();
+}
+
+/* =====================================================
+   DIVIDER
+===================================================== */
+
+function Divider({
+  colors,
+}) {
+  return (
+    <View
+      style={[
+        styles.divider,
+        {
+          backgroundColor:
+            colors.border,
+        },
+      ]}
+    />
   );
 }
 
@@ -533,147 +949,57 @@ export default function TrainerProfile() {
 ===================================================== */
 
 function Info({
+  icon,
   label,
   value,
   colors,
 }) {
   return (
-    <View
-      style={[
-        styles.infoCard,
-        {
-          backgroundColor:
-            colors.card,
-          borderColor:
-            colors.border,
-        },
-      ]}
-    >
-
-      <Text
+    <View style={styles.infoRow}>
+      <View
         style={[
-          styles.infoLabel,
+          styles.infoIcon,
           {
-            color:
-              colors.mutedText,
+            backgroundColor:
+              colors.iconBackground,
           },
         ]}
       >
-        {label}
-      </Text>
+        <Ionicons
+          name={icon}
+          size={20}
+          color={
+            colors.primaryLight
+          }
+        />
+      </View>
 
-      <Text
-        style={[
-          styles.infoValue,
-          {
-            color:
-              colors.text,
-          },
-        ]}
-      >
-        {value || "Not available"}
-      </Text>
+      <View style={styles.infoText}>
+        <Text
+          style={[
+            styles.infoLabel,
+            {
+              color:
+                colors.secondaryText,
+            },
+          ]}
+        >
+          {label}
+        </Text>
 
-    </View>
-  );
-}
-
-/* =====================================================
-   TRAINER NAVBAR
-===================================================== */
-
-function TrainerBottomNav({
-  colors,
-  active,
-}) {
-  const goTo = (screen) => {
-    if (screen === "home") {
-      router.replace(
-        "/trainer/dashboard"
-      );
-    }
-
-    if (screen === "members") {
-      router.replace(
-        "/trainer/members"
-      );
-    }
-
-    if (screen === "workouts") {
-      router.replace(
-        "/trainer/workouts"
-      );
-    }
-
-    if (screen === "profile") {
-      router.replace(
-        "/trainer/profile"
-      );
-    }
-  };
-
-  return (
-    <View
-      style={[
-        styles.bottomNav,
-        {
-          backgroundColor:
-            colors.nav ||
-            colors.card,
-          borderTopColor:
-            colors.border,
-        },
-      ]}
-    >
-
-      <BottomNavItem
-        icon="home"
-        label="Home"
-        active={
-          active === "home"
-        }
-        colors={colors}
-        onPress={() =>
-          goTo("home")
-        }
-      />
-
-      <BottomNavItem
-        icon="people-outline"
-        label="Members"
-        active={
-          active === "members"
-        }
-        colors={colors}
-        onPress={() =>
-          goTo("members")
-        }
-      />
-
-      <BottomNavItem
-        icon="barbell-outline"
-        label="Workouts"
-        active={
-          active === "workouts"
-        }
-        colors={colors}
-        onPress={() =>
-          goTo("workouts")
-        }
-      />
-
-      <BottomNavItem
-        icon="person-outline"
-        label="Profile"
-        active={
-          active === "profile"
-        }
-        colors={colors}
-        onPress={() =>
-          goTo("profile")
-        }
-      />
-
+        <Text
+          style={[
+            styles.infoValue,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {value || "Not available"}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -685,7 +1011,7 @@ function TrainerBottomNav({
 function BottomNavItem({
   icon,
   label,
-  active,
+  active = false,
   colors,
   onPress,
 }) {
@@ -697,7 +1023,6 @@ function BottomNavItem({
         styles.bottomNavItem
       }
     >
-
       <View
         style={[
           styles.bottomIconContainer,
@@ -707,17 +1032,15 @@ function BottomNavItem({
           },
         ]}
       >
-
         <Ionicons
           name={icon}
-          size={27}
+          size={21}
           color={
             active
               ? colors.primaryLight
               : colors.secondaryText
           }
         />
-
       </View>
 
       <Text
@@ -744,7 +1067,6 @@ function BottomNavItem({
           ]}
         />
       )}
-
     </TouchableOpacity>
   );
 }
@@ -772,51 +1094,74 @@ const styles =
       fontWeight: "700",
     },
 
-    content: {
-      paddingHorizontal: 20,
+    header: {
+      paddingHorizontal: 18,
       paddingTop:
         Platform.OS === "ios"
-          ? 55
-          : 45,
-      paddingBottom: 125,
+          ? 54
+          : 44,
+      paddingBottom: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
     },
 
-    backButton: {
-      width: 45,
-      height: 45,
-      borderRadius: 14,
-      borderWidth: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: 25,
+    headerLeft: {
+      flex: 1,
     },
 
     eyebrow: {
       fontSize: 9,
       fontWeight: "900",
-      letterSpacing: 1.5,
+      letterSpacing: 1.4,
     },
 
     title: {
-      fontSize: 29,
+      fontSize: 22,
       fontWeight: "900",
-      marginTop: 3,
-      marginBottom: 22,
+      marginTop: 4,
+    },
+
+    headerActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+      marginLeft: 10,
+    },
+
+    headerButton: {
+      width: 43,
+      height: 43,
+      borderRadius: 14,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    content: {
+      paddingHorizontal: 18,
+      paddingTop: 8,
+      paddingBottom: 125,
     },
 
     profileCard: {
       borderWidth: 1,
-      borderRadius: 20,
+      borderRadius: 26,
+      paddingHorizontal: 18,
+      paddingVertical: 20,
       alignItems: "center",
-      paddingVertical: 28,
-      paddingHorizontal: 20,
-      marginBottom: 27,
+      marginBottom: 4,
+    },
+
+    avatarWrapper: {
+      position: "relative",
+      marginBottom: 11,
     },
 
     profilePhotoWrapper: {
-      width: 110,
-      height: 110,
-      borderRadius: 55,
+      width: 100,
+      height: 100,
+      borderRadius: 30,
       borderWidth: 2,
       alignItems: "center",
       justifyContent: "center",
@@ -829,138 +1174,199 @@ const styles =
     },
 
     profileInitials: {
-      fontSize: 34,
+      fontSize: 31,
       fontWeight: "900",
     },
 
-    changePhotoButton: {
-      flexDirection: "row",
+    cameraButton: {
+      position: "absolute",
+      right: -3,
+      bottom: -2,
+      width: 36,
+      height: 36,
+      borderRadius: 13,
+      borderWidth: 3,
       alignItems: "center",
-      marginTop: 13,
-    },
-
-    changePhotoText: {
-      fontSize: 9,
-      fontWeight: "900",
-      letterSpacing: 1,
-      marginLeft: 5,
+      justifyContent: "center",
     },
 
     profileName: {
-      fontSize: 20,
+      fontSize: 22,
       fontWeight: "900",
-      marginTop: 15,
+      textAlign: "center",
+      marginTop: 1,
     },
 
-    username: {
-      fontSize: 11,
-      marginTop: 4,
+    statusBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderRadius: 12,
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      marginTop: 8,
     },
 
-    specialization: {
-      fontSize: 12,
-      fontWeight: "700",
-      marginTop: 9,
+    statusDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      marginRight: 5,
+    },
+
+    statusText: {
+      fontSize: 7.5,
+      fontWeight: "900",
+      letterSpacing: 1.2,
+    },
+
+    gymRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 8,
+      maxWidth: "90%",
+    },
+
+    gymText: {
+      fontSize: 10,
+      fontWeight: "600",
+      marginLeft: 4,
+    },
+
+    removePhotoButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: "#FF4D5E55",
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      marginTop: 12,
+    },
+
+    removePhotoText: {
+      color: "#FF4D5E",
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 0.8,
+      marginLeft: 4,
     },
 
     sectionTitle: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: "900",
-      letterSpacing: 1.5,
-      marginBottom: 13,
+      letterSpacing: 1.2,
+      marginTop: 20,
+      marginBottom: 9,
     },
 
     infoCard: {
       borderWidth: 1,
-      borderRadius: 16,
-      padding: 15,
-      marginBottom: 10,
+      borderRadius: 21,
+      paddingHorizontal: 13,
+      paddingVertical: 3,
+    },
+
+    infoRow: {
+      minHeight: 67,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+
+    infoIcon: {
+      width: 43,
+      height: 43,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 11,
+    },
+
+    infoText: {
+      flex: 1,
     },
 
     infoLabel: {
       fontSize: 8,
-      fontWeight: "900",
-      letterSpacing: 1,
+      fontWeight: "700",
+      marginBottom: 3,
     },
 
     infoValue: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: "800",
-      marginTop: 5,
     },
 
-    logoutCard: {
-      minHeight: 80,
-      borderWidth: 1,
+    divider: {
+      height: 1,
+      marginLeft: 54,
+    },
+
+    logoutButton: {
+      height: 54,
+      marginTop: 18,
       borderRadius: 17,
-      paddingHorizontal: 14,
+      borderWidth: 1,
+      borderColor: "#55202B",
       flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 20,
-    },
-
-    logoutIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 14,
       alignItems: "center",
       justifyContent: "center",
     },
 
-    logoutContent: {
-      flex: 1,
-      marginLeft: 13,
-    },
-
     logoutTitle: {
-      fontSize: 14,
+      color: "#FF4D5E",
+      fontSize: 12,
       fontWeight: "900",
-    },
-
-    logoutSubtitle: {
-      fontSize: 10,
-      marginTop: 4,
+      marginLeft: 8,
     },
 
     bottomNav: {
       position: "absolute",
-      bottom: 0,
       left: 0,
       right: 0,
-      height: 78,
+      bottom: 0,
+      height: 82,
       borderTopWidth: 1,
+      borderTopLeftRadius: 27,
+      borderTopRightRadius: 27,
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "space-around",
-      paddingHorizontal: 8,
+      paddingTop: 8,
+      elevation: 20,
+      shadowOffset: {
+        width: 0,
+        height: -4,
+      },
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
     },
 
     bottomNavItem: {
+      flex: 1,
+      height: 70,
       alignItems: "center",
-      justifyContent: "center",
-      width: 78,
-      height: 65,
+      justifyContent: "flex-start",
     },
 
     bottomIconContainer: {
-      width: 48,
-      height: 39,
-      borderRadius: 14,
+      width: 42,
+      height: 35,
+      borderRadius: 13,
       alignItems: "center",
       justifyContent: "center",
     },
 
     bottomLabel: {
-      fontSize: 9,
-      fontWeight: "700",
+      fontSize: 7.5,
+      fontWeight: "800",
       marginTop: 2,
     },
 
     activeIndicator: {
-      width: 32,
-      height: 4,
-      borderRadius: 4,
-      marginTop: 6,
+      width: 25,
+      height: 3,
+      borderRadius: 3,
+      marginTop: 4,
     },
-
   });

@@ -13,7 +13,10 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
 } from "react-native";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -39,7 +42,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ======================================================
 
 const API_BASE_URL =
-  "http://192.168.1.52:8000";
+  "http://192.168.1.43:8000";
 
 // ======================================================
 // ADMIN PROFILE
@@ -53,6 +56,7 @@ export default function AdminProfile() {
   const {
     isDark,
     colors,
+    toggleTheme,
   } = useTheme();
 
   // ====================================================
@@ -857,58 +861,103 @@ export default function AdminProfile() {
       ================================================== */}
 
       <View
-        style={[
-          styles.header,
-          {
-            borderBottomColor:
-              colors.border,
-          },
-        ]}
+        style={
+          styles.header
+        }
       >
-        <Pressable
-          onPress={() =>
-            router.back()
+        <View
+          style={
+            styles.headerLeft
           }
-          style={[
-            styles.backButton,
-            {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
-            },
-          ]}
         >
           <Text
             style={[
-              styles.backIcon,
+              styles.eyebrow,
+              {
+                color:
+                  colors.primaryLight,
+              },
+            ]}
+          >
+            GYMRYT • OWNER
+          </Text>
+
+          <Text
+            style={[
+              styles.headerTitle,
               {
                 color:
                   colors.text,
               },
             ]}
           >
-            ←
+            My Profile
           </Text>
-        </Pressable>
+        </View>
 
-        <Text
-          style={[
-            styles.headerTitle,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          My Profile
-        </Text>
+        {/* HEADER ACTIONS */}
 
         <View
           style={
-            styles.headerSpacer
+            styles.headerActions
           }
-        />
+        >
+
+          {/* THEME */}
+
+          <Pressable
+            style={[
+              styles.headerButton,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+            onPress={
+              toggleTheme
+            }
+          >
+            <Ionicons
+              name={
+                isDark
+                  ? "sunny-outline"
+                  : "moon-outline"
+              }
+              size={20}
+              color={
+                colors.text
+              }
+            />
+          </Pressable>
+
+          {/* BACK */}
+
+          <Pressable
+            style={[
+              styles.headerButton,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+            onPress={() =>
+              router.back()
+            }
+          >
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={
+                colors.text
+              }
+            />
+          </Pressable>
+
+        </View>
       </View>
 
       {/* ==================================================
@@ -940,100 +989,95 @@ export default function AdminProfile() {
           ]}
         >
 
-          {/* ==================================================
-              PROFILE AVATAR
-          ================================================== */}
+          {/* AVATAR */}
 
-          <Pressable
-            onPress={
-              handleProfilePhoto
-            }
-            disabled={
-              uploadingPhoto
-            }
+          <View
             style={
-              styles.avatarPressable
+              styles.avatarWrapper
             }
           >
-
-            {profilePicture ? (
-              <Image
-                source={{
-                  uri:
-                    profilePicture,
-                }}
-                style={
-                  styles.profileAvatarImage
-                }
-              />
-            ) : (
-              <View
-                style={[
-                  styles.profileAvatar,
-                  {
-                    backgroundColor:
-                      colors.primary,
-                  },
-                ]}
-              >
-                <Text
+            <Pressable
+              onPress={
+                handleProfilePhoto
+              }
+              disabled={
+                uploadingPhoto
+              }
+            >
+              {profilePicture ? (
+                <Image
+                  source={{
+                    uri:
+                      profilePicture,
+                  }}
                   style={
-                    styles.profileAvatarText
+                    styles.avatar
                   }
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.avatarPlaceholder,
+                    {
+                      backgroundColor:
+                        colors.iconBackground,
+                      borderColor:
+                        colors.border,
+                    },
+                  ]}
                 >
-                  {getInitials(
-                    admin.username
-                  )}
-                </Text>
-              </View>
-            )}
+                  <Text
+                    style={[
+                      styles.avatarText,
+                      {
+                        color:
+                          colors.primaryLight,
+                      },
+                    ]}
+                  >
+                    {getInitials(
+                      admin.username
+                    )}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
 
-            {/* ==================================================
-                CAMERA BADGE
-            ================================================== */}
+            {/* CAMERA */}
 
-            <View
+            <Pressable
               style={[
-                styles.cameraBadge,
+                styles.cameraButton,
                 {
                   backgroundColor:
-                    colors.primary,
+                    colors.primaryLight,
                   borderColor:
                     colors.card,
                 },
               ]}
+              onPress={
+                handleProfilePhoto
+              }
+              disabled={
+                uploadingPhoto
+              }
             >
-              <Text
-                style={
-                  styles.cameraIcon
-                }
-              >
-                📷
-              </Text>
-            </View>
-
-            {/* ==================================================
-                UPLOAD LOADER
-            ================================================== */}
-
-            {uploadingPhoto && (
-              <View
-                style={[
-                  styles.photoLoadingOverlay,
-                  {
-                    backgroundColor:
-                      "rgba(0,0,0,0.55)",
-                  },
-                ]}
-              >
+              {uploadingPhoto ? (
                 <ActivityIndicator
                   size="small"
                   color="#FFFFFF"
                 />
-              </View>
-            )}
+              ) : (
+                <Ionicons
+                  name="camera"
+                  size={17}
+                  color="#FFFFFF"
+                />
+              )}
+            </Pressable>
+          </View>
 
-          </Pressable>
+          {/* NAME */}
 
           <Text
             style={[
@@ -1048,30 +1092,69 @@ export default function AdminProfile() {
               "Admin"}
           </Text>
 
-          <Text
-            style={[
-              styles.profileRole,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            ADMINISTRATOR
-          </Text>
+          {/* ROLE */}
 
-          <Text
+          <View
             style={[
-              styles.profileGym,
+              styles.roleBadge,
               {
-                color:
-                  colors.secondaryText,
+                backgroundColor:
+                  colors.iconBackground,
+                borderColor:
+                  colors.border,
               },
             ]}
           >
-            {admin.workspaceName ||
-              "My Gym"}
-          </Text>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={12}
+              color={
+                colors.primaryLight
+              }
+            />
+
+            <Text
+              style={[
+                styles.profileRole,
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
+            >
+              ADMINISTRATOR
+            </Text>
+          </View>
+
+          {/* GYM */}
+
+          <View
+            style={
+              styles.gymRow
+            }
+          >
+            <Ionicons
+              name="location-outline"
+              size={14}
+              color={
+                colors.secondaryText
+              }
+            />
+
+            <Text
+              style={[
+                styles.profileGym,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {admin.workspaceName ||
+                "My Gym"}
+            </Text>
+          </View>
 
           {/* ==================================================
               REMOVE PHOTO
@@ -1083,41 +1166,39 @@ export default function AdminProfile() {
                 onPress={
                   removeProfilePhoto
                 }
-                style={
-                  styles.removePhotoButton
-                }
+                style={[
+                  styles.removePhotoButton,
+                  {
+                    borderColor:
+                      "#FF4D5E55",
+                  },
+                ]}
               >
+                <Ionicons
+                  name="trash-outline"
+                  size={12}
+                  color="#FF4D5E"
+                />
+
                 <Text
-                  style={[
-                    styles.removePhotoText,
-                    {
-                      color:
-                        colors.danger,
-                    },
-                  ]}
+                  style={
+                    styles.removePhotoText
+                  }
                 >
-                  REMOVE
+                  REMOVE PHOTO
                 </Text>
               </Pressable>
             )}
-
         </View>
 
         {/* ==================================================
             ACCOUNT INFORMATION
         ================================================== */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          ACCOUNT INFORMATION
-        </Text>
+        <SectionTitle
+          title="ACCOUNT INFORMATION"
+          colors={colors}
+        />
 
         <View
           style={[
@@ -1130,161 +1211,40 @@ export default function AdminProfile() {
             },
           ]}
         >
-
-          {/* USERNAME */}
-
-          <View
-            style={
-              styles.infoRow
+          <InfoRow
+            icon="person-outline"
+            label="Username"
+            value={
+              admin.username
+                ? `@${admin.username}`
+                : "--"
             }
-          >
-            <View
-              style={
-                styles.infoLeft
-              }
-            >
-              <View
-                style={[
-                  styles.infoIconBox,
-                  {
-                    backgroundColor:
-                      colors.iconBackground,
-                  },
-                ]}
-              >
-                <Text
-                  style={
-                    styles.infoIcon
-                  }
-                >
-                  👤
-                </Text>
-              </View>
-
-              <View
-                style={
-                  styles.infoTextContainer
-                }
-              >
-                <Text
-                  style={[
-                    styles.infoLabel,
-                    {
-                      color:
-                        colors.mutedText,
-                    },
-                  ]}
-                >
-                  Username
-                </Text>
-
-                <Text
-                  style={[
-                    styles.infoValue,
-                    {
-                      color:
-                        colors.text,
-                    },
-                  ]}
-                >
-                  {admin.username
-                    ? `@${admin.username}`
-                    : "--"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor:
-                  colors.border,
-              },
-            ]}
+            colors={colors}
           />
 
-          {/* ADMIN ID */}
+          <Divider
+            colors={colors}
+          />
 
-          <View
-            style={
-              styles.infoRow
+          <InfoRow
+            icon="card-outline"
+            label="Admin ID"
+            value={
+              admin.id ||
+              "--"
             }
-          >
-            <View
-              style={
-                styles.infoLeft
-              }
-            >
-              <View
-                style={[
-                  styles.infoIconBox,
-                  {
-                    backgroundColor:
-                      colors.iconBackground,
-                  },
-                ]}
-              >
-                <Text
-                  style={
-                    styles.infoIcon
-                  }
-                >
-                  🆔
-                </Text>
-              </View>
-
-              <View
-                style={
-                  styles.infoTextContainer
-                }
-              >
-                <Text
-                  style={[
-                    styles.infoLabel,
-                    {
-                      color:
-                        colors.mutedText,
-                    },
-                  ]}
-                >
-                  Admin ID
-                </Text>
-
-                <Text
-                  style={[
-                    styles.infoValue,
-                    {
-                      color:
-                        colors.text,
-                    },
-                  ]}
-                >
-                  {admin.id ||
-                    "--"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
+            colors={colors}
+          />
         </View>
 
         {/* ==================================================
             GYM INFORMATION
         ================================================== */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          GYM INFORMATION
-        </Text>
+        <SectionTitle
+          title="GYM INFORMATION"
+          colors={colors}
+        />
 
         <View
           style={[
@@ -1297,347 +1257,267 @@ export default function AdminProfile() {
             },
           ]}
         >
-
-          {/* GYM NAME */}
-
-          <View
-            style={
-              styles.infoRow
+          <InfoRow
+            icon="barbell-outline"
+            label="Gym Name"
+            value={
+              admin.workspaceName ||
+              "My Gym"
             }
-          >
-            <View
-              style={
-                styles.infoLeft
-              }
-            >
-              <View
-                style={[
-                  styles.infoIconBox,
-                  {
-                    backgroundColor:
-                      colors.iconBackground,
-                  },
-                ]}
-              >
-                <Text
-                  style={
-                    styles.infoIcon
-                  }
-                >
-                  🏋️
-                </Text>
-              </View>
-
-              <View
-                style={
-                  styles.infoTextContainer
-                }
-              >
-                <Text
-                  style={[
-                    styles.infoLabel,
-                    {
-                      color:
-                        colors.mutedText,
-                    },
-                  ]}
-                >
-                  Gym Name
-                </Text>
-
-                <Text
-                  style={[
-                    styles.infoValue,
-                    {
-                      color:
-                        colors.text,
-                    },
-                  ]}
-                  numberOfLines={2}
-                >
-                  {admin.workspaceName ||
-                    "My Gym"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.divider,
-              {
-                backgroundColor:
-                  colors.border,
-              },
-            ]}
+            colors={colors}
           />
 
-          {/* WORKSPACE ID */}
+          <Divider
+            colors={colors}
+          />
 
-          <View
-            style={
-              styles.infoRow
+          <InfoRow
+            icon="key-outline"
+            label="Workspace ID"
+            value={
+              admin.workspaceId ||
+              "--"
             }
-          >
-            <View
-              style={
-                styles.infoLeft
-              }
-            >
-              <View
-                style={[
-                  styles.infoIconBox,
-                  {
-                    backgroundColor:
-                      colors.iconBackground,
-                  },
-                ]}
-              >
-                <Text
-                  style={
-                    styles.infoIcon
-                  }
-                >
-                  🔑
-                </Text>
-              </View>
-
-              <View
-                style={
-                  styles.infoTextContainer
-                }
-              >
-                <Text
-                  style={[
-                    styles.infoLabel,
-                    {
-                      color:
-                        colors.mutedText,
-                    },
-                  ]}
-                >
-                  Workspace ID
-                </Text>
-
-                <Text
-                  style={[
-                    styles.infoValue,
-                    {
-                      color:
-                        colors.text,
-                    },
-                  ]}
-                >
-                  {admin.workspaceId ||
-                    "--"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
+            colors={colors}
+          />
         </View>
 
         {/* ==================================================
             ACCOUNT
         ================================================== */}
 
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          ACCOUNT
-        </Text>
+        <SectionTitle
+          title="ACCOUNT"
+          colors={colors}
+        />
 
-        <View
-          style={[
-            styles.accountCard,
+        <Pressable
+          onPress={
+            handleAccountSettings
+          }
+          style={({ pressed }) => [
+            styles.settingsButton,
             {
               backgroundColor:
                 colors.card,
               borderColor:
                 colors.border,
+              opacity:
+                pressed
+                  ? 0.7
+                  : 1,
             },
           ]}
         >
-
-          {/* ACCOUNT SETTINGS */}
-
-          <Pressable
-            onPress={
-              handleAccountSettings
-            }
-            style={({ pressed }) => [
-              styles.accountButton,
+          <View
+            style={[
+              styles.infoIcon,
               {
-                opacity:
-                  pressed
-                    ? 0.7
-                    : 1,
+                backgroundColor:
+                  colors.iconBackground,
               },
             ]}
           >
-            <View
+            <Ionicons
+              name="settings-outline"
+              size={21}
+              color={
+                colors.primaryLight
+              }
+            />
+          </View>
+
+          <View
+            style={
+              styles.infoTextContainer
+            }
+          >
+            <Text
               style={[
-                styles.accountIconContainer,
+                styles.settingsTitle,
                 {
-                  backgroundColor:
-                    colors.iconBackground,
+                  color:
+                    colors.text,
                 },
               ]}
             >
-              <Text
-                style={
-                  styles.accountIcon
-                }
-              >
-                ⚙️
-              </Text>
-            </View>
-
-            <View
-              style={
-                styles.accountContent
-              }
-            >
-              <Text
-                style={[
-                  styles.accountTitle,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
-                Account Settings
-              </Text>
-
-              <Text
-                style={[
-                  styles.accountSubtitle,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
-                Manage your account settings
-              </Text>
-            </View>
+              Account Settings
+            </Text>
 
             <Text
               style={[
-                styles.accountArrow,
+                styles.infoLabel,
                 {
                   color:
                     colors.secondaryText,
                 },
               ]}
             >
-              →
+              Manage your account settings
             </Text>
-          </Pressable>
+          </View>
 
-          <View
-            style={[
-              styles.accountDivider,
-              {
-                backgroundColor:
-                  colors.border,
-              },
-            ]}
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={
+              colors.secondaryText
+            }
+          />
+        </Pressable>
+
+        {/* ==================================================
+            LOGOUT
+        ================================================== */}
+
+        <Pressable
+          style={[
+            styles.logoutButton,
+            {
+              backgroundColor:
+                isDark
+                  ? "#100D15"
+                  : "#FFF5F6",
+              borderColor:
+                "#55202B",
+            },
+          ]}
+          onPress={
+            handleLogout
+          }
+        >
+          <Ionicons
+            name="log-out-outline"
+            size={21}
+            color="#FF4D5E"
           />
 
-          {/* LOGOUT */}
-
-          <Pressable
-            onPress={
-              handleLogout
+          <Text
+            style={
+              styles.logoutText
             }
-            style={({ pressed }) => [
-              styles.accountButton,
-              {
-                opacity:
-                  pressed
-                    ? 0.7
-                    : 1,
-              },
-            ]}
           >
-            <View
-              style={[
-                styles.accountIconContainer,
-                {
-                  backgroundColor:
-                    colors.danger,
-                },
-              ]}
-            >
-              <Text
-                style={
-                  styles.logoutIcon
-                }
-              >
-                ↪
-              </Text>
-            </View>
-
-            <View
-              style={
-                styles.accountContent
-              }
-            >
-              <Text
-                style={[
-                  styles.accountTitle,
-                  {
-                    color:
-                      colors.danger,
-                  },
-                ]}
-              >
-                Logout
-              </Text>
-
-              <Text
-                style={[
-                  styles.accountSubtitle,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
-              >
-                Sign out of your admin account
-              </Text>
-            </View>
-
-            <Text
-              style={[
-                styles.accountArrow,
-                {
-                  color:
-                    colors.danger,
-                },
-              ]}
-            >
-              →
-            </Text>
-          </Pressable>
-
-        </View>
+            Logout
+          </Text>
+        </Pressable>
 
         <View
           style={
             styles.bottomSpace
           }
         />
-
       </ScrollView>
+    </View>
+  );
+}
+
+// ======================================================
+// SECTION TITLE
+// ======================================================
+
+function SectionTitle({
+  title,
+  colors,
+}) {
+  return (
+    <Text
+      style={[
+        styles.sectionTitle,
+        {
+          color:
+            colors.text,
+        },
+      ]}
+    >
+      {title}
+    </Text>
+  );
+}
+
+// ======================================================
+// DIVIDER
+// ======================================================
+
+function Divider({
+  colors,
+}) {
+  return (
+    <View
+      style={[
+        styles.divider,
+        {
+          backgroundColor:
+            colors.border,
+        },
+      ]}
+    />
+  );
+}
+
+// ======================================================
+// INFO ROW
+// ======================================================
+
+function InfoRow({
+  icon,
+  label,
+  value,
+  colors,
+}) {
+  return (
+    <View
+      style={
+        styles.infoRow
+      }
+    >
+      <View
+        style={[
+          styles.infoIcon,
+          {
+            backgroundColor:
+              colors.iconBackground,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={21}
+          color={
+            colors.primaryLight
+          }
+        />
+      </View>
+
+      <View
+        style={
+          styles.infoTextContainer
+        }
+      >
+        <Text
+          style={[
+            styles.infoLabel,
+            {
+              color:
+                colors.secondaryText,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+
+        <Text
+          style={[
+            styles.infoValue,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {value}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -1649,8 +1529,18 @@ export default function AdminProfile() {
 const styles =
   StyleSheet.create({
 
+    // ==================================================
+    // MAIN
+    // ==================================================
+
     container: {
       flex: 1,
+    },
+
+    content: {
+      paddingHorizontal: 18,
+      paddingTop: 8,
+      paddingBottom: 40,
     },
 
     loadingContainer: {
@@ -1660,8 +1550,9 @@ const styles =
     },
 
     loadingText: {
-      marginTop: 15,
-      fontSize: 13,
+      marginTop: 12,
+      fontSize: 12,
+      fontWeight: "700",
     },
 
     // ==================================================
@@ -1669,46 +1560,47 @@ const styles =
     // ==================================================
 
     header: {
-      height: 76,
+      paddingHorizontal: 18,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
+      paddingBottom: 14,
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 20,
-      borderBottomWidth: 1,
+      justifyContent: "space-between",
     },
 
-    backButton: {
-      width: 42,
-      height: 42,
-      borderRadius: 13,
-      alignItems: "center",
-      justifyContent: "center",
-      borderWidth: 1,
+    headerLeft: {
+      flex: 1,
     },
 
-    backIcon: {
-      fontSize: 24,
-      fontWeight: "500",
+    eyebrow: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.4,
     },
 
     headerTitle: {
-      flex: 1,
-      fontSize: 21,
+      fontSize: 22,
       fontWeight: "900",
-      marginLeft: 15,
+      marginTop: 4,
     },
 
-    headerSpacer: {
-      width: 42,
+    headerActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+      marginLeft: 10,
     },
 
-    // ==================================================
-    // CONTENT
-    // ==================================================
-
-    content: {
-      paddingHorizontal: 20,
-      paddingTop: 25,
-      paddingBottom: 40,
+    headerButton: {
+      width: 43,
+      height: 43,
+      borderRadius: 14,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
     },
 
     // ==================================================
@@ -1716,106 +1608,106 @@ const styles =
     // ==================================================
 
     profileCard: {
-      borderRadius: 22,
       borderWidth: 1,
+      borderRadius: 26,
+      paddingHorizontal: 18,
+      paddingVertical: 20,
       alignItems: "center",
-      paddingVertical: 30,
-      paddingHorizontal: 20,
-      marginBottom: 28,
+      marginBottom: 4,
     },
 
-    avatarPressable: {
-      width: 92,
-      height: 92,
-      borderRadius: 46,
-      marginBottom: 15,
+    avatarWrapper: {
       position: "relative",
+      marginBottom: 11,
     },
 
-    profileAvatar: {
-      width: 92,
-      height: 92,
-      borderRadius: 46,
+    avatar: {
+      width: 100,
+      height: 100,
+      borderRadius: 30,
+      resizeMode: "cover",
+    },
+
+    avatarPlaceholder: {
+      width: 100,
+      height: 100,
+      borderRadius: 30,
+      borderWidth: 1,
       alignItems: "center",
       justifyContent: "center",
     },
 
-    profileAvatarImage: {
-      width: 92,
-      height: 92,
-      borderRadius: 46,
-    },
-
-    profileAvatarText: {
-      color: "#FFFFFF",
-      fontSize: 34,
+    avatarText: {
+      fontSize: 31,
       fontWeight: "900",
     },
 
-    // ==================================================
-    // CAMERA BADGE
-    // ==================================================
-
-    cameraBadge: {
+    cameraButton: {
       position: "absolute",
-      right: -2,
+      right: -3,
       bottom: -2,
-      width: 31,
-      height: 31,
-      borderRadius: 16,
-      alignItems: "center",
-      justifyContent: "center",
+      width: 36,
+      height: 36,
+      borderRadius: 13,
       borderWidth: 3,
-    },
-
-    cameraIcon: {
-      fontSize: 13,
-    },
-
-    photoLoadingOverlay: {
-      position: "absolute",
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      borderRadius: 46,
       alignItems: "center",
       justifyContent: "center",
     },
 
     profileName: {
-      fontSize: 24,
+      fontSize: 22,
       fontWeight: "900",
       textAlign: "center",
+      marginTop: 1,
+    },
+
+    roleBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderRadius: 12,
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      marginTop: 8,
     },
 
     profileRole: {
-      fontSize: 10,
+      fontSize: 7,
       fontWeight: "900",
-      letterSpacing: 1.8,
-      marginTop: 7,
+      letterSpacing: 1.5,
+      marginLeft: 4,
+    },
+
+    gymRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 8,
+      maxWidth: "90%",
     },
 
     profileGym: {
-      fontSize: 13,
-      marginTop: 7,
+      fontSize: 10,
+      fontWeight: "600",
+      marginLeft: 4,
       textAlign: "center",
     },
 
-    // ==================================================
-    // REMOVE PHOTO
-    // ==================================================
-
     removePhotoButton: {
-      marginTop: 14,
-      paddingHorizontal: 14,
-      paddingVertical: 7,
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      marginTop: 12,
     },
 
     removePhotoText: {
-      fontSize: 9,
-      fontWeight: "800",
-      letterSpacing: 0.7,
+      color: "#FF4D5E",
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 0.8,
+      marginLeft: 4,
     },
 
     // ==================================================
@@ -1823,127 +1715,102 @@ const styles =
     // ==================================================
 
     sectionTitle: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 1.8,
-      marginBottom: 13,
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1.2,
+      marginTop: 20,
+      marginBottom: 9,
     },
 
     // ==================================================
-    // INFORMATION CARD
+    // INFO CARD
     // ==================================================
 
     infoCard: {
-      borderRadius: 18,
       borderWidth: 1,
-      paddingHorizontal: 15,
-      marginBottom: 25,
+      borderRadius: 21,
+      paddingHorizontal: 13,
+      paddingVertical: 3,
     },
 
     infoRow: {
-      minHeight: 70,
+      minHeight: 67,
       flexDirection: "row",
       alignItems: "center",
-    },
-
-    infoLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      flex: 1,
-    },
-
-    infoIconBox: {
-      width: 42,
-      height: 42,
-      borderRadius: 13,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: 13,
     },
 
     infoIcon: {
-      fontSize: 18,
+      width: 43,
+      height: 43,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 11,
     },
 
     infoTextContainer: {
       flex: 1,
+      justifyContent: "center",
     },
 
     infoLabel: {
-      fontSize: 11,
-      marginBottom: 4,
+      fontSize: 8,
+      fontWeight: "700",
+      marginBottom: 3,
     },
 
     infoValue: {
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: "800",
     },
 
     divider: {
       height: 1,
+      marginLeft: 54,
     },
 
     // ==================================================
-    // ACCOUNT
+    // ACCOUNT SETTINGS
     // ==================================================
 
-    accountCard: {
-      borderRadius: 18,
+    settingsButton: {
+      minHeight: 70,
       borderWidth: 1,
-      paddingHorizontal: 15,
-      marginBottom: 10,
-    },
-
-    accountButton: {
-      minHeight: 76,
+      borderRadius: 21,
+      paddingHorizontal: 13,
       flexDirection: "row",
       alignItems: "center",
     },
 
-    accountIconContainer: {
-      width: 45,
-      height: 45,
-      borderRadius: 14,
+    settingsTitle: {
+      fontSize: 12,
+      fontWeight: "900",
+      marginBottom: 3,
+    },
+
+    // ==================================================
+    // LOGOUT
+    // ==================================================
+
+    logoutButton: {
+      height: 54,
+      marginTop: 18,
+      borderRadius: 17,
+      borderWidth: 1,
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
     },
 
-    accountIcon: {
-      fontSize: 20,
-    },
-
-    logoutIcon: {
-      color: "#FFFFFF",
-      fontSize: 22,
-      fontWeight: "800",
-    },
-
-    accountContent: {
-      flex: 1,
-      marginLeft: 14,
-    },
-
-    accountTitle: {
-      fontSize: 15,
-      fontWeight: "900",
-    },
-
-    accountSubtitle: {
+    logoutText: {
+      color: "#FF4D5E",
       fontSize: 12,
-      marginTop: 4,
-    },
-
-    accountArrow: {
-      fontSize: 22,
-      fontWeight: "600",
-    },
-
-    accountDivider: {
-      height: 1,
+      fontWeight: "900",
+      marginLeft: 8,
     },
 
     bottomSpace: {
-      height: 20,
+      height: 30,
     },
 
   });

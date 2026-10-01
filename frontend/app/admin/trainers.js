@@ -5,16 +5,19 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
 } from "react-native";
 
 import { router } from "expo-router";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
 
@@ -24,7 +27,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 
 // ============================================================
@@ -33,7 +36,11 @@ const API_URL =
 
 export default function TrainersScreen() {
 
-  const { colors } = useTheme();
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
   const [trainers, setTrainers] =
     useState([]);
@@ -423,9 +430,16 @@ export default function TrainersScreen() {
     const isActive =
       item.is_active !== false;
 
+    const statusColor =
+      isActive
+        ? "#45E0A5"
+        : "#FF5870";
+
 
     return (
-      <TouchableOpacity
+
+      <Pressable
+
         style={[
           styles.trainerCard,
 
@@ -438,43 +452,50 @@ export default function TrainersScreen() {
           },
         ]}
 
-        activeOpacity={0.8}
+        android_ripple={{
+          color:
+            colors.iconBackground,
+        }}
 
         onPress={() =>
           openTrainerDetails(
             item.id
           )
         }
+
       >
 
         {/* ==================================================
             PROFILE IMAGE
         ================================================== */}
 
-        {item.profile_picture ? (
+        <View
+          style={[
+            styles.avatar,
 
-          <Image
-            source={{
-              uri:
-                item.profile_picture,
-            }}
-            style={
-              styles.avatar
-            }
-          />
+            {
+              backgroundColor:
+                colors.iconBackground,
 
-        ) : (
+              borderColor:
+                `${statusColor}55`,
+            },
+          ]}
+        >
 
-          <View
-            style={[
-              styles.avatar,
+          {item.profile_picture ? (
 
-              {
-                backgroundColor:
-                  colors.iconBackground,
-              },
-            ]}
-          >
+            <Image
+              source={{
+                uri:
+                  item.profile_picture,
+              }}
+              style={
+                styles.avatarImage
+              }
+            />
+
+          ) : (
 
             <Text
               style={[
@@ -491,8 +512,9 @@ export default function TrainersScreen() {
               )}
             </Text>
 
-          </View>
-        )}
+          )}
+
+        </View>
 
 
         {/* ==================================================
@@ -531,7 +553,7 @@ export default function TrainersScreen() {
 
               {
                 color:
-                  colors.mutedText,
+                  colors.primaryLight,
               },
             ]}
             numberOfLines={1}
@@ -549,7 +571,7 @@ export default function TrainersScreen() {
 
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
             numberOfLines={1}
@@ -566,38 +588,57 @@ export default function TrainersScreen() {
         ================================================== */}
 
         <View
-          style={[
-            styles.statusBadge,
-
-            {
-              backgroundColor:
-                isActive
-                  ? colors.successBackground
-                  : colors.dangerBackground,
-            },
-          ]}
+          style={
+            styles.trainerRight
+          }
         >
 
-          <Text
+          <View
             style={[
-              styles.statusText,
+              styles.statusBadge,
 
               {
-                color:
-                  isActive
-                    ? colors.success
-                    : colors.danger,
+                backgroundColor:
+                  `${statusColor}18`,
+
+                borderColor:
+                  `${statusColor}55`,
               },
             ]}
           >
-            {isActive
-              ? "ACTIVE"
-              : "INACTIVE"}
-          </Text>
+
+            <Text
+              style={[
+                styles.statusText,
+
+                {
+                  color:
+                    statusColor,
+                },
+              ]}
+            >
+              {isActive
+                ? "ACTIVE"
+                : "INACTIVE"}
+            </Text>
+
+          </View>
+
+
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={
+              colors.secondaryText
+            }
+            style={
+              styles.arrow
+            }
+          />
 
         </View>
 
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
@@ -609,6 +650,7 @@ export default function TrainersScreen() {
   if (loading) {
 
     return (
+
       <View
         style={[
           styles.loadingContainer,
@@ -650,7 +692,15 @@ export default function TrainersScreen() {
   // MAIN SCREEN
   // ==========================================================
 
+  const activeTrainers =
+    trainers.filter(
+      (trainer) =>
+        trainer.is_active !== false
+    ).length;
+
+
   return (
+
     <View
       style={[
         styles.container,
@@ -674,153 +724,57 @@ export default function TrainersScreen() {
 
         <View
           style={
-            styles.headerTextContainer
+            styles.headerTop
           }
         >
 
-          <Text
-            style={[
-              styles.smallTitle,
+          <View>
 
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
-            GYM STAFF
-          </Text>
+            <Text
+              style={[
+                styles.eyebrow,
 
-
-          <Text
-            style={[
-              styles.title,
-
-              {
-                color:
-                  colors.text,
-              },
-            ]}
-          >
-            Trainers
-          </Text>
-
-        </View>
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
+            >
+              GYMRYT • GYM STAFF
+            </Text>
 
 
-        {/* ==================================================
-            ADD TRAINER
-        ================================================== */}
+            <Text
+              style={[
+                styles.title,
 
-        <TouchableOpacity
-          style={[
-            styles.addButton,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+            >
+              Trainers
+            </Text>
 
-            {
-              backgroundColor:
-                colors.primary,
-            },
-          ]}
-          onPress={
-            openAddTrainer
-          }
-          activeOpacity={0.8}
-        >
+          </View>
 
-          <Text
+
+          {/* ==================================================
+              HEADER ACTIONS
+          ================================================== */}
+
+          <View
             style={
-              styles.addButtonText
+              styles.headerActions
             }
           >
-            + Add
-          </Text>
 
-        </TouchableOpacity>
+            {/* THEME */}
 
-      </View>
-
-
-      {/* ====================================================
-          SEARCH
-      ==================================================== */}
-
-      <View
-        style={[
-          styles.searchContainer,
-
-          {
-            backgroundColor:
-              colors.input,
-
-            borderColor:
-              colors.border,
-          },
-        ]}
-      >
-
-        <Text
-          style={[
-            styles.searchIcon,
-
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          ⌕
-        </Text>
-
-
-        <TextInput
-          style={[
-            styles.searchInput,
-
-            {
-              color:
-                colors.text,
-            },
-          ]}
-          placeholder="Search trainers..."
-          placeholderTextColor={
-            colors.mutedText
-          }
-          value={
-            search
-          }
-          onChangeText={
-            setSearch
-          }
-          autoCapitalize="none"
-        />
-
-      </View>
-
-
-      {/* ====================================================
-          FILTERS
-      ==================================================== */}
-
-      <View
-        style={
-          styles.filters
-        }
-      >
-
-        {[
-          "ALL",
-          "ACTIVE",
-          "INACTIVE",
-        ].map(
-          (filter) => (
-
-            <TouchableOpacity
-              key={
-                filter
-              }
-
+            <Pressable
               style={[
-                styles.filterButton,
+                styles.headerButton,
 
                 {
                   backgroundColor:
@@ -829,106 +783,325 @@ export default function TrainersScreen() {
                   borderColor:
                     colors.border,
                 },
-
-                selectedFilter ===
-                  filter && {
-
-                    backgroundColor:
-                      colors.primary,
-
-                    borderColor:
-                      colors.primary,
-                  },
               ]}
 
-              onPress={() =>
-                setSelectedFilter(
-                  filter
-                )
+              onPress={
+                toggleTheme
               }
             >
 
-              <Text
-                style={[
-                  styles.filterText,
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={20}
+                color={
+                  colors.text
+                }
+              />
 
-                  {
-                    color:
-                      colors.mutedText,
-                  },
-
-                  selectedFilter ===
-                    filter && {
-
-                      color:
-                        "#FFFFFF",
-                    },
-                ]}
-              >
-                {filter}
-              </Text>
-
-            </TouchableOpacity>
-
-          )
-        )}
-
-      </View>
+            </Pressable>
 
 
-      {/* ====================================================
-          COUNT + REFRESH
-      ==================================================== */}
+            {/* ADD TRAINER */}
 
-      <View
-        style={
-          styles.countRow
-        }
-      >
+            <Pressable
+              style={[
+                styles.headerButton,
 
-        <Text
+                {
+                  backgroundColor:
+                    colors.primary,
+
+                  borderColor:
+                    colors.primary,
+                },
+              ]}
+
+              onPress={
+                openAddTrainer
+              }
+            >
+
+              <Ionicons
+                name="add"
+                size={23}
+                color="#FFFFFF"
+              />
+
+            </Pressable>
+
+
+            {/* BACK */}
+
+            <Pressable
+              style={[
+                styles.headerButton,
+
+                {
+                  backgroundColor:
+                    colors.card,
+
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+
+              onPress={() =>
+                router.back()
+              }
+            >
+
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+
+            </Pressable>
+
+          </View>
+
+        </View>
+
+
+        {/* ==================================================
+            SUMMARY
+        ================================================== */}
+
+        <View
           style={[
-            styles.countText,
+            styles.summaryCard,
 
             {
-              color:
-                colors.text,
+              backgroundColor:
+                colors.card,
+
+              borderColor:
+                colors.border,
             },
           ]}
         >
-          {filteredTrainers.length}{" "}
-          {
-            filteredTrainers.length ===
-            1
-              ? "Trainer"
-              : "Trainers"
-          }
-        </Text>
 
-
-        <TouchableOpacity
-          onPress={
-            fetchTrainers
-          }
-          disabled={
-            loading
-          }
-        >
-
-          <Text
+          <View
             style={[
-              styles.refreshText,
+              styles.summaryIcon,
 
               {
-                color:
-                  colors.primaryLight,
+                backgroundColor:
+                  colors.iconBackground,
               },
             ]}
           >
-            ↻ Refresh
-          </Text>
 
-        </TouchableOpacity>
+            <Ionicons
+              name="barbell-outline"
+              size={22}
+              color={
+                colors.primaryLight
+              }
+            />
+
+          </View>
+
+
+          <View
+            style={
+              styles.summaryInfo
+            }
+          >
+
+            <Text
+              style={[
+                styles.summaryLabel,
+
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              TOTAL TRAINERS
+            </Text>
+
+
+            <Text
+              style={[
+                styles.summaryValue,
+
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+            >
+              {trainers.length}
+            </Text>
+
+          </View>
+
+
+          <View
+            style={
+              styles.summaryRight
+            }
+          >
+
+            <Text
+              style={[
+                styles.summaryRightText,
+
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              {activeTrainers} active
+            </Text>
+
+          </View>
+
+        </View>
+
+
+        {/* ==================================================
+            SEARCH
+        ================================================== */}
+
+        <View
+          style={[
+            styles.searchContainer,
+
+            {
+              backgroundColor:
+                colors.card,
+
+              borderColor:
+                colors.border,
+            },
+          ]}
+        >
+
+          <Ionicons
+            name="search-outline"
+            size={18}
+            color={
+              colors.secondaryText
+            }
+          />
+
+
+          <TextInput
+            style={[
+              styles.searchInput,
+
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+
+            placeholder="Search trainers..."
+
+            placeholderTextColor={
+              colors.mutedText
+            }
+
+            value={
+              search
+            }
+
+            onChangeText={
+              setSearch
+            }
+
+            autoCapitalize="none"
+
+          />
+
+        </View>
+
+
+        {/* ==================================================
+            FILTERS
+        ================================================== */}
+
+        <View
+          style={
+            styles.filters
+          }
+        >
+
+          {[
+            "ALL",
+            "ACTIVE",
+            "INACTIVE",
+          ].map(
+            (filter) => {
+
+              const selected =
+                selectedFilter ===
+                filter;
+
+              return (
+
+                <Pressable
+
+                  key={
+                    filter
+                  }
+
+                  style={[
+                    styles.filterButton,
+
+                    {
+                      backgroundColor:
+                        selected
+                          ? colors.iconBackground
+                          : colors.card,
+
+                      borderColor:
+                        selected
+                          ? colors.primaryLight
+                          : colors.border,
+                    },
+                  ]}
+
+                  onPress={() =>
+                    setSelectedFilter(
+                      filter
+                    )
+                  }
+
+                >
+
+                  <Text
+                    style={[
+                      styles.filterText,
+
+                      {
+                        color:
+                          selected
+                            ? colors.primaryLight
+                            : colors.secondaryText,
+                      },
+                    ]}
+                  >
+                    {filter}
+                  </Text>
+
+                </Pressable>
+
+              );
+            }
+          )}
+
+        </View>
 
       </View>
 
@@ -938,6 +1111,7 @@ export default function TrainersScreen() {
       ==================================================== */}
 
       <FlatList
+
         data={
           filteredTrainers
         }
@@ -958,27 +1132,120 @@ export default function TrainersScreen() {
           false
         }
 
-        contentContainerStyle={
-          styles.list
-        }
+        contentContainerStyle={[
+          styles.list,
+
+          filteredTrainers.length === 0 &&
+            styles.emptyList,
+        ]}
 
         keyboardShouldPersistTaps="handled"
 
-        ListEmptyComponent={
+        ListHeaderComponent={
 
           <View
             style={
-              styles.emptyContainer
+              styles.listHeader
             }
           >
 
             <Text
+              style={[
+                styles.listTitle,
+
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+            >
+              {filteredTrainers.length}{" "}
+              {
+                filteredTrainers.length ===
+                1
+                  ? "TRAINER"
+                  : "TRAINERS"
+              }
+            </Text>
+
+
+            <Pressable
               style={
-                styles.emptyIcon
+                styles.refreshButton
+              }
+
+              onPress={
+                fetchTrainers
+              }
+
+              disabled={
+                loading
               }
             >
-              🏋️
-            </Text>
+
+              <Ionicons
+                name="refresh"
+                size={14}
+                color={
+                  colors.primaryLight
+                }
+              />
+
+              <Text
+                style={[
+                  styles.refreshText,
+
+                  {
+                    color:
+                      colors.primaryLight,
+                  },
+                ]}
+              >
+                Refresh
+              </Text>
+
+            </Pressable>
+
+          </View>
+
+        }
+
+        ListEmptyComponent={
+
+          <View
+            style={[
+              styles.emptyCard,
+
+              {
+                backgroundColor:
+                  colors.card,
+
+                borderColor:
+                  colors.border,
+              },
+            ]}
+          >
+
+            <View
+              style={[
+                styles.emptyIcon,
+
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                },
+              ]}
+            >
+
+              <Ionicons
+                name="barbell-outline"
+                size={28}
+                color={
+                  colors.primaryLight
+                }
+              />
+
+            </View>
 
 
             <Text
@@ -1011,7 +1278,7 @@ export default function TrainersScreen() {
             </Text>
 
 
-            <TouchableOpacity
+            <Pressable
               style={[
                 styles.emptyAddButton,
 
@@ -1020,25 +1287,31 @@ export default function TrainersScreen() {
                     colors.primary,
                 },
               ]}
+
               onPress={
                 openAddTrainer
               }
-              activeOpacity={0.8}
             >
+
+              <Ionicons
+                name="add"
+                size={16}
+                color="#FFFFFF"
+              />
 
               <Text
                 style={
                   styles.emptyAddButtonText
                 }
               >
-                + Add Trainer
+                Add Trainer
               </Text>
 
-            </TouchableOpacity>
+            </Pressable>
 
           </View>
-        }
 
+        }
       />
 
     </View>
@@ -1047,7 +1320,7 @@ export default function TrainersScreen() {
 
 
 // ============================================================
-// STATIC STYLES
+// STYLES
 // ============================================================
 
 const styles =
@@ -1059,7 +1332,6 @@ const styles =
 
     container: {
       flex: 1,
-      paddingHorizontal: 20,
     },
 
 
@@ -1069,13 +1341,16 @@ const styles =
 
     loadingContainer: {
       flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
     },
 
     loadingText: {
-      marginTop: 15,
-      fontSize: 13,
+      marginTop: 12,
+      fontSize: 12,
+      fontWeight: "700",
     },
 
 
@@ -1084,40 +1359,134 @@ const styles =
     // ========================================================
 
     header: {
-      marginTop: 55,
-      marginBottom: 22,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
+      paddingHorizontal: 18,
+
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
+
+      paddingBottom: 6,
     },
 
-    headerTextContainer: {
-      flex: 1,
+    headerTop: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "space-between",
+
+      marginBottom: 17,
     },
 
-    smallTitle: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 2,
+    eyebrow: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.4,
     },
 
     title: {
-      fontSize: 32,
+      fontSize: 22,
       fontWeight: "900",
-      marginTop: 5,
+      marginTop: 4,
     },
 
-    addButton: {
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 12,
+
+    // ========================================================
+    // HEADER ACTIONS
+    // ========================================================
+
+    headerActions: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      gap: 7,
+    },
+
+    headerButton: {
+      width: 43,
+      height: 43,
+
+      borderRadius: 14,
+
+      borderWidth: 1,
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+    },
+
+
+    // ========================================================
+    // SUMMARY
+    // ========================================================
+
+    summaryCard: {
+      minHeight: 78,
+
+      borderWidth: 1,
+      borderRadius: 21,
+
+      paddingHorizontal: 13,
+
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      marginBottom: 12,
+    },
+
+    summaryIcon: {
+      width: 44,
+      height: 44,
+
+      borderRadius: 14,
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+    },
+
+    summaryInfo: {
+      marginLeft: 11,
+    },
+
+    summaryLabel: {
+      fontSize: 7,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+
+    summaryValue: {
+      fontSize: 23,
+      fontWeight: "900",
+      marginTop: 2,
+    },
+
+    summaryRight: {
+      flex: 1,
+
       marginLeft: 10,
+
+      alignItems:
+        "flex-end",
     },
 
-    addButtonText: {
-      color: "#FFFFFF",
-      fontSize: 12,
-      fontWeight: "800",
+    summaryRightText: {
+      fontSize: 8,
+      fontWeight: "700",
     },
 
 
@@ -1126,22 +1495,29 @@ const styles =
     // ========================================================
 
     searchContainer: {
-      height: 54,
-      borderRadius: 15,
-      borderWidth: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 15,
-    },
+      height: 50,
 
-    searchIcon: {
-      fontSize: 25,
-      marginRight: 10,
+      borderWidth: 1,
+      borderRadius: 16,
+
+      paddingHorizontal: 14,
+
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      marginBottom: 12,
     },
 
     searchInput: {
       flex: 1,
-      fontSize: 15,
+
+      marginLeft: 9,
+
+      fontSize: 13,
+      fontWeight: "600",
     },
 
 
@@ -1150,44 +1526,33 @@ const styles =
     // ========================================================
 
     filters: {
-      flexDirection: "row",
-      marginTop: 18,
-      marginBottom: 20,
+      flexDirection:
+        "row",
+
+      justifyContent:
+        "space-between",
+
+      marginBottom: 4,
     },
 
     filterButton: {
+      flex: 1,
+
       borderWidth: 1,
-      paddingHorizontal: 14,
+      borderRadius: 14,
+
       paddingVertical: 9,
-      borderRadius: 12,
-      marginRight: 8,
+
+      alignItems:
+        "center",
+
+      marginHorizontal: 3,
     },
 
     filterText: {
-      fontSize: 10,
-      fontWeight: "800",
-    },
-
-
-    // ========================================================
-    // COUNT
-    // ========================================================
-
-    countRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 12,
-    },
-
-    countText: {
-      fontSize: 14,
-      fontWeight: "800",
-    },
-
-    refreshText: {
-      fontSize: 11,
-      fontWeight: "700",
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 0.5,
     },
 
 
@@ -1196,7 +1561,47 @@ const styles =
     // ========================================================
 
     list: {
-      paddingBottom: 30,
+      paddingHorizontal: 18,
+      paddingTop: 9,
+      paddingBottom: 40,
+    },
+
+    emptyList: {
+      flexGrow: 1,
+    },
+
+    listHeader: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "space-between",
+
+      marginBottom: 10,
+      marginTop: 4,
+    },
+
+    listTitle: {
+      fontSize: 11,
+      fontWeight: "900",
+      letterSpacing: 1.2,
+    },
+
+    refreshButton: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+    },
+
+    refreshText: {
+      fontSize: 10,
+      fontWeight: "800",
+      marginLeft: 4,
     },
 
 
@@ -1205,103 +1610,166 @@ const styles =
     // ========================================================
 
     trainerCard: {
-      borderRadius: 18,
-      padding: 14,
-      marginBottom: 11,
+      minHeight: 82,
+
       borderWidth: 1,
-      flexDirection: "row",
-      alignItems: "center",
+      borderRadius: 20,
+
+      paddingVertical: 10,
+      paddingLeft: 10,
+      paddingRight: 8,
+
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      marginBottom: 8,
     },
 
     avatar: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      justifyContent: "center",
-      alignItems: "center",
+      width: 54,
+      height: 54,
+
+      borderRadius: 17,
+
+      borderWidth: 1,
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+
+      overflow:
+        "hidden",
+    },
+
+    avatarImage: {
+      width: "100%",
+      height: "100%",
     },
 
     avatarText: {
-      fontSize: 13,
+      fontSize: 16,
       fontWeight: "900",
     },
 
     trainerInfo: {
       flex: 1,
-      marginLeft: 13,
-      marginRight: 8,
+
+      marginLeft: 11,
+      marginRight: 5,
     },
 
     trainerName: {
-      fontSize: 15,
-      fontWeight: "800",
+      fontSize: 13,
+      fontWeight: "900",
     },
 
     trainerUsername: {
-      fontSize: 11,
+      fontSize: 9,
+      fontWeight: "700",
       marginTop: 3,
     },
 
     trainerEmail: {
-      fontSize: 10,
+      fontSize: 8,
+      fontWeight: "600",
       marginTop: 3,
     },
 
+    trainerRight: {
+      alignItems:
+        "flex-end",
 
-    // ========================================================
-    // STATUS
-    // ========================================================
+      justifyContent:
+        "center",
+    },
 
     statusBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-      borderRadius: 8,
+      borderWidth: 1,
+
+      borderRadius: 13,
+
+      paddingHorizontal: 7,
+      paddingVertical: 5,
     },
 
     statusText: {
-      fontSize: 8,
+      fontSize: 6.5,
       fontWeight: "900",
+      letterSpacing: 0.3,
+    },
+
+    arrow: {
+      marginTop: 5,
     },
 
 
     // ========================================================
-    // EMPTY STATE
+    // EMPTY
     // ========================================================
 
-    emptyContainer: {
-      alignItems: "center",
-      marginTop: 80,
+    emptyCard: {
+      borderWidth: 1,
+      borderRadius: 21,
+
+      paddingVertical: 31,
       paddingHorizontal: 20,
+
+      alignItems:
+        "center",
     },
 
     emptyIcon: {
-      fontSize: 42,
-      marginBottom: 15,
+      width: 58,
+      height: 58,
+
+      borderRadius: 18,
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
     },
 
     emptyTitle: {
-      fontSize: 18,
-      fontWeight: "800",
+      fontSize: 15,
+      fontWeight: "900",
+      marginTop: 12,
     },
 
     emptyText: {
-      fontSize: 13,
-      marginTop: 6,
-      textAlign: "center",
-      lineHeight: 19,
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 5,
+      textAlign:
+        "center",
     },
 
     emptyAddButton: {
-      marginTop: 20,
-      paddingHorizontal: 18,
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      borderRadius: 14,
+
+      paddingHorizontal: 16,
       paddingVertical: 11,
-      borderRadius: 12,
+
+      marginTop: 16,
     },
 
     emptyAddButtonText: {
       color: "#FFFFFF",
-      fontSize: 12,
-      fontWeight: "800",
+      fontSize: 11,
+      fontWeight: "900",
+      marginLeft: 5,
     },
 
   });

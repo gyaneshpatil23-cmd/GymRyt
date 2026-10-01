@@ -8,9 +8,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   RefreshControl,
   ActivityIndicator,
+  Alert,
+  Platform,
 } from "react-native";
 
 import {
@@ -20,6 +22,8 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../context/ThemeContext";
 
 // ============================================================
@@ -27,14 +31,18 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 // ============================================================
 // PAYMENTS SCREEN
 // ============================================================
 
 export default function Payments() {
-  const { colors } = useTheme();
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
   const [payments, setPayments] =
     useState([]);
@@ -436,6 +444,29 @@ export default function Payments() {
   };
 
   // ==========================================================
+  // PAYMENT STATUS COLOR
+  // ==========================================================
+
+  const getStatusColor = (
+    paymentStatus
+  ) => {
+    const value =
+      String(
+        paymentStatus || "PAID"
+      ).toUpperCase();
+
+    if (value === "FAILED") {
+      return "#FF5870";
+    }
+
+    if (value === "PENDING") {
+      return "#FFB21C";
+    }
+
+    return "#45E0A5";
+  };
+
+  // ==========================================================
   // EMPTY STATE
   // ==========================================================
 
@@ -461,17 +492,13 @@ export default function Payments() {
             },
           ]}
         >
-          <Text
-            style={[
-              styles.emptyIconText,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            ₹
-          </Text>
+          <Ionicons
+            name="wallet-outline"
+            size={28}
+            color={
+              colors.primaryLight
+            }
+          />
         </View>
 
         <Text
@@ -500,7 +527,7 @@ export default function Payments() {
           appear here.
         </Text>
 
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.emptyButton,
             {
@@ -513,16 +540,21 @@ export default function Payments() {
               "/admin/members"
             )
           }
-          activeOpacity={0.8}
         >
           <Text
             style={
               styles.emptyButtonText
             }
           >
-            VIEW MEMBERS →
+            VIEW MEMBERS
           </Text>
-        </TouchableOpacity>
+
+          <Ionicons
+            name="arrow-forward"
+            size={14}
+            color="#FFFFFF"
+          />
+        </Pressable>
       </View>
     );
   };
@@ -545,7 +577,7 @@ export default function Payments() {
         <ActivityIndicator
           size="large"
           color={
-            colors.primaryLight
+            colors.primary
           }
         />
 
@@ -594,55 +626,37 @@ export default function Payments() {
               handleRefresh
             }
             tintColor={
-              colors.primaryLight
+              colors.primary
             }
+            colors={[
+              colors.primary,
+            ]}
           />
         }
       >
 
-        {/* HEADER */}
+        {/* ==================================================
+            HEADER
+        ================================================== */}
 
         <View
           style={styles.header}
         >
-          <TouchableOpacity
-            style={[
-              styles.backButton,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.back()
+          <View
+            style={
+              styles.headerLeft
             }
           >
             <Text
               style={[
-                styles.backText,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
-
-          <View>
-            <Text
-              style={[
-                styles.smallTitle,
+                styles.eyebrow,
                 {
                   color:
                     colors.primaryLight,
                 },
               ]}
             >
-              GYM FINANCE
+              GYMRYT • GYM FINANCE
             </Text>
 
             <Text
@@ -657,27 +671,75 @@ export default function Payments() {
               Revenue & Records
             </Text>
           </View>
+
+          <View
+            style={
+              styles.headerActions
+            }
+          >
+            {/* THEME */}
+
+            <Pressable
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={
+                toggleTheme
+              }
+            >
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </Pressable>
+
+            {/* BACK */}
+
+            <Pressable
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={() =>
+                router.back()
+              }
+            >
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </Pressable>
+          </View>
         </View>
 
-        {/* REVENUE OVERVIEW */}
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          REVENUE OVERVIEW
-        </Text>
-
-        {/* TOTAL REVENUE */}
+        {/* ==================================================
+            REVENUE OVERVIEW
+        ================================================== */}
 
         <View
           style={[
-            styles.totalRevenueCard,
+            styles.overviewCard,
             {
               backgroundColor:
                 colors.card,
@@ -687,21 +749,97 @@ export default function Payments() {
           ]}
         >
           <View
-            style={styles.revenueTop}
+            style={
+              styles.sectionHeader
+            }
           >
             <View>
               <Text
                 style={[
-                  styles.revenueLabel,
+                  styles.sectionEyebrow,
                   {
                     color:
-                      colors.mutedText,
+                      colors.primaryLight,
                   },
                 ]}
               >
-                TOTAL REVENUE
+                REVENUE OVERVIEW
               </Text>
 
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                Total Revenue
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.liveBadge,
+                {
+                  backgroundColor:
+                    "#45E0A518",
+                  borderColor:
+                    "#45E0A555",
+                },
+              ]}
+            >
+              <View
+                style={
+                  styles.liveDot
+                }
+              />
+
+              <Text
+                style={
+                  styles.liveText
+                }
+              >
+                LIVE
+              </Text>
+            </View>
+          </View>
+
+          {/* TOTAL */}
+
+          <View
+            style={[
+              styles.totalRow,
+              {
+                backgroundColor:
+                  colors.background,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.totalIcon,
+                {
+                  backgroundColor:
+                    "#45E0A518",
+                },
+              ]}
+            >
+              <Ionicons
+                name="cash-outline"
+                size={26}
+                color="#45E0A5"
+              />
+            </View>
+
+            <View
+              style={
+                styles.totalInfo
+              }
+            >
               <Text
                 style={[
                   styles.totalRevenue,
@@ -710,121 +848,42 @@ export default function Payments() {
                       colors.text,
                   },
                 ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
               >
                 ₹
                 {formatMoney(
                   revenue.total_revenue
                 )}
               </Text>
-            </View>
 
-            <View
-              style={[
-                styles.revenueIcon,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
               <Text
                 style={[
-                  styles.revenueIconText,
+                  styles.totalSubtext,
                   {
                     color:
-                      colors.primaryLight,
+                      colors.secondaryText,
                   },
                 ]}
               >
-                ₹
+                Based on paid payments
               </Text>
             </View>
           </View>
 
+          {/* STAT GRID */}
+
           <View
             style={
-              styles.revenueBottom
+              styles.statsGrid
             }
           >
-            <Text
-              style={[
-                styles.revenueGrowth,
-                {
-                  color:
-                    colors.success,
-                },
-              ]}
-            >
-              ● LIVE
-            </Text>
-
-            <Text
-              style={[
-                styles.revenuePeriod,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              based on paid payments
-            </Text>
-          </View>
-        </View>
-
-        {/* MONTH + YEAR */}
-
-        <View
-          style={styles.statsRow}
-        >
-          <View
-            style={[
-              styles.smallStatCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.smallStatLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              THIS MONTH
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ₹
-              {formatMoney(
+            <FinanceStat
+              label="THIS MONTH"
+              value={`₹${formatMoney(
                 revenue.monthly_revenue
-              )}
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatSubtext,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              {new Date().toLocaleDateString(
+              )}`}
+              subtext={new Date().toLocaleDateString(
                 "en-IN",
                 {
                   month:
@@ -833,181 +892,65 @@ export default function Payments() {
                     "numeric",
                 }
               )}
-            </Text>
-          </View>
+              icon="calendar-outline"
+              iconColor="#36B7FF"
+              colors={colors}
+            />
 
-          <View
-            style={[
-              styles.smallStatCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.smallStatLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              THIS YEAR
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ₹
-              {formatMoney(
+            <FinanceStat
+              label="THIS YEAR"
+              value={`₹${formatMoney(
                 revenue.yearly_revenue
+              )}`}
+              subtext={String(
+                new Date().getFullYear()
               )}
-            </Text>
+              icon="trending-up-outline"
+              iconColor="#45E0A5"
+              colors={colors}
+            />
 
-            <Text
-              style={[
-                styles.smallStatSubtext,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              {new Date().getFullYear()}
-            </Text>
-          </View>
-        </View>
+            <FinanceStat
+              label="PAYMENTS"
+              value={String(
+                revenue.payment_count
+              )}
+              subtext="Total transactions"
+              icon="receipt-outline"
+              iconColor="#FFB21C"
+              colors={colors}
+            />
 
-        {/* PAYMENT COUNT + AVERAGE */}
-
-        <View
-          style={styles.statsRow}
-        >
-          <View
-            style={[
-              styles.smallStatCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.smallStatLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              PAYMENTS
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              {revenue.payment_count}
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatSubtext,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Total transactions
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.smallStatCard,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.smallStatLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              AVERAGE
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ₹
-              {formatMoney(
+            <FinanceStat
+              label="AVERAGE"
+              value={`₹${formatMoney(
                 Math.round(
                   revenue.average_payment
                 )
-              )}
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatSubtext,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              Per payment
-            </Text>
+              )}`}
+              subtext="Per payment"
+              icon="analytics-outline"
+              iconColor="#A78BFA"
+              colors={colors}
+            />
           </View>
         </View>
 
-        {/* PAYMENT RECORDS */}
+        {/* ==================================================
+            PAYMENT RECORDS
+        ================================================== */}
 
         <View
           style={
-            styles.recordsHeader
+            styles.sectionHeaderSimple
           }
         >
           <Text
             style={[
-              styles.sectionTitle,
+              styles.sectionHeading,
               {
                 color:
-                  colors.mutedText,
+                  colors.text,
               },
             ]}
           >
@@ -1030,15 +973,18 @@ export default function Payments() {
           </Text>
         </View>
 
-        {/* RECORDS */}
-
         {payments.length === 0 ? (
           renderEmptyState()
         ) : (
           payments.map(
             (payment) => {
+              const statusColor =
+                getStatusColor(
+                  payment.status
+                );
+
               return (
-                <TouchableOpacity
+                <View
                   key={
                     payment.id
                   }
@@ -1051,7 +997,6 @@ export default function Payments() {
                         colors.border,
                     },
                   ]}
-                  activeOpacity={0.8}
                 >
 
                   {/* AVATAR */}
@@ -1062,6 +1007,8 @@ export default function Payments() {
                       {
                         backgroundColor:
                           colors.iconBackground,
+                        borderColor:
+                          `${statusColor}55`,
                       },
                     ]}
                   >
@@ -1095,6 +1042,7 @@ export default function Payments() {
                             colors.text,
                         },
                       ]}
+                      numberOfLines={1}
                     >
                       {
                         payment.member_name ||
@@ -1110,31 +1058,44 @@ export default function Payments() {
                             colors.secondaryText,
                         },
                       ]}
+                      numberOfLines={1}
                     >
                       {getPlanLabel(
                         payment.plan
                       )}
-
                       {" • "}
-
                       {getMethodLabel(
                         payment.method
                       )}
                     </Text>
 
-                    <Text
-                      style={[
-                        styles.paymentDate,
-                        {
-                          color:
-                            colors.mutedText,
-                        },
-                      ]}
+                    <View
+                      style={
+                        styles.dateRow
+                      }
                     >
-                      {formatDate(
-                        payment
-                      )}
-                    </Text>
+                      <Ionicons
+                        name="calendar-outline"
+                        size={10}
+                        color={
+                          colors.mutedText
+                        }
+                      />
+
+                      <Text
+                        style={[
+                          styles.paymentDate,
+                          {
+                            color:
+                              colors.mutedText,
+                          },
+                        ]}
+                      >
+                        {formatDate(
+                          payment
+                        )}
+                      </Text>
+                    </View>
                   </View>
 
                   {/* AMOUNT */}
@@ -1149,7 +1110,7 @@ export default function Payments() {
                         styles.paymentAmount,
                         {
                           color:
-                            colors.success,
+                            statusColor,
                         },
                       ]}
                     >
@@ -1161,19 +1122,21 @@ export default function Payments() {
 
                     <View
                       style={[
-                        styles.paidBadge,
+                        styles.statusBadge,
                         {
                           backgroundColor:
-                            colors.successBackground,
+                            `${statusColor}18`,
+                          borderColor:
+                            `${statusColor}55`,
                         },
                       ]}
                     >
                       <Text
                         style={[
-                          styles.paidText,
+                          styles.statusText,
                           {
                             color:
-                              colors.success,
+                              statusColor,
                           },
                         ]}
                       >
@@ -1182,32 +1145,40 @@ export default function Payments() {
                       </Text>
                     </View>
                   </View>
-                </TouchableOpacity>
+                </View>
               );
             }
           )
         )}
 
-        {/* VIEW MORE */}
+        {/* ==================================================
+            ALL RECORDS SHOWN
+        ================================================== */}
 
         {payments.length > 0 && (
           <View
             style={[
-              styles.viewMoreButton,
+              styles.allShownCard,
               {
                 backgroundColor:
                   colors.card,
                 borderColor:
-                  colors.primary,
+                  colors.border,
               },
             ]}
           >
+            <Ionicons
+              name="checkmark-circle"
+              size={16}
+              color="#45E0A5"
+            />
+
             <Text
               style={[
-                styles.viewMoreText,
+                styles.allShownText,
                 {
                   color:
-                    colors.primaryLight,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -1215,45 +1186,135 @@ export default function Payments() {
               {payments.length}{" "}
               RECORDS
             </Text>
-
-            <Text
-              style={[
-                styles.viewMoreArrow,
-                {
-                  color:
-                    colors.success,
-                },
-              ]}
-            >
-              ✓
-            </Text>
           </View>
         )}
 
-        {/* BACK */}
+        {/* ==================================================
+            FOOTER
+        ================================================== */}
 
-        <TouchableOpacity
+        <Pressable
           style={
-            styles.backBottom
+            styles.footer
           }
           onPress={() =>
             router.back()
           }
         >
+          <View
+            style={[
+              styles.footerIcon,
+              {
+                backgroundColor:
+                  colors.iconBackground,
+              },
+            ]}
+          >
+            <Ionicons
+              name="home-outline"
+              size={14}
+              color={
+                colors.primaryLight
+              }
+            />
+          </View>
+
           <Text
             style={[
-              styles.backBottomText,
+              styles.footerText,
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
             BACK TO DASHBOARD
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
       </ScrollView>
+    </View>
+  );
+}
+
+// ============================================================
+// FINANCE STAT
+// ============================================================
+
+function FinanceStat({
+  label,
+  value,
+  subtext,
+  icon,
+  iconColor,
+  colors,
+}) {
+  return (
+    <View
+      style={[
+        styles.statCard,
+        {
+          backgroundColor:
+            colors.background,
+          borderColor:
+            colors.border,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.statIcon,
+          {
+            backgroundColor:
+              `${iconColor}18`,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={20}
+          color={iconColor}
+        />
+      </View>
+
+      <Text
+        style={[
+          styles.statLabel,
+          {
+            color:
+              colors.secondaryText,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
+      <Text
+        style={[
+          styles.statValue,
+          {
+            color:
+              colors.text,
+          },
+        ]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {value}
+      </Text>
+
+      <Text
+        style={[
+          styles.statSubtext,
+          {
+            color:
+              colors.mutedText,
+          },
+        ]}
+        numberOfLines={1}
+      >
+        {subtext}
+      </Text>
     </View>
   );
 }
@@ -1263,189 +1324,276 @@ export default function Payments() {
 // ============================================================
 
 const styles = StyleSheet.create({
+
+  // ==========================================================
+  // CONTAINER
+  // ==========================================================
+
   container: {
     flex: 1,
   },
 
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 55,
+    paddingHorizontal: 18,
+    paddingTop:
+      Platform.OS === "ios"
+        ? 54
+        : 44,
     paddingBottom: 40,
   },
 
+  // ==========================================================
+  // LOADING
+  // ==========================================================
+
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
   },
 
   loadingText: {
     marginTop: 12,
     fontSize: 12,
+    fontWeight: "700",
   },
+
+  // ==========================================================
+  // HEADER
+  // ==========================================================
 
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 15,
-    marginBottom: 30,
+    justifyContent: "space-between",
+    marginBottom: 20,
   },
 
-  backButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 14,
-    borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  headerLeft: {
+    flex: 1,
+    marginRight: 10,
   },
 
-  backText: {
-    fontSize: 34,
-    marginTop: -4,
-  },
-
-  smallTitle: {
-    fontSize: 10,
+  eyebrow: {
+    fontSize: 9,
     fontWeight: "900",
-    letterSpacing: 2,
+    letterSpacing: 1.4,
   },
 
   title: {
-    fontSize: 27,
+    fontSize: 22,
     fontWeight: "900",
-    marginTop: 3,
+    marginTop: 4,
+  },
+
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+
+  headerButton: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ==========================================================
+  // OVERVIEW CARD
+  // ==========================================================
+
+  overviewCard: {
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 16,
+    marginBottom: 21,
+  },
+
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+
+  sectionEyebrow: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1.3,
+    marginBottom: 3,
   },
 
   sectionTitle: {
-    fontSize: 10,
+    fontSize: 18,
     fontWeight: "900",
-    letterSpacing: 1.7,
-    marginBottom: 13,
   },
 
-  totalRevenueCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 20,
-    marginBottom: 12,
-  },
-
-  revenueTop: {
+  liveBadge: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
   },
 
-  revenueLabel: {
-    fontSize: 10,
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#45E0A5",
+    marginRight: 5,
+  },
+
+  liveText: {
+    color: "#45E0A5",
+    fontSize: 8,
     fontWeight: "900",
-    letterSpacing: 1.5,
+    letterSpacing: 0.6,
   },
 
-  totalRevenue: {
-    fontSize: 36,
-    fontWeight: "900",
-    marginTop: 7,
+  // ==========================================================
+  // TOTAL REVENUE
+  // ==========================================================
+
+  totalRow: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 9,
   },
 
-  revenueIcon: {
-    width: 52,
-    height: 52,
+  totalIcon: {
+    width: 50,
+    height: 50,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  revenueIconText: {
-    fontSize: 25,
+  totalInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+
+  totalRevenue: {
+    fontSize: 28,
     fontWeight: "900",
   },
 
-  revenueBottom: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
+  totalSubtext: {
+    fontSize: 9,
+    fontWeight: "600",
+    marginTop: 2,
   },
 
-  revenueGrowth: {
+  // ==========================================================
+  // STATS
+  // ==========================================================
+
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+
+  statCard: {
+    width: "48.2%",
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 9,
+  },
+
+  statIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 9,
+  },
+
+  statLabel: {
+    fontSize: 7,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+  },
+
+  statValue: {
+    fontSize: 19,
+    fontWeight: "900",
+    marginTop: 3,
+  },
+
+  statSubtext: {
+    fontSize: 8,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+
+  // ==========================================================
+  // RECORDS HEADER
+  // ==========================================================
+
+  sectionHeaderSimple: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 11,
+    marginTop: 2,
+  },
+
+  sectionHeading: {
     fontSize: 11,
     fontWeight: "900",
-  },
-
-  revenuePeriod: {
-    fontSize: 10,
-    marginLeft: 7,
-  },
-
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-
-  smallStatCard: {
-    width: "48.5%",
-    borderRadius: 17,
-    borderWidth: 1,
-    padding: 16,
-  },
-
-  smallStatLabel: {
-    fontSize: 9,
-    fontWeight: "900",
     letterSpacing: 1.2,
-  },
-
-  smallStatValue: {
-    fontSize: 21,
-    fontWeight: "900",
-    marginTop: 8,
-  },
-
-  smallStatSubtext: {
-    fontSize: 9,
-    marginTop: 5,
-  },
-
-  recordsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 25,
   },
 
   recordCount: {
     fontSize: 10,
     fontWeight: "800",
-    marginBottom: 13,
   },
 
+  // ==========================================================
+  // PAYMENT CARD
+  // ==========================================================
+
   paymentCard: {
+    minHeight: 78,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingLeft: 10,
+    paddingRight: 12,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 17,
-    borderWidth: 1,
-    padding: 13,
-    marginBottom: 10,
+    marginBottom: 8,
   },
 
   paymentAvatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
+    width: 50,
+    height: 50,
+    borderRadius: 17,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
 
   paymentAvatarText: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: "900",
   },
 
   paymentInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 11,
+    marginRight: 6,
   },
 
   memberName: {
@@ -1455,12 +1603,20 @@ const styles = StyleSheet.create({
 
   paymentPlan: {
     fontSize: 9,
+    fontWeight: "600",
+    marginTop: 3,
+  },
+
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 4,
   },
 
   paymentDate: {
-    fontSize: 9,
-    marginTop: 4,
+    fontSize: 8,
+    fontWeight: "700",
+    marginLeft: 4,
   },
 
   paymentAmountContainer: {
@@ -1468,99 +1624,121 @@ const styles = StyleSheet.create({
   },
 
   paymentAmount: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "900",
   },
 
-  paidBadge: {
+  statusBadge: {
+    borderWidth: 1,
+    borderRadius: 13,
     paddingHorizontal: 7,
     paddingVertical: 4,
-    borderRadius: 6,
-    marginTop: 5,
+    marginTop: 6,
   },
 
-  paidText: {
-    fontSize: 7,
+  statusText: {
+    fontSize: 6.5,
     fontWeight: "900",
+    letterSpacing: 0.3,
   },
+
+  // ==========================================================
+  // ALL SHOWN
+  // ==========================================================
+
+  allShownCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+
+  allShownText: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    marginLeft: 6,
+  },
+
+  // ==========================================================
+  // EMPTY
+  // ==========================================================
 
   emptyCard: {
-    borderRadius: 18,
     borderWidth: 1,
-    padding: 25,
+    borderRadius: 21,
+    paddingVertical: 28,
+    paddingHorizontal: 18,
     alignItems: "center",
-    marginBottom: 15,
   },
 
   emptyIcon: {
     width: 55,
     height: 55,
-    borderRadius: 18,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
-  },
-
-  emptyIconText: {
-    fontSize: 25,
-    fontWeight: "900",
   },
 
   emptyTitle: {
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: "900",
+    marginTop: 11,
   },
 
   emptySubtitle: {
-    fontSize: 11,
+    fontSize: 9,
+    fontWeight: "600",
+    marginTop: 4,
     textAlign: "center",
-    lineHeight: 18,
-    marginTop: 7,
-    marginBottom: 18,
+    lineHeight: 13,
   },
 
   emptyButton: {
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    marginTop: 16,
   },
 
   emptyButtonText: {
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "900",
-    letterSpacing: 1,
+    letterSpacing: 0.6,
+    marginRight: 6,
   },
 
-  viewMoreButton: {
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1,
+  // ==========================================================
+  // FOOTER
+  // ==========================================================
+
+  footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
+    paddingTop: 22,
+    paddingBottom: 8,
   },
 
-  viewMoreText: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  viewMoreArrow: {
-    fontSize: 15,
-    marginLeft: 10,
-  },
-
-  backBottom: {
+  footerIcon: {
+    width: 27,
+    height: 27,
+    borderRadius: 9,
     alignItems: "center",
-    paddingVertical: 22,
+    justifyContent: "center",
+    marginRight: 7,
   },
 
-  backBottomText: {
-    fontSize: 10,
+  footerText: {
+    fontSize: 8,
     fontWeight: "800",
-    letterSpacing: 1,
+    letterSpacing: 0.7,
   },
+
 });

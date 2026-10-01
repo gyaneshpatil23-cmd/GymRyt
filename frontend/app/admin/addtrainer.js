@@ -13,11 +13,14 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 
-const API_URL = "http://192.168.1.52:8000";
+const API_URL = "http://192.168.1.43:8000";
 
 export default function AddTrainer() {
   const router = useRouter();
+  const { colors, isDark, toggleTheme } = useTheme();
 
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -161,9 +164,23 @@ export default function AddTrainer() {
     }
   };
 
+  const headerButton = [
+    styles.headerButton,
+    { backgroundColor: colors.card, borderColor: colors.border },
+  ];
+
+  const inputRow = [
+    styles.inputRow,
+    { backgroundColor: colors.background, borderColor: colors.border },
+  ];
+
+  const labelStyle = [styles.label, { color: colors.secondaryText }];
+
+  const inputStyle = [styles.input, { color: colors.text }];
+
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
@@ -173,81 +190,116 @@ export default function AddTrainer() {
       >
         {/* HEADER */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            disabled={loading}
-          >
-            <Text style={styles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Add Trainer</Text>
-            <Text style={styles.headerSubtitle}>
-              Create a new trainer account
+            <Text style={[styles.eyebrow, { color: colors.primaryLight }]}>
+              GYMRYT • GYM STAFF
             </Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              Add Trainer
+            </Text>
+          </View>
+
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={headerButton}
+              onPress={toggleTheme}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={isDark ? "sunny-outline" : "moon-outline"}
+                size={20}
+                color={colors.text}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={headerButton}
+              onPress={() => router.back()}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="arrow-back" size={20} color={colors.text} />
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* FORM CARD */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.sectionEyebrow, { color: colors.primaryLight }]}>
+            NEW ACCOUNT
+          </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Trainer Information
           </Text>
 
           {/* NAME */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Full Name</Text>
+            <Text style={labelStyle}>FULL NAME</Text>
 
-            <TextInput
-              style={styles.input}
-              placeholderTextColor="#999"
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              editable={!loading}
-            />
+            <View style={inputRow}>
+              <Ionicons name="person-outline" size={18} color={colors.primaryLight} />
+              <TextInput
+                style={inputStyle}
+                placeholderTextColor={colors.mutedText}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                editable={!loading}
+              />
+            </View>
           </View>
 
           {/* USERNAME */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Username</Text>
+            <Text style={labelStyle}>USERNAME</Text>
 
-            <TextInput
-              style={styles.input}
-              placeholderTextColor="#999"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
+            <View style={inputRow}>
+              <Ionicons name="at-outline" size={18} color={colors.primaryLight} />
+              <TextInput
+                style={inputStyle}
+                placeholderTextColor={colors.mutedText}
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+            </View>
           </View>
 
           {/* EMAIL */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={labelStyle}>EMAIL ADDRESS</Text>
 
-            <TextInput
-              style={styles.input}
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
+            <View style={inputRow}>
+              <Ionicons name="mail-outline" size={18} color={colors.primaryLight} />
+              <TextInput
+                style={inputStyle}
+                placeholderTextColor={colors.mutedText}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+            </View>
           </View>
 
           {/* PASSWORD */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={labelStyle}>PASSWORD</Text>
 
-            <View style={styles.passwordWrapper}>
+            <View style={inputRow}>
+              <Ionicons name="lock-closed-outline" size={18} color={colors.primaryLight} />
               <TextInput
-                style={styles.passwordInput}
-                placeholderTextColor="#999"
+                style={inputStyle}
+                placeholderTextColor={colors.mutedText}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -263,27 +315,30 @@ export default function AddTrainer() {
                 }
                 disabled={loading}
               >
-                <Text style={styles.showButtonText}>
-                  {showPassword ? "Hide" : "Show"}
-                </Text>
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={19}
+                  color={colors.secondaryText}
+                />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.helperText}>
+            <Text style={[styles.helperText, { color: colors.mutedText }]}>
               Minimum 6 characters
             </Text>
           </View>
 
           {/* CONFIRM PASSWORD */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>
-              Confirm Password
+            <Text style={labelStyle}>
+              CONFIRM PASSWORD
             </Text>
 
-            <View style={styles.passwordWrapper}>
+            <View style={inputRow}>
+              <Ionicons name="shield-checkmark-outline" size={18} color={colors.primaryLight} />
               <TextInput
-                style={styles.passwordInput}
-                placeholderTextColor="#999"
+                style={inputStyle}
+                placeholderTextColor={colors.mutedText}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
@@ -301,18 +356,30 @@ export default function AddTrainer() {
                 }
                 disabled={loading}
               >
-                <Text style={styles.showButtonText}>
-                  {showConfirmPassword ? "Hide" : "Show"}
-                </Text>
+                <Ionicons
+                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                  size={19}
+                  color={colors.secondaryText}
+                />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* INFO */}
-          <View style={styles.infoBox}>
-            <Text style={styles.infoIcon}>ⓘ</Text>
+          <View
+            style={[
+              styles.infoBox,
+              { backgroundColor: colors.iconBackground, borderColor: colors.border },
+            ]}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={19}
+              color={colors.primaryLight}
+              style={styles.infoIcon}
+            />
 
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: colors.secondaryText }]}>
               This trainer will automatically be added to
               your current gym workspace. You can assign
               members to the trainer after creating the
@@ -324,6 +391,7 @@ export default function AddTrainer() {
           <TouchableOpacity
             style={[
               styles.addButton,
+              { backgroundColor: colors.primary },
               loading && styles.disabledButton,
             ]}
             onPress={handleAddTrainer}
@@ -342,9 +410,13 @@ export default function AddTrainer() {
                 </Text>
               </View>
             ) : (
-              <Text style={styles.addButtonText}>
-                + Add Trainer
-              </Text>
+              <View style={styles.loadingContainer}>
+                <Ionicons name="person-add-outline" size={18} color="#FFFFFF" />
+
+                <Text style={styles.addButtonText}>
+                  Add Trainer
+                </Text>
+              </View>
             )}
           </TouchableOpacity>
 
@@ -354,8 +426,8 @@ export default function AddTrainer() {
             onPress={() => router.back()}
             disabled={loading}
           >
-            <Text style={styles.cancelButtonText}>
-              Cancel
+            <Text style={[styles.cancelButtonText, { color: colors.secondaryText }]}>
+              CANCEL
             </Text>
           </TouchableOpacity>
         </View>
@@ -367,7 +439,6 @@ export default function AddTrainer() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FB",
   },
 
   scrollContainer: {
@@ -378,108 +449,91 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 55,
-    paddingBottom: 25,
-    backgroundColor: "#FFFFFF",
-  },
-
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#F1F3F7",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
-  },
-
-  backButtonText: {
-    fontSize: 36,
-    lineHeight: 38,
-    color: "#222222",
-    fontWeight: "300",
-    marginTop: -3,
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingTop: Platform.OS === "ios" ? 54 : 44,
+    paddingBottom: 14,
   },
 
   headerTextContainer: {
     flex: 1,
+    marginRight: 10,
+  },
+
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
   },
 
   headerTitle: {
-    fontSize: 25,
-    fontWeight: "700",
-    color: "#111111",
+    fontSize: 22,
+    fontWeight: "900",
+    marginTop: 4,
   },
 
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#777777",
-    marginTop: 3,
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+
+  headerButton: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   card: {
     marginHorizontal: 18,
-    marginTop: 18,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 20,
+    marginTop: 6,
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 16,
+  },
 
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+  sectionEyebrow: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1.3,
+    marginBottom: 3,
   },
 
   sectionTitle: {
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#171717",
-    marginBottom: 22,
-  },
-
-  inputContainer: {
+    fontSize: 18,
+    fontWeight: "900",
     marginBottom: 18,
   },
 
+  inputContainer: {
+    marginBottom: 15,
+  },
+
   label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333333",
-    marginBottom: 8,
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 7,
+  },
+
+  inputRow: {
+    height: 52,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingLeft: 14,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   input: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: "#E0E3E8",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    fontSize: 15,
-    color: "#222222",
-    backgroundColor: "#FAFBFC",
-  },
-
-  passwordWrapper: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: "#E0E3E8",
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FAFBFC",
-  },
-
-  passwordInput: {
     flex: 1,
     height: "100%",
-    paddingHorizontal: 15,
-    fontSize: 15,
-    color: "#222222",
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   showButton: {
@@ -488,45 +542,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  showButtonText: {
-    color: "#4F46E5",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-
   helperText: {
-    fontSize: 12,
-    color: "#888888",
+    fontSize: 9,
+    fontWeight: "600",
     marginTop: 6,
   },
 
   infoBox: {
     flexDirection: "row",
-    backgroundColor: "#F2F4FF",
-    borderRadius: 12,
+    borderWidth: 1,
+    borderRadius: 16,
     padding: 13,
     marginTop: 2,
-    marginBottom: 22,
+    marginBottom: 18,
   },
 
   infoIcon: {
-    fontSize: 18,
-    color: "#4F46E5",
     marginRight: 9,
     marginTop: 1,
   },
 
   infoText: {
     flex: 1,
-    fontSize: 12.5,
-    lineHeight: 19,
-    color: "#555B78",
+    fontSize: 10,
+    fontWeight: "600",
+    lineHeight: 15,
   },
 
   addButton: {
-    height: 53,
-    borderRadius: 12,
-    backgroundColor: "#4F46E5",
+    height: 54,
+    borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 2,
@@ -538,8 +583,9 @@ const styles = StyleSheet.create({
 
   addButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 0.8,
   },
 
   loadingContainer: {
@@ -549,15 +595,15 @@ const styles = StyleSheet.create({
   },
 
   cancelButton: {
-    height: 50,
+    height: 48,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 6,
   },
 
   cancelButtonText: {
-    color: "#666666",
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
 });
