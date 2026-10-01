@@ -10,6 +10,7 @@ import {
   Dimensions,
   Image,
   PanResponder,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -18,11 +19,14 @@ import {
 
 import * as ImageManipulator from "expo-image-manipulator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   router,
   useLocalSearchParams,
 } from "expo-router";
+
+import { useTheme } from "../context/ThemeContext";
 
 // ============================================================
 // SCREEN SIZE
@@ -79,6 +83,8 @@ const restoreFileUri = (value) => {
 // ============================================================
 
 export default function CropScreen() {
+  const { colors } = useTheme();
+
   // ==========================================================
   // ROUTE PARAMETER
   // ==========================================================
@@ -590,13 +596,24 @@ export default function CropScreen() {
 
   if (!imageUri) {
     return (
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <ActivityIndicator
           size="large"
-          color="#60A5FA"
+          color={colors.primary}
         />
 
-        <Text style={styles.loadingText}>
+        <Text
+          style={[
+            styles.loadingText,
+            { color: colors.mutedText },
+          ]}
+        >
           Loading image...
         </Text>
       </View>
@@ -608,39 +625,56 @@ export default function CropScreen() {
   // ==========================================================
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
 
       {/* ======================================================
           HEADER
       ====================================================== */}
 
       <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text
+            style={[
+              styles.eyebrow,
+              { color: colors.primaryLight },
+            ]}
+          >
+            GYMRYT • PROFILE PHOTO
+          </Text>
+
+          <Text
+            style={[
+              styles.title,
+              { color: colors.text },
+            ]}
+          >
+            Crop Photo
+          </Text>
+        </View>
 
         <TouchableOpacity
-          style={styles.closeButton}
+          style={[
+            styles.closeButton,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
           onPress={cancelCrop}
           disabled={saving}
           activeOpacity={0.8}
         >
-          <Text style={styles.closeIcon}>
-            ×
-          </Text>
+          <Ionicons
+            name="close"
+            size={21}
+            color={colors.text}
+          />
         </TouchableOpacity>
-
-        <View style={styles.headerText}>
-
-          <Text style={styles.title}>
-            CROP PROFILE PHOTO
-          </Text>
-
-          <Text style={styles.subtitle}>
-            Position your photo inside the frame
-          </Text>
-
-        </View>
-
-        <View style={styles.headerSpacer} />
-
       </View>
 
       {/* ======================================================
@@ -648,9 +682,11 @@ export default function CropScreen() {
       ====================================================== */}
 
       <View style={styles.cropWrapper}>
-
         <View
-          style={styles.cropArea}
+          style={[
+            styles.cropArea,
+            { borderColor: colors.border },
+          ]}
           {...panResponder.panHandlers}
         >
 
@@ -666,16 +702,12 @@ export default function CropScreen() {
               }}
               style={{
                 position: "absolute",
-
                 width:
                   displayedSize.width,
-
                 height:
                   displayedSize.height,
-
                 left:
                   imagePosition.x,
-
                 top:
                   imagePosition.y,
               }}
@@ -684,7 +716,7 @@ export default function CropScreen() {
           ) : (
             <ActivityIndicator
               size="large"
-              color="#60A5FA"
+              color={colors.primaryLight}
             />
           )}
 
@@ -712,6 +744,7 @@ export default function CropScreen() {
               style={[
                 styles.corner,
                 styles.topLeft,
+                { borderColor: colors.primaryLight },
               ]}
             />
 
@@ -721,6 +754,7 @@ export default function CropScreen() {
               style={[
                 styles.corner,
                 styles.topRight,
+                { borderColor: colors.primaryLight },
               ]}
             />
 
@@ -730,6 +764,7 @@ export default function CropScreen() {
               style={[
                 styles.corner,
                 styles.bottomLeft,
+                { borderColor: colors.primaryLight },
               ]}
             />
 
@@ -739,30 +774,59 @@ export default function CropScreen() {
               style={[
                 styles.corner,
                 styles.bottomRight,
+                { borderColor: colors.primaryLight },
               ]}
             />
-
           </View>
-
         </View>
-
       </View>
 
       {/* ======================================================
           INSTRUCTIONS
       ====================================================== */}
 
-      <View style={styles.instructions}>
+      <View
+        style={[
+          styles.instructions,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.instructionIcon,
+            { backgroundColor: colors.iconBackground },
+          ]}
+        >
+          <Ionicons
+            name="move-outline"
+            size={21}
+            color={colors.primaryLight}
+          />
+        </View>
 
-        <Text style={styles.instructionTitle}>
-          Adjust your photo
-        </Text>
+        <View style={styles.instructionTextContainer}>
+          <Text
+            style={[
+              styles.instructionTitle,
+              { color: colors.text },
+            ]}
+          >
+            Adjust your photo
+          </Text>
 
-        <Text style={styles.instructionText}>
-          Drag the image to position your face
-          inside the circle.
-        </Text>
-
+          <Text
+            style={[
+              styles.instructionText,
+              { color: colors.secondaryText },
+            ]}
+          >
+            Drag the image to position your face
+            inside the circle.
+          </Text>
+        </View>
       </View>
 
       {/* ======================================================
@@ -776,13 +840,22 @@ export default function CropScreen() {
         ================================================== */}
 
         <TouchableOpacity
-          style={styles.cancelButton}
+          style={[
+            styles.cancelButton,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
           onPress={cancelCrop}
           disabled={saving}
           activeOpacity={0.8}
         >
           <Text
-            style={styles.cancelButtonText}
+            style={[
+              styles.cancelButtonText,
+              { color: colors.secondaryText },
+            ]}
           >
             CANCEL
           </Text>
@@ -795,6 +868,7 @@ export default function CropScreen() {
         <TouchableOpacity
           style={[
             styles.saveButton,
+            { backgroundColor: colors.primary },
             saving &&
               styles.saveButtonDisabled,
           ]}
@@ -808,16 +882,22 @@ export default function CropScreen() {
               color="#FFFFFF"
             />
           ) : (
-            <Text
-              style={styles.saveButtonText}
-            >
-              SAVE
-            </Text>
+            <>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={19}
+                color="#FFFFFF"
+              />
+
+              <Text
+                style={styles.saveButtonText}
+              >
+                SAVE
+              </Text>
+            </>
           )}
         </TouchableOpacity>
-
       </View>
-
     </View>
   );
 }
@@ -834,13 +914,16 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: "#050816",
+  },
+
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   loadingText: {
-    color: "#94A3B8",
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     marginTop: 12,
   },
 
@@ -849,65 +932,40 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   header: {
-    height: 105,
-    paddingTop: 52,
-    paddingHorizontal: 20,
-
+    paddingTop:
+      Platform.OS === "ios"
+        ? 54
+        : 44,
+    paddingHorizontal: 18,
+    paddingBottom: 14,
     flexDirection: "row",
     alignItems: "center",
   },
 
-  closeButton: {
-    width: 42,
-    height: 42,
-
-    borderRadius: 14,
-
-    backgroundColor: "#0B1220",
-
-    borderWidth: 1,
-    borderColor: "#172554",
-
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  closeIcon: {
-    color: "#FFFFFF",
-
-    fontSize: 30,
-    fontWeight: "300",
-
-    lineHeight: 32,
-
-    marginTop: -2,
-  },
-
   headerText: {
     flex: 1,
-    marginLeft: 13,
+    marginRight: 10,
+  },
+
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
   },
 
   title: {
-    color: "#FFFFFF",
-
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: "900",
-
-    letterSpacing: 0.8,
-  },
-
-  subtitle: {
-    color: "#64748B",
-
-    fontSize: 10,
-    fontWeight: "500",
-
     marginTop: 4,
   },
 
-  headerSpacer: {
-    width: 42,
+  closeButton: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // ==========================================================
@@ -916,7 +974,6 @@ const styles = StyleSheet.create({
 
   cropWrapper: {
     flex: 1,
-
     alignItems: "center",
     justifyContent: "center",
   },
@@ -928,11 +985,9 @@ const styles = StyleSheet.create({
   cropArea: {
     width: CROP_SIZE,
     height: CROP_SIZE,
-
     backgroundColor: "#000000",
-
     overflow: "hidden",
-
+    borderWidth: 1,
     borderRadius:
       CROP_SIZE / 2,
   },
@@ -943,27 +998,18 @@ const styles = StyleSheet.create({
 
   cropOverlay: {
     ...StyleSheet.absoluteFillObject,
-
     backgroundColor:
       "rgba(0,0,0,0.06)",
-
     borderRadius:
       CROP_SIZE / 2,
   },
 
   // ==========================================================
   // CROP FRAME
-  //
-  // IMPORTANT:
-  //
-  // The old white border has been removed.
-  // It was creating the unwanted white curved
-  // strap at the top of the crop area.
   // ==========================================================
 
   cropBorder: {
     ...StyleSheet.absoluteFillObject,
-
     borderRadius:
       CROP_SIZE / 2,
   },
@@ -974,50 +1020,39 @@ const styles = StyleSheet.create({
 
   corner: {
     position: "absolute",
-
     width: 28,
     height: 28,
-
-    borderColor: "#60A5FA",
   },
 
   topLeft: {
     top: 0,
     left: 0,
-
     borderTopWidth: 4,
     borderLeftWidth: 4,
-
     borderTopLeftRadius: 15,
   },
 
   topRight: {
     top: 0,
     right: 0,
-
     borderTopWidth: 4,
     borderRightWidth: 4,
-
     borderTopRightRadius: 15,
   },
 
   bottomLeft: {
     bottom: 0,
     left: 0,
-
     borderBottomWidth: 4,
     borderLeftWidth: 4,
-
     borderBottomLeftRadius: 15,
   },
 
   bottomRight: {
     bottom: 0,
     right: 0,
-
     borderBottomWidth: 4,
     borderRightWidth: 4,
-
     borderBottomRightRadius: 15,
   },
 
@@ -1026,33 +1061,39 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   instructions: {
-    paddingHorizontal: 25,
-
+    minHeight: 76,
+    marginHorizontal: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderRadius: 21,
+    paddingHorizontal: 13,
+    flexDirection: "row",
     alignItems: "center",
+  },
 
-    marginBottom: 20,
+  instructionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  instructionTextContainer: {
+    flex: 1,
+    marginLeft: 11,
   },
 
   instructionTitle: {
-    color: "#FFFFFF",
-
-    fontSize: 14,
-    fontWeight: "800",
+    fontSize: 13,
+    fontWeight: "900",
   },
 
   instructionText: {
-    color: "#64748B",
-
-    fontSize: 11,
-    fontWeight: "500",
-
-    textAlign: "center",
-
-    marginTop: 6,
-
-    lineHeight: 17,
-
-    maxWidth: 300,
+    fontSize: 9,
+    fontWeight: "600",
+    lineHeight: 13,
+    marginTop: 3,
   },
 
   // ==========================================================
@@ -1060,12 +1101,10 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   bottomArea: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingBottom: 35,
-
     flexDirection: "row",
-
-    gap: 12,
+    gap: 10,
   },
 
   // ==========================================================
@@ -1074,27 +1113,17 @@ const styles = StyleSheet.create({
 
   cancelButton: {
     flex: 1,
-
     height: 54,
-
-    borderRadius: 14,
-
-    backgroundColor: "#0B1220",
-
+    borderRadius: 17,
     borderWidth: 1,
-    borderColor: "#172554",
-
     alignItems: "center",
     justifyContent: "center",
   },
 
   cancelButtonText: {
-    color: "#94A3B8",
-
     fontSize: 12,
-    fontWeight: "800",
-
-    letterSpacing: 0.7,
+    fontWeight: "900",
+    letterSpacing: 0.8,
   },
 
   // ==========================================================
@@ -1102,16 +1131,13 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   saveButton: {
-    flex: 1,
-
+    flex: 1.4,
     height: 54,
-
-    borderRadius: 14,
-
-    backgroundColor: "#2563EB",
-
+    borderRadius: 17,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
   },
 
   saveButtonDisabled: {
@@ -1120,11 +1146,8 @@ const styles = StyleSheet.create({
 
   saveButtonText: {
     color: "#FFFFFF",
-
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
-
     letterSpacing: 1,
   },
-
 });

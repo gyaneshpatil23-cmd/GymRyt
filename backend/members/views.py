@@ -5974,6 +5974,7 @@ class TrainerCreateView(APIView):
 
                 UserProfile.objects.create(
                     user=user,
+                    role="TRAINER",
                     is_owner=False,
                     is_trainer=True
                 )

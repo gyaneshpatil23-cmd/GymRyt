@@ -12,6 +12,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 
 import {
@@ -22,14 +23,20 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../context/ThemeContext";
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 
 export default function EditTrainerScreen() {
-  const { colors } = useTheme();
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
   const { id } = useLocalSearchParams();
 
@@ -554,6 +561,24 @@ export default function EditTrainerScreen() {
           },
         ]}
       >
+        <View
+          style={[
+            styles.errorIcon,
+            {
+              backgroundColor:
+                colors.iconBackground,
+            },
+          ]}
+        >
+          <Ionicons
+            name="person-outline"
+            size={28}
+            color={
+              colors.primaryLight
+            }
+          />
+        </View>
+
         <Text
           style={[
             styles.errorTitle,
@@ -578,6 +603,12 @@ export default function EditTrainerScreen() {
             router.back()
           }
         >
+          <Ionicons
+            name="arrow-back"
+            size={15}
+            color="#FFFFFF"
+          />
+
           <Text
             style={
               styles.backButtonText
@@ -594,6 +625,21 @@ export default function EditTrainerScreen() {
   // ============================================================
   // MAIN UI
   // ============================================================
+
+  const trainerInitials =
+    (trainer.name ||
+      trainer.username ||
+      "T")
+      .split(" ")
+      .filter(Boolean)
+      .map(
+        (word) =>
+          word[0]
+      )
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+
 
   return (
     <View
@@ -612,44 +658,21 @@ export default function EditTrainerScreen() {
 
       <View style={styles.header}>
 
-        <TouchableOpacity
-          style={[
-            styles.headerBack,
-            {
-              backgroundColor:
-                colors.card,
-              borderColor:
-                colors.border,
-            },
-          ]}
-          onPress={() =>
-            router.back()
+        <View
+          style={
+            styles.headerLeft
           }
         >
           <Text
             style={[
-              styles.backIcon,
+              styles.eyebrow,
               {
                 color:
-                  colors.text,
+                  colors.primaryLight,
               },
             ]}
           >
-            ‹
-          </Text>
-        </TouchableOpacity>
-
-        <View>
-          <Text
-            style={[
-              styles.smallTitle,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
-            GYM STAFF
+            GYMRYT • GYM STAFF
           </Text>
 
           <Text
@@ -663,6 +686,72 @@ export default function EditTrainerScreen() {
           >
             Edit Trainer
           </Text>
+        </View>
+
+
+        <View
+          style={
+            styles.headerActions
+          }
+        >
+
+          {/* THEME */}
+
+          <TouchableOpacity
+            style={[
+              styles.headerButton,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+            onPress={
+              toggleTheme
+            }
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={
+                isDark
+                  ? "sunny-outline"
+                  : "moon-outline"
+              }
+              size={20}
+              color={
+                colors.text
+              }
+            />
+          </TouchableOpacity>
+
+
+          {/* BACK */}
+
+          <TouchableOpacity
+            style={[
+              styles.headerButton,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
+            onPress={() =>
+              router.back()
+            }
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={
+                colors.text
+              }
+            />
+          </TouchableOpacity>
+
         </View>
 
       </View>
@@ -688,7 +777,7 @@ export default function EditTrainerScreen() {
 
         <View
           style={[
-            styles.readOnlyCard,
+            styles.previewCard,
             {
               backgroundColor:
                 colors.card,
@@ -697,43 +786,75 @@ export default function EditTrainerScreen() {
             },
           ]}
         >
-          <Text
+          <View
             style={[
-              styles.readOnlyLabel,
+              styles.previewAvatar,
               {
-                color:
-                  colors.mutedText,
+                backgroundColor:
+                  colors.iconBackground,
+                borderColor:
+                  colors.border,
               },
             ]}
           >
-            TRAINER
-          </Text>
+            <Text
+              style={[
+                styles.previewInitials,
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
+            >
+              {trainerInitials}
+            </Text>
+          </View>
 
-          <Text
-            style={[
-              styles.trainerName,
-              {
-                color:
-                  colors.text,
-              },
-            ]}
+          <View
+            style={
+              styles.previewInfo
+            }
           >
-            {trainer.name ||
-              "Unnamed Trainer"}
-          </Text>
+            <Text
+              style={[
+                styles.previewLabel,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              TRAINER
+            </Text>
 
-          <Text
-            style={[
-              styles.trainerUsername,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
-            @{trainer.username ||
-              "username"}
-          </Text>
+            <Text
+              style={[
+                styles.trainerName,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {trainer.name ||
+                "Unnamed Trainer"}
+            </Text>
+
+            <Text
+              style={[
+                styles.trainerUsername,
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
+              numberOfLines={1}
+            >
+              @{trainer.username ||
+                "username"}
+            </Text>
+          </View>
         </View>
 
 
@@ -741,438 +862,401 @@ export default function EditTrainerScreen() {
             PERSONAL INFORMATION
         ==================================================== */}
 
-        <Text
+        <View
           style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.primaryLight,
-            },
-          ]}
-        >
-          PERSONAL INFORMATION
-        </Text>
-
-
-        {/* FULL NAME */}
-
-        <Text
-          style={[
-            styles.label,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Full Name
-        </Text>
-
-        <TextInput
-          style={[
-            styles.input,
+            styles.section,
             {
               backgroundColor:
-                colors.input,
+                colors.card,
               borderColor:
                 colors.border,
-              color:
-                colors.text,
-            },
-          ]}
-          value={name}
-          onChangeText={
-            setName
-          }
-          placeholder="Enter full name"
-          placeholderTextColor={
-            colors.mutedText
-          }
-          autoCapitalize="words"
-        />
-
-
-        {/* USERNAME */}
-
-        <Text
-          style={[
-            styles.label,
-            {
-              color:
-                colors.text,
             },
           ]}
         >
-          Username
-        </Text>
 
-        <TextInput
-          style={[
-            styles.input,
-            {
-              backgroundColor:
-                colors.input,
-              borderColor:
-                colors.border,
-              color:
-                colors.text,
-            },
-          ]}
-          value={username}
-          onChangeText={
-            setUsername
-          }
-          placeholder="Enter username"
-          placeholderTextColor={
-            colors.mutedText
-          }
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+          <Text
+            style={[
+              styles.sectionEyebrow,
+              {
+                color:
+                  colors.primaryLight,
+              },
+            ]}
+          >
+            PERSONAL INFORMATION
+          </Text>
+
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            Account Details
+          </Text>
 
 
-        {/* EMAIL */}
+          {/* FULL NAME */}
 
-        <Text
-          style={[
-            styles.label,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Email
-        </Text>
-
-        <TextInput
-          style={[
-            styles.input,
-            {
-              backgroundColor:
-                colors.input,
-              borderColor:
-                colors.border,
-              color:
-                colors.text,
-            },
-          ]}
-          value={email}
-          onChangeText={
-            setEmail
-          }
-          placeholder="trainer@gmail.com"
-          placeholderTextColor={
-            colors.mutedText
-          }
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+          <Field
+            icon="person-outline"
+            label="FULL NAME"
+            colors={colors}
+          >
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+              value={name}
+              onChangeText={
+                setName
+              }
+              placeholder="Enter full name"
+              placeholderTextColor={
+                colors.mutedText
+              }
+              autoCapitalize="words"
+            />
+          </Field>
 
 
-        {/* PHONE */}
+          {/* USERNAME */}
 
-        <Text
-          style={[
-            styles.label,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Phone Number
-        </Text>
+          <Field
+            icon="at-outline"
+            label="USERNAME"
+            colors={colors}
+          >
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+              value={username}
+              onChangeText={
+                setUsername
+              }
+              placeholder="Enter username"
+              placeholderTextColor={
+                colors.mutedText
+              }
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </Field>
 
-        <TextInput
-          style={[
-            styles.input,
-            {
-              backgroundColor:
-                colors.input,
-              borderColor:
-                colors.border,
-              color:
-                colors.text,
-            },
-          ]}
-          value={phone}
-          onChangeText={
-            setPhone
-          }
-          placeholder="Enter phone number"
-          placeholderTextColor={
-            colors.mutedText
-          }
-          keyboardType="phone-pad"
-          maxLength={15}
-        />
+
+          {/* EMAIL */}
+
+          <Field
+            icon="mail-outline"
+            label="EMAIL"
+            colors={colors}
+          >
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+              value={email}
+              onChangeText={
+                setEmail
+              }
+              placeholder="trainer@gmail.com"
+              placeholderTextColor={
+                colors.mutedText
+              }
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </Field>
+
+
+          {/* PHONE */}
+
+          <Field
+            icon="call-outline"
+            label="PHONE NUMBER"
+            colors={colors}
+          >
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+              value={phone}
+              onChangeText={
+                setPhone
+              }
+              placeholder="Enter phone number"
+              placeholderTextColor={
+                colors.mutedText
+              }
+              keyboardType="phone-pad"
+              maxLength={15}
+            />
+          </Field>
+
+        </View>
 
 
         {/* ====================================================
             TRAINER INFORMATION
         ==================================================== */}
 
-        <Text
+        <View
           style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.primaryLight,
-            },
-          ]}
-        >
-          TRAINER INFORMATION
-        </Text>
-
-
-        {/* SPECIALIZATION */}
-
-        <Text
-          style={[
-            styles.label,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Specialization
-        </Text>
-
-        <TextInput
-          style={[
-            styles.input,
+            styles.section,
             {
               backgroundColor:
-                colors.input,
+                colors.card,
               borderColor:
                 colors.border,
-              color:
-                colors.text,
             },
           ]}
-          value={
-            specialization
-          }
-          onChangeText={
-            setSpecialization
-          }
-          placeholder="e.g. Personal Training"
-          placeholderTextColor={
-            colors.mutedText
-          }
-        />
+        >
 
-
-        {/* EXPERIENCE */}
-
-        <Text
-          style={[
-            styles.label,
-            {
-              color:
-                colors.text,
+          <Text
+            style={[
+              styles.sectionEyebrow,
+              {
+                color:
+                  colors.primaryLight,
               },
             ]}
-        >
-          Experience
-        </Text>
+          >
+            TRAINER INFORMATION
+          </Text>
 
-        <View
-          style={
-            styles.experienceRow
-          }
-        >
-          <TextInput
+          <Text
             style={[
-              styles.input,
-              styles.experienceInput,
+              styles.sectionTitle,
               {
-                backgroundColor:
-                  colors.input,
-                borderColor:
-                  colors.border,
                 color:
                   colors.text,
               },
             ]}
-            value={
-              experience
-            }
-            onChangeText={(text) =>
-              setExperience(
-                text.replace(
-                  /[^0-9]/g,
-                  ""
+          >
+            Training Profile
+          </Text>
+
+
+          {/* SPECIALIZATION */}
+
+          <Field
+            icon="barbell-outline"
+            label="SPECIALIZATION"
+            colors={colors}
+          >
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+              value={
+                specialization
+              }
+              onChangeText={
+                setSpecialization
+              }
+              placeholder="e.g. Personal Training"
+              placeholderTextColor={
+                colors.mutedText
+              }
+            />
+          </Field>
+
+
+          {/* EXPERIENCE */}
+
+          <Field
+            icon="trophy-outline"
+            label="EXPERIENCE"
+            colors={colors}
+          >
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+              value={
+                experience
+              }
+              onChangeText={(text) =>
+                setExperience(
+                  text.replace(
+                    /[^0-9]/g,
+                    ""
+                  )
                 )
-              )
-            }
-            keyboardType="number-pad"
-            placeholder="0"
-            placeholderTextColor={
-              colors.mutedText
-            }
-            maxLength={2}
-          />
+              }
+              keyboardType="number-pad"
+              placeholder="0"
+              placeholderTextColor={
+                colors.mutedText
+              }
+              maxLength={2}
+            />
+
+            <Text
+              style={[
+                styles.yearsText,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              YEARS
+            </Text>
+          </Field>
+
+
+          {/* ====================================================
+              STATUS
+          ==================================================== */}
 
           <Text
             style={[
-              styles.yearsText,
+              styles.label,
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
-            years
-          </Text>
-        </View>
-
-
-        {/* ====================================================
             STATUS
-        ==================================================== */}
+          </Text>
 
-        <Text
-          style={[
-            styles.label,
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          Status
-        </Text>
-
-        <View
-          style={
-            styles.statusOptions
-          }
-        >
-
-          {/* ACTIVE */}
-
-          <TouchableOpacity
-            style={[
-              styles.statusOption,
-              {
-                backgroundColor:
-                  isActive
-                    ? colors.successBackground
-                    : colors.card,
-
-                borderColor:
-                  isActive
-                    ? colors.success
-                    : colors.border,
-              },
-            ]}
-            onPress={() =>
-              setIsActive(true)
+          <View
+            style={
+              styles.statusOptions
             }
           >
-            <View
+
+            {/* ACTIVE */}
+
+            <TouchableOpacity
               style={[
-                styles.radio,
+                styles.statusOption,
                 {
+                  backgroundColor:
+                    isActive
+                      ? "#45E0A518"
+                      : colors.background,
                   borderColor:
                     isActive
-                      ? colors.success
-                      : colors.mutedText,
+                      ? "#45E0A5"
+                      : colors.border,
                 },
               ]}
+              onPress={() =>
+                setIsActive(true)
+              }
             >
-              {isActive && (
-                <View
-                  style={[
-                    styles.radioInner,
-                    {
-                      backgroundColor:
-                        colors.success,
-                    },
-                  ]}
-                />
-              )}
-            </View>
+              <Ionicons
+                name={
+                  isActive
+                    ? "checkmark-circle"
+                    : "ellipse-outline"
+                }
+                size={19}
+                color={
+                  isActive
+                    ? "#45E0A5"
+                    : colors.secondaryText
+                }
+              />
 
-            <Text
+              <Text
+                style={[
+                  styles.statusOptionText,
+                  {
+                    color:
+                      isActive
+                        ? "#45E0A5"
+                        : colors.text,
+                  },
+                ]}
+              >
+                ACTIVE
+              </Text>
+            </TouchableOpacity>
+
+
+            {/* INACTIVE */}
+
+            <TouchableOpacity
               style={[
-                styles.statusOptionText,
+                styles.statusOption,
                 {
-                  color:
-                    isActive
-                      ? colors.success
-                      : colors.text,
-                },
-              ]}
-            >
-              Active
-            </Text>
-          </TouchableOpacity>
-
-
-          {/* INACTIVE */}
-
-          <TouchableOpacity
-            style={[
-              styles.statusOption,
-              {
-                backgroundColor:
-                  !isActive
-                    ? colors.dangerBackground
-                    : colors.card,
-
-                borderColor:
-                  !isActive
-                    ? colors.danger
-                    : colors.border,
-              },
-            ]}
-            onPress={() =>
-              setIsActive(false)
-            }
-          >
-            <View
-              style={[
-                styles.radio,
-                {
+                  backgroundColor:
+                    !isActive
+                      ? "#FF587018"
+                      : colors.background,
                   borderColor:
                     !isActive
-                      ? colors.danger
-                      : colors.mutedText,
+                      ? "#FF5870"
+                      : colors.border,
                 },
               ]}
+              onPress={() =>
+                setIsActive(false)
+              }
             >
-              {!isActive && (
-                <View
-                  style={[
-                    styles.radioInner,
-                    {
-                      backgroundColor:
-                        colors.danger,
-                    },
-                  ]}
-                />
-              )}
-            </View>
+              <Ionicons
+                name={
+                  !isActive
+                    ? "close-circle"
+                    : "ellipse-outline"
+                }
+                size={19}
+                color={
+                  !isActive
+                    ? "#FF5870"
+                    : colors.secondaryText
+                }
+              />
 
-            <Text
-              style={[
-                styles.statusOptionText,
-                {
-                  color:
-                    !isActive
-                      ? colors.danger
-                      : colors.text,
-                },
-              ]}
-            >
-              Inactive
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.statusOptionText,
+                  {
+                    color:
+                      !isActive
+                        ? "#FF5870"
+                        : colors.text,
+                  },
+                ]}
+              >
+                INACTIVE
+              </Text>
+            </TouchableOpacity>
+
+          </View>
 
         </View>
 
@@ -1202,13 +1286,21 @@ export default function EditTrainerScreen() {
               color="#FFFFFF"
             />
           ) : (
-            <Text
-              style={
-                styles.saveText
-              }
-            >
-              Save Changes
-            </Text>
+            <>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={19}
+                color="#FFFFFF"
+              />
+
+              <Text
+                style={
+                  styles.saveText
+                }
+              >
+                SAVE CHANGES
+              </Text>
+            </>
           )}
         </TouchableOpacity>
 
@@ -1231,15 +1323,69 @@ export default function EditTrainerScreen() {
               styles.cancelText,
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
-            Cancel
+            CANCEL
           </Text>
         </TouchableOpacity>
 
       </ScrollView>
+    </View>
+  );
+}
+
+
+// ============================================================
+// FIELD
+// ============================================================
+
+function Field({
+  icon,
+  label,
+  colors,
+  children,
+}) {
+  return (
+    <View
+      style={
+        styles.inputGroup
+      }
+    >
+      <Text
+        style={[
+          styles.label,
+          {
+            color:
+              colors.secondaryText,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
+      <View
+        style={[
+          styles.inputRow,
+          {
+            backgroundColor:
+              colors.background,
+            borderColor:
+              colors.border,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={
+            colors.primaryLight
+          }
+        />
+
+        {children}
+      </View>
     </View>
   );
 }
@@ -1253,234 +1399,300 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    paddingHorizontal: 20,
   },
 
   loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 20,
   },
 
   loadingText: {
-    marginTop: 14,
-    fontSize: 13,
+    marginTop: 12,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+
+  // ============================================================
+  // ERROR
+  // ============================================================
+
+  errorIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   errorTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 20,
+    fontSize: 16,
+    fontWeight: "900",
+    marginTop: 12,
   },
 
   backButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    marginTop: 16,
   },
 
   backButtonText: {
     color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: 11,
+    fontWeight: "900",
+    marginLeft: 6,
   },
 
-  // ==========================================================
+
+  // ============================================================
   // HEADER
-  // ==========================================================
+  // ============================================================
 
   header: {
-    marginTop: 55,
-    marginBottom: 22,
+    paddingHorizontal: 18,
+    paddingTop:
+      Platform.OS === "ios"
+        ? 54
+        : 44,
+    paddingBottom: 14,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
 
-  headerBack: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 13,
+  headerLeft: {
+    flex: 1,
+    marginRight: 10,
   },
 
-  backIcon: {
-    fontSize: 30,
-    lineHeight: 30,
-    marginTop: -3,
-  },
-
-  smallTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 2,
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
   },
 
   title: {
-    fontSize: 27,
+    fontSize: 22,
     fontWeight: "900",
     marginTop: 4,
   },
 
-  // ==========================================================
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+
+  headerButton: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+
+  // ============================================================
   // CONTENT
-  // ==========================================================
+  // ============================================================
 
   content: {
-    paddingBottom: 50,
+    paddingHorizontal: 18,
+    paddingTop: 4,
+    paddingBottom: 40,
   },
 
-  // ==========================================================
-  // TRAINER PREVIEW
-  // ==========================================================
 
-  readOnlyCard: {
-    borderRadius: 18,
+  // ============================================================
+  // PREVIEW
+  // ============================================================
+
+  previewCard: {
+    minHeight: 84,
     borderWidth: 1,
-    padding: 17,
-    marginBottom: 24,
+    borderRadius: 21,
+    paddingHorizontal: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
   },
 
-  readOnlyLabel: {
-    fontSize: 9,
+  previewAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  previewInitials: {
+    fontSize: 18,
     fontWeight: "900",
-    letterSpacing: 1.5,
+  },
+
+  previewInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+
+  previewLabel: {
+    fontSize: 7,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
 
   trainerName: {
-    fontSize: 19,
+    fontSize: 16,
     fontWeight: "900",
-    marginTop: 6,
+    marginTop: 2,
   },
 
   trainerUsername: {
-    fontSize: 11,
-    marginTop: 4,
+    fontSize: 10,
+    fontWeight: "700",
+    marginTop: 2,
   },
 
-  // ==========================================================
+
+  // ============================================================
   // SECTION
-  // ==========================================================
+  // ============================================================
+
+  section: {
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 16,
+    paddingBottom: 4,
+    marginBottom: 12,
+  },
+
+  sectionEyebrow: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1.3,
+    marginBottom: 3,
+  },
 
   sectionTitle: {
-    fontSize: 10,
+    fontSize: 18,
     fontWeight: "900",
-    letterSpacing: 1.8,
-    marginBottom: 15,
+    marginBottom: 16,
   },
 
-  // ==========================================================
-  // INPUT
-  // ==========================================================
+
+  // ============================================================
+  // INPUTS
+  // ============================================================
+
+  inputGroup: {
+    marginBottom: 14,
+  },
 
   label: {
-    fontSize: 12,
-    fontWeight: "800",
-    marginBottom: 8,
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 7,
   },
 
-  input: {
+  inputRow: {
     height: 52,
-    borderRadius: 14,
     borderWidth: 1,
-    paddingHorizontal: 15,
-    fontSize: 14,
-    marginBottom: 20,
-  },
-
-  // ==========================================================
-  // EXPERIENCE
-  // ==========================================================
-
-  experienceRow: {
+    borderRadius: 16,
+    paddingLeft: 14,
     flexDirection: "row",
     alignItems: "center",
   },
 
-  experienceInput: {
-    width: 100,
-    marginBottom: 20,
+  input: {
+    flex: 1,
+    height: "100%",
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   yearsText: {
-    fontSize: 13,
-    marginLeft: 10,
-    marginBottom: 20,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    marginRight: 14,
   },
 
-  // ==========================================================
+
+  // ============================================================
   // STATUS
-  // ==========================================================
+  // ============================================================
 
   statusOptions: {
     flexDirection: "row",
-    gap: 10,
-    marginBottom: 28,
+    gap: 8,
+    marginBottom: 14,
   },
 
   statusOption: {
     flex: 1,
-    height: 54,
-    borderRadius: 14,
+    height: 50,
     borderWidth: 1,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-  },
-
-  radio: {
-    width: 19,
-    height: 19,
-    borderRadius: 10,
-    borderWidth: 2,
-    alignItems: "center",
     justifyContent: "center",
-    marginRight: 9,
-  },
-
-  radioInner: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
   },
 
   statusOptionText: {
-    fontSize: 12,
-    fontWeight: "800",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    marginLeft: 7,
   },
 
-  // ==========================================================
+
+  // ============================================================
   // SAVE
-  // ==========================================================
+  // ============================================================
 
   saveButton: {
-    height: 52,
-    borderRadius: 15,
+    height: 54,
+    borderRadius: 17,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
+    marginTop: 6,
   },
 
   saveText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
+    letterSpacing: 1,
   },
 
-  // ==========================================================
+
+  // ============================================================
   // CANCEL
-  // ==========================================================
+  // ============================================================
 
   cancelButton: {
     height: 48,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 6,
   },
 
   cancelText: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
 
 });

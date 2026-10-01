@@ -39,7 +39,7 @@ import {
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members/";
+  "http://192.168.1.43:8000/api/members/";
 
 
 // ============================================================
@@ -1114,7 +1114,7 @@ function TrainerBottomNavigation({
       ) {
 
         router.push(
-          "/trainer/workouts"
+          "/trainer/workout"
         );
 
         return;

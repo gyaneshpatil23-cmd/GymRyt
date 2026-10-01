@@ -24,11 +24,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members/registration-qr/";
+  "http://192.168.1.43:8000/api/members/registration-qr/";
 
 export default function AdminQRScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
   const insets = useSafeAreaInsets();
 
   const qrRef = useRef(null);
@@ -363,59 +367,104 @@ export default function AdminQRScreen() {
 
         <View style={styles.header}>
 
-          <TouchableOpacity
-            style={[
-              styles.backButton,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={() => router.back()}
-            activeOpacity={0.8}
+          <View
+            style={
+              styles.headerLeft
+            }
           >
 
-            <Ionicons
-              name="arrow-back"
-              size={23}
-              color={colors.text}
-            />
-
-          </TouchableOpacity>
-
-
-          <View style={styles.headerCenter}>
+            <Text
+              style={[
+                styles.eyebrow,
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
+            >
+              GYMRYT • MEMBER REGISTRATION
+            </Text>
 
             <Text
               style={[
                 styles.headerTitle,
                 {
-                  color: colors.text,
+                  color:
+                    colors.text,
                 },
               ]}
               numberOfLines={1}
             >
-              Member Registration
-            </Text>
-
-            <Text
-              style={[
-                styles.headerSubtitle,
-                {
-                  color: colors.secondaryText,
-                },
-              ]}
-              numberOfLines={1}
-            >
-              Your GymRyt QR Code
+              Registration QR
             </Text>
 
           </View>
 
 
-          {/* Keeps title perfectly centered */}
+          <View
+            style={
+              styles.headerActions
+            }
+          >
 
-          <View style={styles.headerRight} />
+            {/* THEME */}
+
+            <TouchableOpacity
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={
+                toggleTheme
+              }
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </TouchableOpacity>
+
+
+            {/* BACK */}
+
+            <TouchableOpacity
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={() =>
+                router.back()
+              }
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </TouchableOpacity>
+
+          </View>
 
         </View>
 
@@ -998,49 +1047,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+
   // ==========================================================
   // HEADER
   // ==========================================================
 
   header: {
-    height: 72,
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
 
-  backButton: {
-    width: 44,
-    height: 44,
+  headerLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
+  },
+
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+
+  headerButton: {
+    width: 43,
+    height: 43,
     borderRadius: 14,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  headerCenter: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 8,
-  },
-
-  headerRight: {
-    width: 44,
-  },
-
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-
-  headerSubtitle: {
-    fontSize: 12,
-    marginTop: 3,
-    textAlign: "center",
-  },
 
   // ==========================================================
   // SCROLL
@@ -1053,10 +1106,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     width: "100%",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: 18,
+    paddingTop: 4,
     paddingBottom: 24,
   },
+
 
   // ==========================================================
   // TITLE
@@ -1064,8 +1118,8 @@ const styles = StyleSheet.create({
 
   title: {
     width: "100%",
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 20,
+    fontWeight: "900",
     textAlign: "center",
     marginTop: 4,
   },
@@ -1073,11 +1127,13 @@ const styles = StyleSheet.create({
   description: {
     width: "100%",
     maxWidth: 360,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 11,
+    fontWeight: "600",
+    lineHeight: 17,
     textAlign: "center",
-    marginTop: 8,
+    marginTop: 6,
   },
+
 
   // ==========================================================
   // QR
@@ -1085,11 +1141,11 @@ const styles = StyleSheet.create({
 
   qrCard: {
     width: "100%",
-    maxWidth: 360,
+    maxWidth: 380,
     minHeight: 280,
-    borderRadius: 24,
+    borderRadius: 26,
     borderWidth: 1,
-    marginTop: 20,
+    marginTop: 18,
     padding: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -1102,7 +1158,7 @@ const styles = StyleSheet.create({
 
   qrBackground: {
     padding: 16,
-    borderRadius: 18,
+    borderRadius: 20,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
@@ -1116,29 +1172,32 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    fontSize: 14,
-    marginTop: 14,
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 12,
     textAlign: "center",
   },
 
   errorText: {
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: "700",
     textAlign: "center",
     marginTop: 12,
   },
 
   retryButton: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
     paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 18,
+    borderRadius: 14,
+    marginTop: 16,
   },
 
   retryButtonText: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "900",
   },
+
 
   // ==========================================================
   // DOWNLOAD / SHARE
@@ -1146,44 +1205,45 @@ const styles = StyleSheet.create({
 
   actionRow: {
     width: "100%",
-    maxWidth: 360,
+    maxWidth: 380,
     flexDirection: "row",
-    marginTop: 14,
+    marginTop: 12,
   },
 
   downloadButton: {
     flex: 1,
-    height: 50,
-    borderRadius: 14,
+    height: 54,
+    borderRadius: 17,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    marginRight: 6,
+    marginRight: 5,
   },
 
   shareButton: {
     flex: 1,
-    height: 50,
-    borderRadius: 14,
+    height: 54,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    marginLeft: 6,
+    marginLeft: 5,
   },
 
   downloadText: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "900",
     marginLeft: 8,
   },
 
   shareText: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "900",
     marginLeft: 8,
   },
+
 
   // ==========================================================
   // ADMIN
@@ -1191,15 +1251,14 @@ const styles = StyleSheet.create({
 
   adminCard: {
     width: "100%",
-    maxWidth: 360,
-    minHeight: 74,
+    maxWidth: 380,
+    minHeight: 76,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 18,
+    borderRadius: 21,
     borderWidth: 1,
-    paddingHorizontal: 15,
-    paddingVertical: 13,
-    marginTop: 14,
+    paddingHorizontal: 13,
+    marginTop: 12,
   },
 
   adminIcon: {
@@ -1211,21 +1270,22 @@ const styles = StyleSheet.create({
   },
 
   adminInfo: {
-    marginLeft: 12,
+    marginLeft: 11,
     flex: 1,
   },
 
   adminLabel: {
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: 7,
+    fontWeight: "900",
     letterSpacing: 1,
   },
 
   adminName: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "900",
     marginTop: 3,
   },
+
 
   // ==========================================================
   // INSTRUCTIONS
@@ -1233,52 +1293,56 @@ const styles = StyleSheet.create({
 
   instructionsCard: {
     width: "100%",
-    maxWidth: 360,
-    borderRadius: 18,
+    maxWidth: 380,
+    borderRadius: 21,
     borderWidth: 1,
-    padding: 16,
-    marginTop: 14,
+    padding: 15,
+    marginTop: 12,
   },
 
   instructionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 13,
   },
 
   instructionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginLeft: 8,
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginLeft: 7,
   },
 
   instructionRow: {
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 11,
   },
 
   stepNumber: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
 
   stepNumberText: {
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: 12,
+    fontWeight: "900",
   },
 
   instructionText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 11,
+    fontWeight: "600",
+    lineHeight: 16,
     marginLeft: 10,
   },
+
 
   // ==========================================================
   // REFRESH
@@ -1286,19 +1350,20 @@ const styles = StyleSheet.create({
 
   refreshButton: {
     width: "100%",
-    maxWidth: 360,
-    height: 48,
-    borderRadius: 14,
+    maxWidth: 380,
+    height: 50,
+    borderRadius: 16,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    marginTop: 14,
+    marginTop: 12,
   },
 
   refreshText: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.6,
     marginLeft: 8,
   },
 

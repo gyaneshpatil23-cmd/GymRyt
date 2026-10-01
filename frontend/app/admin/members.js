@@ -5,15 +5,18 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 
 import { router, useLocalSearchParams } from "expo-router";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
 
@@ -23,7 +26,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members/";
+  "http://192.168.1.43:8000/api/members/";
 
 
 // ============================================================
@@ -32,7 +35,7 @@ const API_URL =
 
 export default function MembersScreen() {
 
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
 
   const params = useLocalSearchParams();
 
@@ -441,6 +444,30 @@ export default function MembersScreen() {
 
 
   // ==========================================================
+  // STATUS COLOR
+  // ==========================================================
+
+  const getStatusColor = (
+    status
+  ) => {
+
+    if (status === "ACTIVE") {
+      return "#45E0A5";
+    }
+
+    if (status === "EXPIRING") {
+      return "#FFB21C";
+    }
+
+    if (status === "EXPIRED") {
+      return "#FF5870";
+    }
+
+    return colors.secondaryText;
+  };
+
+
+  // ==========================================================
   // MEMBER CARD
   // ==========================================================
 
@@ -453,10 +480,15 @@ export default function MembersScreen() {
         item.membership_end
       );
 
+    const statusColor =
+      getStatusColor(
+        item.status
+      );
+
 
     return (
 
-      <TouchableOpacity
+      <Pressable
 
         style={[
           styles.memberCard,
@@ -470,9 +502,10 @@ export default function MembersScreen() {
           },
         ]}
 
-        activeOpacity={
-          0.8
-        }
+        android_ripple={{
+          color:
+            colors.iconBackground,
+        }}
 
         onPress={() =>
           openMember(item)
@@ -491,6 +524,9 @@ export default function MembersScreen() {
             {
               backgroundColor:
                 colors.iconBackground,
+
+              borderColor:
+                `${statusColor}55`,
             },
           ]}
         >
@@ -501,7 +537,7 @@ export default function MembersScreen() {
 
               {
                 color:
-                  colors.primaryLight,
+                  statusColor,
               },
             ]}
           >
@@ -548,9 +584,10 @@ export default function MembersScreen() {
 
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
+            numberOfLines={1}
           >
             {
               item.phone
@@ -560,21 +597,21 @@ export default function MembersScreen() {
 
           <Text
             style={[
-              styles.daysText,
+              styles.memberDays,
 
               {
                 color:
                   item.status ===
-                  "EXPIRING"
+                  "EXPIRED"
 
-                    ? colors.warning
+                    ? "#FF5870"
 
                     : item.status ===
-                      "EXPIRED"
+                      "EXPIRING"
 
-                    ? colors.danger
+                    ? "#FFB21C"
 
-                    : colors.success,
+                    : colors.secondaryText,
               },
             ]}
           >
@@ -601,78 +638,81 @@ export default function MembersScreen() {
 
           <View
             style={[
-              styles.paymentArrowContainer,
+              styles.paymentIcon,
 
               {
                 backgroundColor:
-                  colors.primary,
+                  colors.iconBackground,
               },
             ]}
           >
 
-            <Text
-              style={
-                styles.paymentArrow
+            <Ionicons
+              name="wallet-outline"
+              size={20}
+              color={
+                colors.primaryLight
               }
-            >
-              ₹
-            </Text>
+            />
 
           </View>
 
         ) : (
 
           <View
-            style={[
-              styles.statusBadge,
-
-              {
-                backgroundColor:
-                  item.status ===
-                  "ACTIVE"
-
-                    ? colors.successBackground
-
-                    : item.status ===
-                      "EXPIRING"
-
-                    ? colors.warningBackground
-
-                    : colors.dangerBackground,
-              },
-            ]}
+            style={
+              styles.memberRight
+            }
           >
 
-            <Text
+            <View
               style={[
-                styles.statusText,
+                styles.statusBadge,
 
                 {
-                  color:
-                    item.status ===
-                    "ACTIVE"
+                  backgroundColor:
+                    `${statusColor}18`,
 
-                      ? colors.success
-
-                      : item.status ===
-                        "EXPIRING"
-
-                      ? colors.warning
-
-                      : colors.danger,
+                  borderColor:
+                    `${statusColor}55`,
                 },
               ]}
             >
-              {
-                item.status
+
+              <Text
+                style={[
+                  styles.statusText,
+
+                  {
+                    color:
+                      statusColor,
+                  },
+                ]}
+              >
+                {
+                  item.status
+                }
+              </Text>
+
+            </View>
+
+
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={
+                colors.secondaryText
               }
-            </Text>
+              style={
+                styles.arrow
+              }
+            />
 
           </View>
 
         )}
 
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
@@ -749,61 +789,143 @@ export default function MembersScreen() {
         }
       >
 
-        <View>
+        <View
+          style={
+            styles.headerTop
+          }
+        >
 
-          <Text
-            style={[
-              styles.smallTitle,
+          <View>
 
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
+            <Text
+              style={[
+                styles.eyebrow,
 
-            {
-              selectForPayment
-                ? "PAYMENT"
-                : "GYM MEMBERS"
-            }
-
-          </Text>
-
-
-          <Text
-            style={[
-              styles.title,
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
+            >
 
               {
-                color:
-                  colors.text,
-              },
-            ]}
+                selectForPayment
+                  ? "GYMRYT • PAYMENT"
+                  : "GYMRYT • OWNER"
+              }
+
+            </Text>
+
+
+            <Text
+              style={[
+                styles.title,
+
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+            >
+
+              {
+                selectForPayment
+                  ? "Select Member"
+                  : "Members"
+              }
+
+            </Text>
+
+          </View>
+
+
+          {/* ==================================================
+              HEADER ACTIONS
+          ================================================== */}
+
+          <View
+            style={
+              styles.headerActions
+            }
           >
 
-            {
-              selectForPayment
-                ? "Select Member"
-                : "Members"
-            }
+            {/* THEME */}
 
-          </Text>
+            <Pressable
+              style={[
+                styles.headerButton,
+
+                {
+                  backgroundColor:
+                    colors.card,
+
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+
+              onPress={
+                toggleTheme
+              }
+            >
+
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+
+            </Pressable>
+
+
+            {/* BACK */}
+
+            <Pressable
+              style={[
+                styles.headerButton,
+
+                {
+                  backgroundColor:
+                    colors.card,
+
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+
+              onPress={() =>
+                router.back()
+              }
+            >
+
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+
+            </Pressable>
+
+          </View>
 
         </View>
 
-      </View>
 
-
-      {/* ====================================================
-          PAYMENT MODE INFORMATION
-      ==================================================== */}
-
-      {selectForPayment && (
+        {/* ==================================================
+            SUMMARY
+        ================================================== */}
 
         <View
           style={[
-            styles.paymentInfo,
+            styles.summaryCard,
 
             {
               backgroundColor:
@@ -815,29 +937,55 @@ export default function MembersScreen() {
           ]}
         >
 
-          <Text
+          <View
             style={[
-              styles.paymentInfoIcon,
+              styles.summaryIcon,
 
               {
-                color:
-                  colors.primaryLight,
+                backgroundColor:
+                  colors.iconBackground,
               },
             ]}
           >
-            ₹
-          </Text>
+
+            <Ionicons
+              name={
+                selectForPayment
+                  ? "wallet-outline"
+                  : "people-outline"
+              }
+              size={22}
+              color={
+                colors.primaryLight
+              }
+            />
+
+          </View>
 
 
           <View
             style={
-              styles.paymentInfoText
+              styles.summaryInfo
             }
           >
 
             <Text
               style={[
-                styles.paymentInfoTitle,
+                styles.summaryLabel,
+
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              TOTAL MEMBERS
+            </Text>
+
+
+            <Text
+              style={[
+                styles.summaryValue,
 
                 {
                   color:
@@ -845,230 +993,183 @@ export default function MembersScreen() {
                 },
               ]}
             >
-              Select a member
+              {members.length}
             </Text>
 
+          </View>
+
+
+          <View
+            style={
+              styles.summaryRight
+            }
+          >
 
             <Text
               style={[
-                styles.paymentInfoSubtitle,
+                styles.summaryRightText,
 
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
+              numberOfLines={2}
             >
-              Choose the member for whom
-              you want to record a payment.
+
+              {
+                selectForPayment
+                  ? "Choose a member to record a payment"
+                  : "Your gym members"
+              }
+
             </Text>
 
           </View>
 
         </View>
 
-      )}
 
+        {/* ==================================================
+            SEARCH
+        ================================================== */}
 
-      {/* ====================================================
-          SEARCH
-      ==================================================== */}
-
-      <View
-        style={[
-          styles.searchContainer,
-
-          {
-            backgroundColor:
-              colors.input,
-
-            borderColor:
-              colors.border,
-          },
-        ]}
-      >
-
-        <Text
+        <View
           style={[
-            styles.searchIcon,
+            styles.searchContainer,
 
             {
-              color:
-                colors.mutedText,
+              backgroundColor:
+                colors.card,
+
+              borderColor:
+                colors.border,
             },
           ]}
         >
-          ⌕
-        </Text>
+
+          <Ionicons
+            name="search-outline"
+            size={18}
+            color={
+              colors.secondaryText
+            }
+          />
 
 
-        <TextInput
-          style={[
-            styles.searchInput,
-
-            {
-              color:
-                colors.text,
-            },
-          ]}
-
-          placeholder={
-            selectForPayment
-              ? "Search member by name or username..."
-              : "Search members..."
-          }
-
-          placeholderTextColor={
-            colors.mutedText
-          }
-
-          value={
-            search
-          }
-
-          onChangeText={
-            setSearch
-          }
-
-          autoCapitalize="none"
-
-        />
-
-      </View>
-
-
-      {/* ====================================================
-          FILTERS
-      ==================================================== */}
-
-      <View
-        style={
-          styles.filters
-        }
-      >
-
-        {[
-          "ALL",
-          "ACTIVE",
-          "EXPIRING",
-          "EXPIRED",
-        ].map(
-          (filter) => (
-
-            <TouchableOpacity
-
-              key={
-                filter
-              }
-
-              style={[
-                styles.filterButton,
-
-                {
-                  backgroundColor:
-                    colors.card,
-
-                  borderColor:
-                    colors.border,
-                },
-
-                selectedFilter ===
-                  filter && {
-
-                    backgroundColor:
-                      colors.primary,
-
-                    borderColor:
-                      colors.primary,
-                  },
-
-              ]}
-
-              onPress={() =>
-                setSelectedFilter(
-                  filter
-                )
-              }
-
-            >
-
-              <Text
-                style={[
-                  styles.filterText,
-
-                  {
-                    color:
-                      colors.mutedText,
-                  },
-
-                  selectedFilter ===
-                    filter && {
-
-                      color:
-                        "#FFFFFF",
-                    },
-
-                ]}
-              >
-                {
-                  filter
-                }
-              </Text>
-
-            </TouchableOpacity>
-
-          )
-        )}
-
-      </View>
-
-
-      {/* ====================================================
-          COUNT + REFRESH
-      ==================================================== */}
-
-      <View
-        style={
-          styles.countRow
-        }
-      >
-
-        <Text
-          style={[
-            styles.countText,
-
-            {
-              color:
-                colors.text,
-            },
-          ]}
-        >
-          {
-            filteredMembers.length
-          } Members
-        </Text>
-
-
-        <TouchableOpacity
-          onPress={
-            fetchMembers
-          }
-        >
-
-          <Text
+          <TextInput
             style={[
-              styles.sortText,
+              styles.searchInput,
 
               {
                 color:
-                  colors.primaryLight,
+                  colors.text,
               },
             ]}
-          >
-            ↻ Refresh
-          </Text>
 
-        </TouchableOpacity>
+            placeholder={
+              selectForPayment
+                ? "Search member by name or username..."
+                : "Search members..."
+            }
+
+            placeholderTextColor={
+              colors.mutedText
+            }
+
+            value={
+              search
+            }
+
+            onChangeText={
+              setSearch
+            }
+
+            autoCapitalize="none"
+
+          />
+
+        </View>
+
+
+        {/* ==================================================
+            FILTERS
+        ================================================== */}
+
+        <View
+          style={
+            styles.filters
+          }
+        >
+
+          {[
+            "ALL",
+            "ACTIVE",
+            "EXPIRING",
+            "EXPIRED",
+          ].map(
+            (filter) => {
+
+              const selected =
+                selectedFilter ===
+                filter;
+
+              return (
+
+                <Pressable
+
+                  key={
+                    filter
+                  }
+
+                  style={[
+                    styles.filterButton,
+
+                    {
+                      backgroundColor:
+                        selected
+                          ? colors.iconBackground
+                          : colors.card,
+
+                      borderColor:
+                        selected
+                          ? colors.primaryLight
+                          : colors.border,
+                    },
+                  ]}
+
+                  onPress={() =>
+                    setSelectedFilter(
+                      filter
+                    )
+                  }
+
+                >
+
+                  <Text
+                    style={[
+                      styles.filterText,
+
+                      {
+                        color:
+                          selected
+                            ? colors.primaryLight
+                            : colors.secondaryText,
+                      },
+                    ]}
+                  >
+                    {
+                      filter
+                    }
+                  </Text>
+
+                </Pressable>
+
+              );
+            }
+          )}
+
+        </View>
 
       </View>
 
@@ -1098,25 +1199,110 @@ export default function MembersScreen() {
           false
         }
 
-        contentContainerStyle={
-          styles.list
+        contentContainerStyle={[
+          styles.list,
+
+          filteredMembers.length === 0 &&
+            styles.emptyList,
+        ]}
+
+        ListHeaderComponent={
+
+          <View
+            style={
+              styles.listHeader
+            }
+          >
+
+            <Text
+              style={[
+                styles.listTitle,
+
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+            >
+              {
+                filteredMembers.length
+              } MEMBERS
+            </Text>
+
+
+            <Pressable
+              style={
+                styles.refreshButton
+              }
+
+              onPress={
+                fetchMembers
+              }
+            >
+
+              <Ionicons
+                name="refresh"
+                size={14}
+                color={
+                  colors.primaryLight
+                }
+              />
+
+              <Text
+                style={[
+                  styles.refreshText,
+
+                  {
+                    color:
+                      colors.primaryLight,
+                  },
+                ]}
+              >
+                Refresh
+              </Text>
+
+            </Pressable>
+
+          </View>
+
         }
 
         ListEmptyComponent={
 
           <View
-            style={
-              styles.emptyContainer
-            }
+            style={[
+              styles.emptyCard,
+
+              {
+                backgroundColor:
+                  colors.card,
+
+                borderColor:
+                  colors.border,
+              },
+            ]}
           >
 
-            <Text
-              style={
-                styles.emptyIcon
-              }
+            <View
+              style={[
+                styles.emptyIcon,
+
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                },
+              ]}
             >
-              👥
-            </Text>
+
+              <Ionicons
+                name="people-outline"
+                size={28}
+                color={
+                  colors.primaryLight
+                }
+              />
+
+            </View>
 
 
             <Text
@@ -1129,13 +1315,7 @@ export default function MembersScreen() {
                 },
               ]}
             >
-
-              {
-                selectForPayment
-                  ? "No Members Found"
-                  : "No Members Found"
-              }
-
+              No Members Found
             </Text>
 
 
@@ -1234,9 +1414,12 @@ function calculateDaysRemaining(
 const styles =
   StyleSheet.create({
 
+    // ========================================================
+    // CONTAINER
+    // ========================================================
+
     container: {
       flex: 1,
-      paddingHorizontal: 20,
     },
 
 
@@ -1246,15 +1429,16 @@ const styles =
 
     loadingContainer: {
       flex: 1,
-      alignItems: "center",
+      alignItems:
+        "center",
       justifyContent:
         "center",
     },
 
-
     loadingText: {
-      marginTop: 15,
-      fontSize: 13,
+      marginTop: 12,
+      fontSize: 12,
+      fontWeight: "700",
     },
 
 
@@ -1263,90 +1447,136 @@ const styles =
     // ========================================================
 
     header: {
-      marginTop: 55,
-      marginBottom: 22,
+      paddingHorizontal: 18,
+
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
+
+      paddingBottom: 6,
+    },
+
+    headerTop: {
       flexDirection:
         "row",
+
       alignItems:
         "center",
+
+      justifyContent:
+        "space-between",
+
+      marginBottom: 17,
     },
 
-
-    smallTitle: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 2,
+    eyebrow: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.4,
     },
-
 
     title: {
-      fontSize: 32,
+      fontSize: 22,
       fontWeight: "900",
-      marginTop: 5,
+      marginTop: 4,
     },
 
 
     // ========================================================
-    // PAYMENT INFORMATION
+    // HEADER ACTIONS
     // ========================================================
 
-    paymentInfo: {
+    headerActions: {
       flexDirection:
         "row",
 
       alignItems:
         "center",
+
+      gap: 7,
+    },
+
+    headerButton: {
+      width: 43,
+      height: 43,
+
+      borderRadius: 14,
 
       borderWidth: 1,
 
-      borderRadius: 16,
+      alignItems:
+        "center",
 
-      padding: 14,
-
-      marginBottom: 16,
+      justifyContent:
+        "center",
     },
 
 
-    paymentInfoIcon: {
-      width: 42,
-      height: 42,
+    // ========================================================
+    // SUMMARY
+    // ========================================================
 
-      borderRadius: 12,
+    summaryCard: {
+      minHeight: 78,
 
-      textAlign:
+      borderWidth: 1,
+      borderRadius: 21,
+
+      paddingHorizontal: 13,
+
+      flexDirection:
+        "row",
+
+      alignItems:
         "center",
 
-      textAlignVertical:
+      marginBottom: 12,
+    },
+
+    summaryIcon: {
+      width: 44,
+      height: 44,
+
+      borderRadius: 14,
+
+      alignItems:
         "center",
 
-      fontSize: 20,
+      justifyContent:
+        "center",
+    },
 
+    summaryInfo: {
+      marginLeft: 11,
+    },
+
+    summaryLabel: {
+      fontSize: 7,
       fontWeight: "900",
-
-      backgroundColor:
-        "#172554",
-
-      overflow:
-        "hidden",
+      letterSpacing: 1,
     },
 
+    summaryValue: {
+      fontSize: 23,
+      fontWeight: "900",
+      marginTop: 2,
+    },
 
-    paymentInfoText: {
+    summaryRight: {
       flex: 1,
-      marginLeft: 12,
+
+      marginLeft: 10,
+
+      alignItems:
+        "flex-end",
     },
 
-
-    paymentInfoTitle: {
-      fontSize: 14,
-      fontWeight: "900",
-    },
-
-
-    paymentInfoSubtitle: {
-      fontSize: 11,
-      marginTop: 3,
-      lineHeight: 16,
+    summaryRightText: {
+      fontSize: 8,
+      fontWeight: "700",
+      textAlign:
+        "right",
     },
 
 
@@ -1355,26 +1585,29 @@ const styles =
     // ========================================================
 
     searchContainer: {
-      height: 54,
-      borderRadius: 15,
+      height: 50,
+
       borderWidth: 1,
+      borderRadius: 16,
+
+      paddingHorizontal: 14,
+
       flexDirection:
         "row",
+
       alignItems:
         "center",
-      paddingHorizontal: 15,
+
+      marginBottom: 12,
     },
-
-
-    searchIcon: {
-      fontSize: 25,
-      marginRight: 10,
-    },
-
 
     searchInput: {
       flex: 1,
-      fontSize: 15,
+
+      marginLeft: 9,
+
+      fontSize: 13,
+      fontWeight: "600",
     },
 
 
@@ -1385,53 +1618,31 @@ const styles =
     filters: {
       flexDirection:
         "row",
-      marginTop: 18,
-      marginBottom: 20,
-    },
-
-
-    filterButton: {
-      borderWidth: 1,
-      paddingHorizontal: 12,
-      paddingVertical: 9,
-      borderRadius: 12,
-      marginRight: 8,
-    },
-
-
-    filterText: {
-      fontSize: 10,
-      fontWeight: "800",
-    },
-
-
-    // ========================================================
-    // COUNT
-    // ========================================================
-
-    countRow: {
-      flexDirection:
-        "row",
 
       justifyContent:
         "space-between",
 
+      marginBottom: 4,
+    },
+
+    filterButton: {
+      flex: 1,
+
+      borderWidth: 1,
+      borderRadius: 14,
+
+      paddingVertical: 9,
+
       alignItems:
         "center",
 
-      marginBottom: 12,
+      marginHorizontal: 3,
     },
 
-
-    countText: {
-      fontSize: 14,
-      fontWeight: "800",
-    },
-
-
-    sortText: {
-      fontSize: 11,
-      fontWeight: "700",
+    filterText: {
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 0.5,
     },
 
 
@@ -1440,7 +1651,47 @@ const styles =
     // ========================================================
 
     list: {
-      paddingBottom: 30,
+      paddingHorizontal: 18,
+      paddingTop: 9,
+      paddingBottom: 40,
+    },
+
+    emptyList: {
+      flexGrow: 1,
+    },
+
+    listHeader: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "space-between",
+
+      marginBottom: 10,
+      marginTop: 4,
+    },
+
+    listTitle: {
+      fontSize: 11,
+      fontWeight: "900",
+      letterSpacing: 1.2,
+    },
+
+    refreshButton: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+    },
+
+    refreshText: {
+      fontSize: 10,
+      fontWeight: "800",
+      marginLeft: 4,
     },
 
 
@@ -1449,129 +1700,152 @@ const styles =
     // ========================================================
 
     memberCard: {
-      borderRadius: 18,
-      padding: 14,
-      marginBottom: 11,
+      minHeight: 82,
+
       borderWidth: 1,
+      borderRadius: 20,
+
+      paddingVertical: 10,
+      paddingLeft: 10,
+      paddingRight: 8,
+
       flexDirection:
         "row",
+
       alignItems:
         "center",
-    },
 
+      marginBottom: 8,
+    },
 
     avatar: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      justifyContent:
-        "center",
+      width: 54,
+      height: 54,
+
+      borderRadius: 17,
+
+      borderWidth: 1,
+
       alignItems:
         "center",
-    },
 
+      justifyContent:
+        "center",
+
+      overflow:
+        "hidden",
+    },
 
     avatarText: {
-      fontSize: 13,
+      fontSize: 16,
       fontWeight: "900",
     },
-
 
     memberInfo: {
       flex: 1,
-      marginLeft: 13,
-    },
 
+      marginLeft: 11,
+      marginRight: 5,
+    },
 
     memberName: {
-      fontSize: 15,
-      fontWeight: "800",
-    },
-
-
-    memberPhone: {
-      fontSize: 11,
-      marginTop: 3,
-    },
-
-
-    daysText: {
-      fontSize: 11,
-      fontWeight: "700",
-      marginTop: 5,
-    },
-
-
-    // ========================================================
-    // STATUS
-    // ========================================================
-
-    statusBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-      borderRadius: 8,
-    },
-
-
-    statusText: {
-      fontSize: 8,
+      fontSize: 13,
       fontWeight: "900",
     },
 
+    memberPhone: {
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 3,
+    },
 
-    // ========================================================
-    // PAYMENT ARROW
-    // ========================================================
+    memberDays: {
+      fontSize: 8,
+      fontWeight: "700",
+      marginTop: 3,
+    },
 
-    paymentArrowContainer: {
+    memberRight: {
+      alignItems:
+        "flex-end",
+
+      justifyContent:
+        "center",
+    },
+
+    statusBadge: {
+      borderWidth: 1,
+
+      borderRadius: 13,
+
+      paddingHorizontal: 7,
+      paddingVertical: 5,
+    },
+
+    statusText: {
+      fontSize: 6.5,
+      fontWeight: "900",
+      letterSpacing: 0.3,
+    },
+
+    arrow: {
+      marginTop: 5,
+    },
+
+    paymentIcon: {
       width: 42,
       height: 42,
-      borderRadius: 13,
+
+      borderRadius: 14,
 
       alignItems:
         "center",
 
       justifyContent:
         "center",
-
-      marginLeft: 8,
-    },
-
-
-    paymentArrow: {
-      color: "#FFFFFF",
-      fontSize: 19,
-      fontWeight: "900",
     },
 
 
     // ========================================================
-    // EMPTY STATE
+    // EMPTY
     // ========================================================
 
-    emptyContainer: {
+    emptyCard: {
+      borderWidth: 1,
+      borderRadius: 21,
+
+      paddingVertical: 31,
+      paddingHorizontal: 20,
+
+      alignItems:
+        "center",
+    },
+
+    emptyIcon: {
+      width: 58,
+      height: 58,
+
+      borderRadius: 18,
+
       alignItems:
         "center",
 
-      marginTop: 80,
+      justifyContent:
+        "center",
     },
-
-
-    emptyIcon: {
-      fontSize: 42,
-      marginBottom: 15,
-    },
-
 
     emptyTitle: {
-      fontSize: 18,
-      fontWeight: "800",
+      fontSize: 15,
+      fontWeight: "900",
+      marginTop: 12,
     },
 
-
     emptyText: {
-      fontSize: 13,
-      marginTop: 6,
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 5,
+      textAlign:
+        "center",
     },
 
   });

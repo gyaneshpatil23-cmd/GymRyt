@@ -16,6 +16,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -35,7 +36,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 const MEMBER_NOTIFICATIONS_COUNT_API =
   `${BASE_URL}/member-notifications/unread-count/`;
@@ -254,16 +255,6 @@ export default function MemberDashboard() {
     };
 
   }, [colors, isDark]);
-
-
-  // ==========================================================
-  // DYNAMIC STYLES
-  // ==========================================================
-
-  const styles = useMemo(
-    () => createStyles(themeColors),
-    [themeColors]
-  );
 
 
   // ==========================================================
@@ -1056,173 +1047,28 @@ export default function MemberDashboard() {
 
 
   // ==========================================================
-  // QUICK ACTION COMPONENT
+  // STATUS COLOR
   // ==========================================================
 
-  const QuickAction = ({
-    icon,
-    title,
-    subtitle,
-    iconColor,
-    onPress,
-  }) => {
-
-    return (
-
-      <Pressable
-        onPress={onPress}
-
-        style={({ pressed }) => [
-
-          styles.actionCard,
-
-          {
-            opacity:
-              pressed
-                ? 0.72
-                : 1,
-          },
-
-        ]}
-      >
-
-        <View
-          style={[
-            styles.actionIcon,
-            {
-              backgroundColor:
-                `${iconColor}18`,
-
-              borderColor:
-                `${iconColor}35`,
-            },
-          ]}
-        >
-
-          <Ionicons
-            name={icon}
-            size={23}
-            color={iconColor}
-          />
-
-        </View>
-
-
-        <View
-          style={
-            styles.actionContent
-          }
-        >
-
-          <Text
-            style={
-              styles.actionTitle
-            }
-          >
-            {title}
-          </Text>
-
-
-          <Text
-            style={
-              styles.actionSubtitle
-            }
-          >
-            {subtitle}
-          </Text>
-
-        </View>
-
-
-        <View
-          style={
-            styles.actionArrow
-          }
-        >
-
-          <Ionicons
-            name="chevron-forward"
-            size={17}
-            color={
-              themeColors.textMuted
-            }
-          />
-
-        </View>
-
-      </Pressable>
-
-    );
-
-  };
+  const statusColor =
+    statusConfig.text === "EXPIRED"
+      ? "#FF5870"
+      : statusConfig.text === "ACTIVE"
+      ? "#45E0A5"
+      : "#FFB21C";
 
 
   // ==========================================================
-  // INFO ROW COMPONENT
+  // COMING SOON
   // ==========================================================
 
-  const InfoRow = ({
-    icon,
-    label,
-    value,
-  }) => {
-
-    return (
-
-      <View
-        style={
-          styles.infoRow
-        }
-      >
-
-        <View
-          style={
-            styles.infoLeft
-          }
-        >
-
-          <View
-            style={
-              styles.infoIcon
-            }
-          >
-
-            <Ionicons
-              name={icon}
-              size={17}
-              color={
-                themeColors.primaryLight
-              }
-            />
-
-          </View>
-
-
-          <Text
-            style={
-              styles.infoLabel
-            }
-          >
-            {label}
-          </Text>
-
-        </View>
-
-
-        <Text
-          numberOfLines={1}
-          style={
-            styles.infoValue
-          }
-        >
-          {value || "--"}
-        </Text>
-
-      </View>
-
-    );
-
-  };
+  const showComingSoon =
+    (title, message) => {
+      Alert.alert(
+        title,
+        message
+      );
+    };
 
 
   // ==========================================================
@@ -1234,9 +1080,13 @@ export default function MemberDashboard() {
     return (
 
       <View
-        style={
-          styles.loadingContainer
-        }
+        style={[
+          styles.loadingContainer,
+          {
+            backgroundColor:
+              colors.background,
+          },
+        ]}
       >
 
         <StatusBar
@@ -1245,50 +1095,32 @@ export default function MemberDashboard() {
               ? "light-content"
               : "dark-content"
           }
-
           backgroundColor={
-            themeColors.background
+            colors.background
           }
         />
-
-
-        <View
-          style={
-            styles.loadingLogo
-          }
-        >
-
-          <Ionicons
-            name="fitness"
-            size={32}
-            color={
-              themeColors.white
-            }
-          />
-
-        </View>
-
 
         <ActivityIndicator
-          size="small"
+          size="large"
           color={
-            themeColors.primary
+            colors.primary
           }
         />
 
-
         <Text
-          style={
-            styles.loadingText
-          }
+          style={[
+            styles.loadingText,
+            {
+              color:
+                colors.mutedText,
+            },
+          ]}
         >
           Loading your dashboard...
         </Text>
 
       </View>
-
     );
-
   }
 
 
@@ -1299,9 +1131,13 @@ export default function MemberDashboard() {
   return (
 
     <View
-      style={
-        styles.container
-      }
+      style={[
+        styles.container,
+        {
+          backgroundColor:
+            colors.background,
+        },
+      ]}
     >
 
       <StatusBar
@@ -1310,9 +1146,8 @@ export default function MemberDashboard() {
             ? "light-content"
             : "dark-content"
         }
-
         backgroundColor={
-          themeColors.background
+          colors.background
         }
       />
 
@@ -1322,45 +1157,29 @@ export default function MemberDashboard() {
       ==================================================== */}
 
       <ScrollView
-
         showsVerticalScrollIndicator={
           false
         }
-
         contentContainerStyle={
           styles.content
         }
-
         refreshControl={
-
           <RefreshControl
-
             refreshing={
               refreshing
             }
-
             onRefresh={
               handleRefresh
             }
-
             tintColor={
-              themeColors.primary
+              colors.primary
             }
-
             colors={[
-              themeColors.primary,
+              colors.primary,
             ]}
-
-            progressBackgroundColor={
-              themeColors.card
-            }
-
           />
-
         }
-
       >
-
 
         {/* ==================================================
             HEADER
@@ -1379,9 +1198,13 @@ export default function MemberDashboard() {
           >
 
             <Text
-              style={
-                styles.eyebrow
-              }
+              style={[
+                styles.eyebrow,
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
             >
               WELCOME BACK
             </Text>
@@ -1394,10 +1217,15 @@ export default function MemberDashboard() {
             >
 
               <Pressable
-                style={
-                  styles.profileAvatar
-                }
-
+                style={[
+                  styles.profileAvatar,
+                  {
+                    backgroundColor:
+                      colors.iconBackground,
+                    borderColor:
+                      colors.border,
+                  },
+                ]}
                 onPress={() =>
                   router.push(
                     "/member/profile"
@@ -1412,7 +1240,6 @@ export default function MemberDashboard() {
                       uri:
                         member.profilePicture,
                     }}
-
                     style={
                       styles.profileImage
                     }
@@ -1421,13 +1248,15 @@ export default function MemberDashboard() {
                 ) : (
 
                   <Text
-                    style={
-                      styles.profileInitials
-                    }
+                    style={[
+                      styles.profileInitials,
+                      {
+                        color:
+                          colors.primaryLight,
+                      },
+                    ]}
                   >
-                    {
-                      getMemberInitials()
-                    }
+                    {getMemberInitials()}
                   </Text>
 
                 )}
@@ -1437,44 +1266,37 @@ export default function MemberDashboard() {
 
               <View
                 style={
-                  styles.profileText
+                  styles.headerText
                 }
               >
 
                 <Text
+                  style={[
+                    styles.memberName,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
                   numberOfLines={1}
-                  style={
-                    styles.memberName
-                  }
                 >
-                  {
-                    member.name ||
-                    "Member"
-                  }
+                  {member.name ||
+                    "Member"}
                 </Text>
 
-
-                <View
-                  style={
-                    styles.memberRole
-                  }
+                <Text
+                  style={[
+                    styles.memberRole,
+                    {
+                      color:
+                        colors.secondaryText,
+                    },
+                  ]}
+                  numberOfLines={1}
                 >
-
-                  <View
-                    style={
-                      styles.onlineDot
-                    }
-                  />
-
-                  <Text
-                    style={
-                      styles.memberRoleText
-                    }
-                  >
-                    GYMRyt MEMBER
-                  </Text>
-
-                </View>
+                  {member.workspaceName ||
+                    "GymRyt Member"}
+                </Text>
 
               </View>
 
@@ -1485,10 +1307,6 @@ export default function MemberDashboard() {
 
           {/* ==================================================
               HEADER ACTIONS
-              
-              ORDER:
-              🌙 THEME
-              🔔 NOTIFICATIONS
           ================================================== */}
 
           <View
@@ -1500,85 +1318,78 @@ export default function MemberDashboard() {
             {/* THEME */}
 
             <Pressable
-              style={
-                styles.headerButton
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={
+                toggleTheme
               }
-
-              onPress={() => {
-
-                console.log(
-                  "THEME BUTTON PRESSED"
-                );
-
-                toggleTheme();
-
-              }}
             >
-
               <Ionicons
                 name={
                   isDark
-                    ? "sunny"
-                    : "moon"
+                    ? "sunny-outline"
+                    : "moon-outline"
                 }
-
                 size={21}
-
                 color={
-                  themeColors.primaryLight
+                  colors.text
                 }
               />
-
             </Pressable>
 
 
             {/* NOTIFICATIONS */}
 
             <Pressable
-              style={
-                styles.headerButton
-              }
-
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
               onPress={
                 openNotifications
               }
             >
 
               <Ionicons
-                name={
-                  unreadNotifications > 0
-                    ? "notifications"
-                    : "notifications-outline"
-                }
-
-                size={22}
-
+                name="notifications-outline"
+                size={21}
                 color={
-                  themeColors.text
+                  colors.text
                 }
               />
-
 
               {unreadNotifications > 0 && (
 
                 <View
-                  style={
-                    styles.notificationBadge
-                  }
+                  style={[
+                    styles.notificationBadge,
+                    {
+                      backgroundColor:
+                        colors.primaryLight,
+                    },
+                  ]}
                 >
-
                   <Text
                     style={
                       styles.notificationBadgeText
                     }
                   >
-                    {
-                      unreadNotifications > 99
-                        ? "99+"
-                        : unreadNotifications
-                    }
+                    {unreadNotifications > 99
+                      ? "99+"
+                      : unreadNotifications}
                   </Text>
-
                 </View>
 
               )}
@@ -1591,55 +1402,51 @@ export default function MemberDashboard() {
 
 
         {/* ==================================================
-            HERO MEMBERSHIP CARD
+            MEMBERSHIP OVERVIEW
         ================================================== */}
 
         <View
-          style={
-            styles.heroCard
-          }
+          style={[
+            styles.overviewCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
 
           <View
             style={
-              styles.heroGlowOne
-            }
-          />
-
-          <View
-            style={
-              styles.heroGlowTwo
-            }
-          />
-
-
-          <View
-            style={
-              styles.heroTopRow
+              styles.sectionHeader
             }
           >
 
             <View>
 
               <Text
-                style={
-                  styles.heroLabel
-                }
+                style={[
+                  styles.sectionEyebrow,
+                  {
+                    color:
+                      colors.primaryLight,
+                  },
+                ]}
               >
-                MEMBERSHIP
+                YOUR MEMBERSHIP
               </Text>
 
-
               <Text
-                numberOfLines={1}
-                style={
-                  styles.heroGymName
-                }
+                style={[
+                  styles.sectionTitle,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
               >
-                {
-                  member.workspaceName ||
-                  "My Gym"
-                }
+                Membership Overview
               </Text>
 
             </View>
@@ -1647,283 +1454,225 @@ export default function MemberDashboard() {
 
             <View
               style={[
-                styles.statusBadge,
-
+                styles.statusPill,
                 {
                   backgroundColor:
-                    statusConfig.background,
-
+                    `${statusColor}18`,
                   borderColor:
-                    `${statusConfig.color}45`,
+                    `${statusColor}55`,
                 },
-
               ]}
             >
-
               <Ionicons
                 name={
                   statusConfig.icon
                 }
-
-                size={14}
-
+                size={12}
                 color={
-                  statusConfig.color
+                  statusColor
                 }
               />
 
               <Text
                 style={[
-                  styles.statusText,
-
+                  styles.statusPillText,
                   {
                     color:
-                      statusConfig.color,
+                      statusColor,
                   },
-
                 ]}
               >
-                {
-                  statusConfig.text
-                }
+                {statusConfig.text}
               </Text>
-
             </View>
 
           </View>
 
 
-          {/* DAYS REMAINING */}
+          {/* ==================================================
+              STAT GRID
+          ================================================== */}
 
           <View
             style={
-              styles.heroCenter
+              styles.statsGrid
             }
           >
 
-            <Text
-              style={[
-                styles.daysNumber,
+            <OverviewStat
+              value={daysRemaining}
+              label="DAYS REMAINING"
+              icon="calendar-outline"
+              iconColor="#36B7FF"
+              colors={colors}
+            />
 
-                {
-                  color:
-                    statusConfig.color,
-                },
+            <OverviewStat
+              value={`${membershipPercentage}%`}
+              label="REMAINING"
+              icon="pie-chart-outline"
+              iconColor="#45E0A5"
+              colors={colors}
+            />
 
-              ]}
-            >
-              {daysRemaining}
-            </Text>
+            <OverviewStat
+              value={totalMembershipDays}
+              label="TOTAL DAYS"
+              icon="time-outline"
+              iconColor="#FFB21C"
+              colors={colors}
+            />
 
-
-            <Text
-              style={
-                styles.daysLabel
-              }
-            >
-              DAYS REMAINING
-            </Text>
-
-
-            <View
-              style={
-                styles.heroMiniStatus
-              }
-            >
-
-              <Ionicons
-                name="calendar-outline"
-                size={13}
-                color={
-                  themeColors.textSecondary
-                }
-              />
-
-              <Text
-                style={
-                  styles.heroMiniStatusText
-                }
-              >
-                Membership validity
-              </Text>
-
-            </View>
-
-          </View>
-
-
-          {/* PROGRESS HEADER */}
-
-          <View
-            style={
-              styles.progressHeader
-            }
-          >
-
-            <Text
-              style={
-                styles.progressLabel
-              }
-            >
-              MEMBERSHIP PROGRESS
-            </Text>
-
-
-            <Text
-              style={
-                styles.progressPercentage
-              }
-            >
-              {membershipPercentage}%
-            </Text>
-
-          </View>
-
-
-          {/* PROGRESS BAR */}
-
-          <View
-            style={
-              styles.progressTrack
-            }
-          >
-
-            <View
-              style={[
-                styles.progressFill,
-
-                {
-                  width:
-                    `${membershipPercentage}%`,
-
-                  backgroundColor:
-                    statusConfig.color,
-                },
-
-              ]}
+            <OverviewStat
+              value={unreadNotifications}
+              label="NEW UPDATES"
+              icon="notifications-outline"
+              iconColor="#A78BFA"
+              colors={colors}
             />
 
           </View>
 
 
-          {/* DATES */}
+          {/* ==================================================
+              PROGRESS
+          ================================================== */}
 
           <View
-            style={
-              styles.dateContainer
-            }
+            style={[
+              styles.progressCard,
+              {
+                backgroundColor:
+                  colors.background,
+                borderColor:
+                  colors.border,
+              },
+            ]}
           >
 
             <View
               style={
-                styles.dateBlock
+                styles.progressHeader
               }
             >
 
-              <View
-                style={
-                  styles.dateIcon
-                }
+              <Text
+                style={[
+                  styles.progressLabel,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
               >
+                MEMBERSHIP PROGRESS
+              </Text>
 
-                <Ionicons
-                  name="play-outline"
-                  size={15}
-                  color={
-                    themeColors.primaryLight
-                  }
-                />
+              <Text
+                style={[
+                  styles.progressValue,
+                  {
+                    color:
+                      colors.primaryLight,
+                  },
+                ]}
+              >
+                {membershipPercentage}%
+              </Text>
 
-              </View>
+            </View>
 
+
+            <View
+              style={[
+                styles.progressTrack,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width:
+                      `${membershipPercentage}%`,
+                    backgroundColor:
+                      statusColor,
+                  },
+                ]}
+              />
+            </View>
+
+
+            <View
+              style={
+                styles.datesRow
+              }
+            >
 
               <View>
 
                 <Text
-                  style={
-                    styles.dateLabel
-                  }
+                  style={[
+                    styles.dateLabel,
+                    {
+                      color:
+                        colors.secondaryText,
+                    },
+                  ]}
                 >
                   START DATE
                 </Text>
 
                 <Text
-                  style={
-                    styles.dateValue
-                  }
+                  style={[
+                    styles.dateValue,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
                 >
-                  {
-                    formatDate(
-                      member.membershipStart
-                    )
-                  }
+                  {formatDate(
+                    member.membershipStart
+                  )}
                 </Text>
 
               </View>
 
-            </View>
-
-
-            <View
-              style={
-                styles.dateDivider
-              }
-            />
-
-
-            <View
-              style={[
-                styles.dateBlock,
-
-                {
-                  alignItems:
-                    "flex-end",
-                },
-
-              ]}
-            >
 
               <View
                 style={
-                  styles.dateIcon
-                }
-              >
-
-                <Ionicons
-                  name="flag-outline"
-                  size={15}
-                  color={
-                    statusConfig.color
-                  }
-                />
-
-              </View>
-
-
-              <View
-                style={
-                  styles.dateTextRight
+                  styles.dateRight
                 }
               >
 
                 <Text
-                  style={
-                    styles.dateLabel
-                  }
+                  style={[
+                    styles.dateLabel,
+                    {
+                      color:
+                        colors.secondaryText,
+                    },
+                  ]}
                 >
                   EXPIRY DATE
                 </Text>
 
                 <Text
-                  style={
-                    styles.dateValue
-                  }
+                  style={[
+                    styles.dateValue,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
                 >
-                  {
-                    formatDate(
-                      member.membershipEnd
-                    )
-                  }
+                  {formatDate(
+                    member.membershipEnd
+                  )}
                 </Text>
 
               </View>
@@ -1936,203 +1685,111 @@ export default function MemberDashboard() {
 
 
         {/* ==================================================
-            EXPIRED ALERT
+            EXPIRED / EXPIRING ALERT
         ================================================== */}
 
-        {
-          String(
-            member.status
-          ).toUpperCase() ===
-            "EXPIRED" && (
+        {statusConfig.text !== "ACTIVE" && (
+
+          <View
+            style={[
+              styles.alertCard,
+              {
+                backgroundColor:
+                  `${statusColor}12`,
+                borderColor:
+                  `${statusColor}55`,
+              },
+            ]}
+          >
 
             <View
               style={[
-                styles.alertCard,
-
+                styles.alertIcon,
                 {
                   backgroundColor:
-                    themeColors.dangerSoft,
-
-                  borderColor:
-                    `${themeColors.danger}40`,
+                    `${statusColor}20`,
                 },
-
               ]}
             >
-
-              <View
-                style={
-                  styles.alertIcon
+              <Ionicons
+                name={
+                  statusConfig.icon
                 }
-              >
-
-                <Ionicons
-                  name="alert-circle"
-                  size={22}
-                  color={
-                    themeColors.danger
-                  }
-                />
-
-              </View>
-
-
-              <View
-                style={
-                  styles.alertContent
+                size={22}
+                color={
+                  statusColor
                 }
-              >
-
-                <Text
-                  style={[
-                    styles.alertTitle,
-
-                    {
-                      color:
-                        themeColors.danger,
-                    },
-
-                  ]}
-                >
-                  MEMBERSHIP EXPIRED
-                </Text>
-
-
-                <Text
-                  style={
-                    styles.alertText
-                  }
-                >
-                  Your membership has expired.
-                  Please contact the gym to renew
-                  your membership.
-                </Text>
-
-              </View>
-
+              />
             </View>
 
-          )
-        }
-
-
-        {/* ==================================================
-            EXPIRING ALERT
-        ================================================== */}
-
-        {
-          String(
-            member.status
-          ).toUpperCase() ===
-            "EXPIRING" && (
 
             <View
-              style={[
-                styles.alertCard,
-
-                {
-                  backgroundColor:
-                    themeColors.warningSoft,
-
-                  borderColor:
-                    `${themeColors.warning}40`,
-                },
-
-              ]}
+              style={
+                styles.alertText
+              }
             >
 
-              <View
-                style={
-                  styles.alertIcon
-                }
+              <Text
+                style={[
+                  styles.alertTitle,
+                  {
+                    color:
+                      statusColor,
+                  },
+                ]}
               >
+                {statusConfig.text === "EXPIRED"
+                  ? "MEMBERSHIP EXPIRED"
+                  : "MEMBERSHIP EXPIRING SOON"}
+              </Text>
 
-                <Ionicons
-                  name="warning"
-                  size={22}
-                  color={
-                    themeColors.warning
-                  }
-                />
-
-              </View>
-
-
-              <View
-                style={
-                  styles.alertContent
-                }
+              <Text
+                style={[
+                  styles.alertSubtitle,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
               >
-
-                <Text
-                  style={[
-                    styles.alertTitle,
-
-                    {
-                      color:
-                        themeColors.warning,
-                    },
-
-                  ]}
-                >
-                  MEMBERSHIP EXPIRING SOON
-                </Text>
-
-
-                <Text
-                  style={
-                    styles.alertText
-                  }
-                >
-                  Only {daysRemaining} days
-                  remaining. Consider renewing
-                  your membership soon.
-                </Text>
-
-              </View>
+                {statusConfig.text === "EXPIRED"
+                  ? "Please contact the gym to renew your membership."
+                  : `Only ${daysRemaining} days left. Renew soon to keep training.`}
+              </Text>
 
             </View>
 
-          )
-        }
+          </View>
+
+        )}
 
 
         {/* ==================================================
-            QUICK ACCESS
+            QUICK ACTIONS
         ================================================== */}
 
         <View
           style={
-            styles.sectionHeader
+            styles.sectionHeaderSimple
           }
         >
-
-          <View>
-
-            <Text
-              style={
-                styles.sectionTitle
-              }
-            >
-              QUICK ACCESS
-            </Text>
-
-            <Text
-              style={
-                styles.sectionSubtitle
-              }
-            >
-              Everything you need in one place
-            </Text>
-
-          </View>
-
+          <Text
+            style={[
+              styles.sectionHeading,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            QUICK ACCESS
+          </Text>
         </View>
 
 
         <View
           style={
-            styles.actionGrid
+            styles.quickGrid
           }
         >
 
@@ -2140,278 +1797,52 @@ export default function MemberDashboard() {
             icon="checkmark-circle-outline"
             title="Attendance"
             subtitle="Track your visits"
-            iconColor={
-              themeColors.iconBlue
-            }
-
-            onPress={() => {
-
-              Alert.alert(
+            colors={colors}
+            onPress={() =>
+              showComingSoon(
                 "Attendance",
                 "Attendance will be connected in the next phase."
-              );
-
-            }}
+              )
+            }
           />
-
 
           <QuickAction
             icon="card-outline"
             title="Payments"
             subtitle="Payment history"
-            iconColor={
-              themeColors.iconGreen
-            }
-
-            onPress={() => {
-
-              Alert.alert(
+            colors={colors}
+            onPress={() =>
+              showComingSoon(
                 "Payments",
                 "Payments will be connected in the next phase."
-              );
-
-            }}
+              )
+            }
           />
 
+          <QuickAction
+            icon="barbell-outline"
+            title="My Trainer"
+            subtitle="View your trainer"
+            colors={colors}
+            onPress={() =>
+              showComingSoon(
+                "My Trainer",
+                "Trainer information will be connected in the next phase."
+              )
+            }
+          />
 
           <QuickAction
             icon="person-outline"
-            title="My Trainer"
-            subtitle="View your trainer"
-            iconColor={
-              themeColors.iconOrange
-            }
-
-            onPress={() => {
-
-              Alert.alert(
-                "My Trainer",
-                "Trainer information will be connected in the next phase."
-              );
-
-            }}
-          />
-
-
-          <QuickAction
-            icon="settings-outline"
             title="My Profile"
             subtitle="Manage your profile"
-            iconColor={
-              themeColors.primaryLight
-            }
-
+            colors={colors}
             onPress={() =>
               router.push(
                 "/member/profile"
               )
             }
           />
-
-        </View>
-
-
-        {/* ==================================================
-            MEMBERSHIP SUMMARY
-        ================================================== */}
-
-        <View
-          style={
-            styles.sectionHeader
-          }
-        >
-
-          <View>
-
-            <Text
-              style={
-                styles.sectionTitle
-              }
-            >
-              MEMBERSHIP SUMMARY
-            </Text>
-
-            <Text
-              style={
-                styles.sectionSubtitle
-              }
-            >
-              Your current membership overview
-            </Text>
-
-          </View>
-
-        </View>
-
-
-        <View
-          style={
-            styles.summaryCard
-          }
-        >
-
-          <View
-            style={
-              styles.summaryItem
-            }
-          >
-
-            <View
-              style={[
-                styles.summaryIcon,
-
-                {
-                  backgroundColor:
-                    `${themeColors.primary}18`,
-                },
-
-              ]}
-            >
-
-              <Ionicons
-                name="time-outline"
-                size={19}
-                color={
-                  themeColors.primaryLight
-                }
-              />
-
-            </View>
-
-
-            <Text
-              style={
-                styles.summaryValue
-              }
-            >
-              {daysRemaining}
-            </Text>
-
-
-            <Text
-              style={
-                styles.summaryLabel
-              }
-            >
-              Days Left
-            </Text>
-
-          </View>
-
-
-          <View
-            style={
-              styles.summaryDivider
-            }
-          />
-
-
-          <View
-            style={
-              styles.summaryItem
-            }
-          >
-
-            <View
-              style={[
-                styles.summaryIcon,
-
-                {
-                  backgroundColor:
-                    `${themeColors.success}18`,
-                },
-
-              ]}
-            >
-
-              <Ionicons
-                name="trending-up-outline"
-                size={19}
-                color={
-                  themeColors.success
-                }
-              />
-
-            </View>
-
-
-            <Text
-              style={
-                styles.summaryValue
-              }
-            >
-              {membershipPercentage}%
-            </Text>
-
-
-            <Text
-              style={
-                styles.summaryLabel
-              }
-            >
-              Remaining
-            </Text>
-
-          </View>
-
-
-          <View
-            style={
-              styles.summaryDivider
-            }
-          />
-
-
-          <View
-            style={
-              styles.summaryItem
-            }
-          >
-
-            <View
-              style={[
-                styles.summaryIcon,
-
-                {
-                  backgroundColor:
-                    `${themeColors.warning}18`,
-                },
-
-              ]}
-            >
-
-              <Ionicons
-                name="calendar-outline"
-                size={19}
-                color={
-                  themeColors.warning
-                }
-              />
-
-            </View>
-
-
-            <Text
-              style={
-                styles.summaryValueSmall
-              }
-            >
-              {
-                totalMembershipDays ||
-                "--"
-              }
-            </Text>
-
-
-            <Text
-              style={
-                styles.summaryLabel
-              }
-            >
-              Total Days
-            </Text>
-
-          </View>
 
         </View>
 
@@ -2422,56 +1853,66 @@ export default function MemberDashboard() {
 
         <View
           style={
-            styles.sectionHeader
+            styles.sectionHeaderSimple
           }
         >
 
-          <View>
-
-            <Text
-              style={
-                styles.sectionTitle
-              }
-            >
-              ACCOUNT INFORMATION
-            </Text>
-
-            <Text
-              style={
-                styles.sectionSubtitle
-              }
-            >
-              Your registered account details
-            </Text>
-
-          </View>
-
+          <Text
+            style={[
+              styles.sectionHeading,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            ACCOUNT INFORMATION
+          </Text>
 
           <Pressable
+            style={
+              styles.seeAllButton
+            }
             onPress={() =>
               router.push(
                 "/member/profile"
               )
             }
           >
-
             <Text
-              style={
-                styles.editText
-              }
+              style={[
+                styles.seeAllText,
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
             >
-              EDIT
+              Edit
             </Text>
 
+            <Ionicons
+              name="chevron-forward"
+              size={15}
+              color={
+                colors.primaryLight
+              }
+            />
           </Pressable>
 
         </View>
 
 
         <View
-          style={
-            styles.accountCard
-          }
+          style={[
+            styles.infoCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
 
           <InfoRow
@@ -2482,40 +1923,41 @@ export default function MemberDashboard() {
                 ? `@${member.username}`
                 : "--"
             }
+            colors={colors}
           />
-
 
           <View
-            style={
-              styles.infoDivider
-            }
+            style={[
+              styles.divider,
+              {
+                backgroundColor:
+                  colors.border,
+              },
+            ]}
           />
-
 
           <InfoRow
             icon="call-outline"
             label="Phone"
-            value={
-              member.phone ||
-              "--"
-            }
+            value={member.phone}
+            colors={colors}
           />
-
 
           <View
-            style={
-              styles.infoDivider
-            }
+            style={[
+              styles.divider,
+              {
+                backgroundColor:
+                  colors.border,
+              },
+            ]}
           />
-
 
           <InfoRow
             icon="mail-outline"
             label="Email"
-            value={
-              member.email ||
-              "--"
-            }
+            value={member.email}
+            colors={colors}
           />
 
         </View>
@@ -2532,32 +1974,36 @@ export default function MemberDashboard() {
         >
 
           <View
-            style={
-              styles.footerLogo
-            }
+            style={[
+              styles.footerIcon,
+              {
+                backgroundColor:
+                  colors.iconBackground,
+              },
+            ]}
           >
-
             <Ionicons
-              name="fitness"
+              name="fitness-outline"
               size={15}
               color={
-                themeColors.primaryLight
+                colors.primaryLight
               }
             />
-
           </View>
 
-
           <Text
-            style={
-              styles.footerText
-            }
+            style={[
+              styles.footerText,
+              {
+                color:
+                  colors.secondaryText,
+              },
+            ]}
           >
             GYMRyt • MEMBER
           </Text>
 
         </View>
-
 
       </ScrollView>
 
@@ -2567,202 +2013,400 @@ export default function MemberDashboard() {
       ====================================================== */}
 
       <View
-        style={
-          styles.bottomNav
-        }
+        style={[
+          styles.bottomNav,
+          {
+            backgroundColor:
+              colors.card,
+            borderColor:
+              colors.border,
+          },
+        ]}
       >
 
         {/* HOME */}
 
-        <Pressable
-          style={
-            styles.navItem
-          }
-
+        <BottomNavItem
+          icon="home"
+          label="Home"
+          active
+          colors={colors}
           onPress={() =>
             router.replace(
               "/member/dashboard"
             )
           }
-        >
-
-          <View
-            style={
-              styles.activeNavIcon
-            }
-          >
-
-            <Ionicons
-              name="home"
-              size={21}
-              color={
-                themeColors.primaryLight
-              }
-            />
-
-          </View>
-
-
-          <Text
-            style={
-              styles.navTextActive
-            }
-          >
-            Home
-          </Text>
-
-        </Pressable>
+        />
 
 
         {/* ATTENDANCE */}
 
-        <Pressable
-          style={
-            styles.navItem
-          }
-
-          onPress={() => {
-
-            Alert.alert(
+        <BottomNavItem
+          icon="checkmark-circle-outline"
+          label="Attendance"
+          colors={colors}
+          onPress={() =>
+            showComingSoon(
               "Attendance",
               "Attendance will be connected in the next phase."
-            );
-
-          }}
-        >
-
-          <Ionicons
-            name="checkmark-circle-outline"
-            size={21}
-            color={
-              themeColors.textMuted
-            }
-          />
-
-
-          <Text
-            style={
-              styles.navText
-            }
-          >
-            Attendance
-          </Text>
-
-        </Pressable>
+            )
+          }
+        />
 
 
         {/* PAYMENTS */}
 
-        <Pressable
-          style={
-            styles.navItem
-          }
-
-          onPress={() => {
-
-            Alert.alert(
+        <BottomNavItem
+          icon="card-outline"
+          label="Payments"
+          colors={colors}
+          onPress={() =>
+            showComingSoon(
               "Payments",
               "Payments will be connected in the next phase."
-            );
-
-          }}
-        >
-
-          <Ionicons
-            name="card-outline"
-            size={21}
-            color={
-              themeColors.textMuted
-            }
-          />
-
-
-          <Text
-            style={
-              styles.navText
-            }
-          >
-            Payments
-          </Text>
-
-        </Pressable>
+            )
+          }
+        />
 
 
         {/* PROFILE */}
 
-        <Pressable
-          style={
-            styles.navItem
-          }
-
+        <BottomNavItem
+          icon="person-outline"
+          label="Profile"
+          colors={colors}
           onPress={() =>
             router.push(
               "/member/profile"
             )
           }
-        >
-
-          <View
-            style={
-              styles.navProfileAvatar
-            }
-          >
-
-            {member.profilePicture ? (
-
-              <Image
-                source={{
-                  uri:
-                    member.profilePicture,
-                }}
-
-                style={
-                  styles.navProfileImage
-                }
-              />
-
-            ) : (
-
-              <Text
-                style={
-                  styles.navProfileText
-                }
-              >
-                {
-                  getMemberInitials()
-                }
-              </Text>
-
-            )}
-
-          </View>
-
-
-          <Text
-            style={
-              styles.navText
-            }
-          >
-            Profile
-          </Text>
-
-        </Pressable>
+        />
 
       </View>
 
     </View>
-
   );
 }
 
 
 // ============================================================
-// DYNAMIC STYLES
+// OVERVIEW STAT
 // ============================================================
 
-const createStyles = (
-  GYM_COLORS
-) =>
+function OverviewStat({
+  value,
+  label,
+  icon,
+  iconColor,
+  colors,
+}) {
+
+  return (
+
+    <View
+      style={[
+        styles.statCard,
+        {
+          backgroundColor:
+            colors.background,
+          borderColor:
+            colors.border,
+        },
+      ]}
+    >
+
+      <View
+        style={[
+          styles.statIcon,
+          {
+            backgroundColor:
+              `${iconColor}18`,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={22}
+          color={iconColor}
+        />
+      </View>
+
+
+      <View
+        style={
+          styles.statContent
+        }
+      >
+
+        <Text
+          style={[
+            styles.statValue,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {value}
+        </Text>
+
+        <Text
+          style={[
+            styles.statLabel,
+            {
+              color:
+                colors.secondaryText,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+
+      </View>
+
+    </View>
+  );
+}
+
+
+// ============================================================
+// QUICK ACTION
+// ============================================================
+
+function QuickAction({
+  icon,
+  title,
+  subtitle,
+  colors,
+  onPress,
+}) {
+
+  return (
+
+    <Pressable
+      style={[
+        styles.quickCard,
+        {
+          backgroundColor:
+            colors.card,
+          borderColor:
+            colors.border,
+        },
+      ]}
+      onPress={onPress}
+      android_ripple={{
+        color:
+          colors.iconBackground,
+      }}
+    >
+
+      <View
+        style={[
+          styles.quickIcon,
+          {
+            backgroundColor:
+              colors.iconBackground,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={25}
+          color={
+            colors.primaryLight
+          }
+        />
+      </View>
+
+      <Text
+        style={[
+          styles.quickTitle,
+          {
+            color:
+              colors.text,
+          },
+        ]}
+      >
+        {title}
+      </Text>
+
+      <Text
+        style={[
+          styles.quickSubtitle,
+          {
+            color:
+              colors.secondaryText,
+          },
+        ]}
+        numberOfLines={2}
+      >
+        {subtitle}
+      </Text>
+
+    </Pressable>
+  );
+}
+
+
+// ============================================================
+// INFO ROW
+// ============================================================
+
+function InfoRow({
+  icon,
+  label,
+  value,
+  colors,
+}) {
+
+  return (
+
+    <View
+      style={
+        styles.infoRow
+      }
+    >
+
+      <View
+        style={[
+          styles.infoIcon,
+          {
+            backgroundColor:
+              colors.iconBackground,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={20}
+          color={
+            colors.primaryLight
+          }
+        />
+      </View>
+
+      <View
+        style={
+          styles.infoTextContainer
+        }
+      >
+
+        <Text
+          style={[
+            styles.infoLabel,
+            {
+              color:
+                colors.secondaryText,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+
+        <Text
+          style={[
+            styles.infoValue,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+          numberOfLines={1}
+        >
+          {value || "--"}
+        </Text>
+
+      </View>
+
+    </View>
+  );
+}
+
+
+// ============================================================
+// BOTTOM NAV ITEM
+// ============================================================
+
+function BottomNavItem({
+  icon,
+  label,
+  active = false,
+  colors,
+  onPress,
+}) {
+
+  return (
+
+    <Pressable
+      onPress={onPress}
+      style={
+        styles.bottomNavItem
+      }
+      android_ripple={{
+        color:
+          colors.iconBackground,
+      }}
+    >
+
+      <View
+        style={[
+          styles.bottomIconContainer,
+
+          active && {
+            backgroundColor:
+              colors.iconBackground,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={21}
+          color={
+            active
+              ? colors.primaryLight
+              : colors.secondaryText
+          }
+        />
+      </View>
+
+      <Text
+        style={[
+          styles.bottomLabel,
+          {
+            color:
+              active
+                ? colors.primaryLight
+                : colors.secondaryText,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
+      {active && (
+        <View
+          style={[
+            styles.activeIndicator,
+            {
+              backgroundColor:
+                colors.primaryLight,
+            },
+          ]}
+        />
+      )}
+
+    </Pressable>
+  );
+}
+
+
+// ============================================================
+// STYLES
+// ============================================================
+
+const styles =
   StyleSheet.create({
 
     // ========================================================
@@ -2771,70 +2415,29 @@ const createStyles = (
 
     container: {
       flex: 1,
-
-      backgroundColor:
-        GYM_COLORS.background,
     },
-
-
-    // ========================================================
-    // LOADING
-    // ========================================================
 
     loadingContainer: {
       flex: 1,
-
       alignItems:
         "center",
-
       justifyContent:
         "center",
-
-      backgroundColor:
-        GYM_COLORS.background,
     },
-
-
-    loadingLogo: {
-      width: 64,
-      height: 64,
-
-      borderRadius: 20,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      backgroundColor:
-        GYM_COLORS.primary,
-
-      marginBottom: 22,
-    },
-
 
     loadingText: {
-      marginTop: 14,
-
-      color:
-        GYM_COLORS.textSecondary,
-
-      fontSize: 13,
-
-      fontWeight:
-        "600",
+      marginTop: 12,
+      fontSize: 12,
+      fontWeight: "700",
     },
-
-
-    // ========================================================
-    // CONTENT
-    // ========================================================
 
     content: {
       paddingHorizontal: 18,
 
-      paddingTop: 54,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
 
       paddingBottom: 125,
     },
@@ -2849,36 +2452,24 @@ const createStyles = (
         "row",
 
       alignItems:
-        "flex-start",
+        "center",
 
       justifyContent:
         "space-between",
 
-      marginBottom: 26,
+      marginBottom: 22,
     },
-
 
     headerLeft: {
       flex: 1,
-
-      paddingRight: 12,
     },
-
 
     eyebrow: {
-      color:
-        GYM_COLORS.primaryLight,
-
-      fontSize: 10,
-
-      fontWeight:
-        "900",
-
-      letterSpacing: 2,
-
-      marginBottom: 9,
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.4,
+      marginBottom: 7,
     },
-
 
     profileRow: {
       flexDirection:
@@ -2888,109 +2479,45 @@ const createStyles = (
         "center",
     },
 
-
     profileAvatar: {
       width: 52,
       height: 52,
-
       borderRadius: 18,
-
-      backgroundColor:
-        GYM_COLORS.primary,
-
-      borderWidth: 2,
-
-      borderColor:
-        GYM_COLORS.primaryLight,
-
+      borderWidth: 1,
       alignItems:
         "center",
-
       justifyContent:
         "center",
-
       overflow:
         "hidden",
-
-      marginRight: 12,
     },
-
 
     profileImage: {
       width: "100%",
       height: "100%",
     },
 
-
     profileInitials: {
-      color:
-        GYM_COLORS.white,
-
       fontSize: 18,
-
-      fontWeight:
-        "900",
+      fontWeight: "900",
     },
 
-
-    profileText: {
+    headerText: {
       flex: 1,
+      marginLeft: 11,
+      marginRight: 5,
     },
-
 
     memberName: {
-      color:
-        GYM_COLORS.text,
-
-      fontSize: 22,
-
-      fontWeight:
-        "900",
-
-      letterSpacing: -0.4,
+      fontSize: 18,
+      fontWeight: "900",
     },
-
 
     memberRole: {
-      flexDirection:
-        "row",
-
-      alignItems:
-        "center",
-
-      marginTop: 5,
+      fontSize: 10,
+      fontWeight: "600",
+      marginTop: 3,
     },
-
-
-    onlineDot: {
-      width: 7,
-      height: 7,
-
-      borderRadius: 4,
-
-      backgroundColor:
-        GYM_COLORS.success,
-
-      marginRight: 6,
-    },
-
-
-    memberRoleText: {
-      color:
-        GYM_COLORS.textMuted,
-
-      fontSize: 9,
-
-      fontWeight:
-        "800",
-
-      letterSpacing: 1.1,
-    },
-
-
-    // ========================================================
-    // HEADER ACTIONS
-    // ========================================================
 
     headerActions: {
       flexDirection:
@@ -2999,282 +2526,166 @@ const createStyles = (
       alignItems:
         "center",
 
-      gap: 9,
+      gap: 7,
     },
-
 
     headerButton: {
       width: 43,
       height: 43,
-
       borderRadius: 14,
-
+      borderWidth: 1,
       alignItems:
         "center",
-
       justifyContent:
         "center",
-
-      backgroundColor:
-        GYM_COLORS.card,
-
-      borderWidth: 1,
-
-      borderColor:
-        GYM_COLORS.border,
+      position:
+        "relative",
     },
-
 
     notificationBadge: {
       position:
         "absolute",
 
-      right: -4,
-
+      right: -3,
       top: -4,
 
-      minWidth: 18,
-
-      height: 18,
+      minWidth: 17,
+      height: 17,
 
       paddingHorizontal: 4,
 
-      borderRadius: 10,
-
-      backgroundColor:
-        GYM_COLORS.danger,
-
-      borderWidth: 2,
-
-      borderColor:
-        GYM_COLORS.background,
+      borderRadius: 9,
 
       alignItems:
         "center",
-
       justifyContent:
         "center",
     },
 
-
     notificationBadgeText: {
-      color:
-        GYM_COLORS.white,
-
-      fontSize: 8,
-
-      fontWeight:
-        "900",
+      color: "#FFFFFF",
+      fontSize: 7,
+      fontWeight: "900",
     },
 
 
     // ========================================================
-    // HERO CARD
+    // OVERVIEW CARD
     // ========================================================
 
-    heroCard: {
-      position:
-        "relative",
-
-      overflow:
-        "hidden",
-
-      backgroundColor:
-        GYM_COLORS.card,
-
-      borderRadius: 26,
-
-      padding: 20,
-
-      marginBottom: 20,
-
+    overviewCard: {
       borderWidth: 1,
-
-      borderColor:
-        GYM_COLORS.border,
+      borderRadius: 26,
+      padding: 16,
+      marginBottom: 14,
     },
 
-
-    heroGlowOne: {
-      position:
-        "absolute",
-
-      width: 170,
-      height: 170,
-
-      borderRadius: 100,
-
-      right: -80,
-
-      top: -85,
-
-      backgroundColor:
-        `${GYM_COLORS.primary}16`,
-    },
-
-
-    heroGlowTwo: {
-      position:
-        "absolute",
-
-      width: 120,
-      height: 120,
-
-      borderRadius: 100,
-
-      left: -75,
-
-      bottom: -75,
-
-      backgroundColor:
-        `${GYM_COLORS.primaryLight}0D`,
-    },
-
-
-    heroTopRow: {
+    sectionHeader: {
       flexDirection:
         "row",
+
+      alignItems:
+        "center",
 
       justifyContent:
         "space-between",
 
-      alignItems:
-        "flex-start",
+      marginBottom: 15,
     },
 
-
-    heroLabel: {
-      color:
-        GYM_COLORS.textMuted,
-
-      fontSize: 9,
-
-      fontWeight:
-        "900",
-
-      letterSpacing: 1.7,
-
-      marginBottom: 5,
+    sectionEyebrow: {
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 1.3,
+      marginBottom: 3,
     },
 
-
-    heroGymName: {
-      color:
-        GYM_COLORS.text,
-
-      fontSize: 19,
-
-      fontWeight:
-        "900",
-
-      maxWidth: 190,
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "900",
     },
 
-
-    // ========================================================
-    // STATUS
-    // ========================================================
-
-    statusBadge: {
+    statusPill: {
       flexDirection:
         "row",
 
       alignItems:
         "center",
-
-      paddingHorizontal: 10,
-
-      paddingVertical: 8,
-
-      borderRadius: 11,
 
       borderWidth: 1,
+      borderRadius: 14,
+
+      paddingHorizontal: 9,
+      paddingVertical: 6,
     },
 
-
-    statusText: {
-      fontSize: 9,
-
-      fontWeight:
-        "900",
-
-      marginLeft: 5,
-
-      letterSpacing: 0.5,
+    statusPillText: {
+      fontSize: 7.5,
+      fontWeight: "900",
+      letterSpacing: 0.6,
+      marginLeft: 4,
     },
 
 
     // ========================================================
-    // DAYS
+    // STATS
     // ========================================================
 
-    heroCenter: {
-      alignItems:
-        "center",
+    statsGrid: {
+      flexDirection:
+        "row",
 
-      marginTop: 28,
+      flexWrap:
+        "wrap",
 
-      marginBottom: 25,
+      justifyContent:
+        "space-between",
     },
 
+    statCard: {
+      width: "48.2%",
+      minHeight: 96,
 
-    daysNumber: {
-      fontSize: 72,
+      borderWidth: 1,
+      borderRadius: 20,
 
-      lineHeight: 76,
+      padding: 12,
 
-      fontWeight:
-        "900",
+      marginBottom: 9,
 
-      letterSpacing: -3,
-    },
-
-
-    daysLabel: {
-      color:
-        GYM_COLORS.textSecondary,
-
-      fontSize: 10,
-
-      fontWeight:
-        "900",
-
-      letterSpacing: 2,
-
-      marginTop: 2,
-    },
-
-
-    heroMiniStatus: {
       flexDirection:
         "row",
 
       alignItems:
         "center",
-
-      marginTop: 10,
-
-      paddingHorizontal: 10,
-
-      paddingVertical: 6,
-
-      borderRadius: 10,
-
-      backgroundColor:
-        GYM_COLORS.backgroundSecondary,
     },
 
+    statIcon: {
+      width: 41,
+      height: 41,
+      borderRadius: 14,
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+    },
 
-    heroMiniStatusText: {
-      color:
-        GYM_COLORS.textMuted,
+    statContent: {
+      flex: 1,
+      marginLeft: 9,
+    },
 
-      fontSize: 10,
+    statValue: {
+      fontSize: 23,
+      fontWeight: "900",
+    },
 
-      fontWeight:
-        "600",
-
-      marginLeft: 5,
+    statLabel: {
+      fontSize: 7,
+      fontWeight: "900",
+      letterSpacing: 0.4,
+      marginTop: 3,
+      lineHeight: 10,
     },
 
 
@@ -3282,157 +2693,72 @@ const createStyles = (
     // PROGRESS
     // ========================================================
 
+    progressCard: {
+      borderWidth: 1,
+      borderRadius: 20,
+      padding: 13,
+    },
+
     progressHeader: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "space-between",
+    },
+
+    progressLabel: {
+      fontSize: 7.5,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+
+    progressValue: {
+      fontSize: 12,
+      fontWeight: "900",
+    },
+
+    progressTrack: {
+      height: 8,
+      borderRadius: 4,
+      overflow:
+        "hidden",
+      marginTop: 10,
+    },
+
+    progressFill: {
+      height: "100%",
+      borderRadius: 4,
+    },
+
+    datesRow: {
       flexDirection:
         "row",
 
       justifyContent:
         "space-between",
 
-      alignItems:
-        "center",
-
-      marginBottom: 9,
+      marginTop: 12,
     },
 
-
-    progressLabel: {
-      color:
-        GYM_COLORS.textMuted,
-
-      fontSize: 9,
-
-      fontWeight:
-        "900",
-
-      letterSpacing: 1.2,
-    },
-
-
-    progressPercentage: {
-      color:
-        GYM_COLORS.textSecondary,
-
-      fontSize: 10,
-
-      fontWeight:
-        "900",
-    },
-
-
-    progressTrack: {
-      height: 8,
-
-      borderRadius: 5,
-
-      backgroundColor:
-        GYM_COLORS.backgroundSecondary,
-
-      overflow:
-        "hidden",
-    },
-
-
-    progressFill: {
-      height: "100%",
-
-      borderRadius: 5,
-    },
-
-
-    // ========================================================
-    // DATES
-    // ========================================================
-
-    dateContainer: {
-      flexDirection:
-        "row",
-
-      alignItems:
-        "center",
-
-      marginTop: 22,
-
-      paddingTop: 18,
-
-      borderTopWidth: 1,
-
-      borderTopColor:
-        GYM_COLORS.border,
-    },
-
-
-    dateBlock: {
-      flex: 1,
-
-      flexDirection:
-        "row",
-
-      alignItems:
-        "center",
-    },
-
-
-    dateIcon: {
-      width: 32,
-      height: 32,
-
-      borderRadius: 10,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      backgroundColor:
-        GYM_COLORS.backgroundSecondary,
-
-      marginRight: 8,
-    },
-
-
-    dateTextRight: {
+    dateRight: {
       alignItems:
         "flex-end",
     },
 
-
-    dateDivider: {
-      width: 1,
-
-      height: 32,
-
-      backgroundColor:
-        GYM_COLORS.border,
-
-      marginHorizontal: 10,
-    },
-
-
     dateLabel: {
-      color:
-        GYM_COLORS.textMuted,
-
-      fontSize: 8,
-
-      fontWeight:
-        "900",
-
-      letterSpacing: 1,
-
-      marginBottom: 4,
+      fontSize: 7,
+      fontWeight: "900",
+      letterSpacing: 0.8,
     },
-
 
     dateValue: {
-      color:
-        GYM_COLORS.text,
-
       fontSize: 11,
-
-      fontWeight:
-        "800",
+      fontWeight: "900",
+      marginTop: 3,
     },
 
 
@@ -3441,68 +2767,49 @@ const createStyles = (
     // ========================================================
 
     alertCard: {
+      minHeight: 76,
+
+      borderWidth: 1,
+      borderRadius: 21,
+
+      paddingHorizontal: 13,
+      paddingVertical: 12,
+
       flexDirection:
         "row",
 
       alignItems:
         "center",
 
-      borderRadius: 18,
-
-      padding: 15,
-
-      marginBottom: 20,
-
-      borderWidth: 1,
+      marginBottom: 14,
     },
-
 
     alertIcon: {
-      width: 42,
-      height: 42,
-
-      borderRadius: 13,
-
+      width: 44,
+      height: 44,
+      borderRadius: 14,
       alignItems:
         "center",
-
       justifyContent:
         "center",
-
-      backgroundColor:
-        `${GYM_COLORS.black}18`,
-
-      marginRight: 12,
     },
 
-
-    alertContent: {
+    alertText: {
       flex: 1,
+      marginLeft: 11,
     },
-
 
     alertTitle: {
       fontSize: 10,
-
-      fontWeight:
-        "900",
-
-      letterSpacing: 1,
-
-      marginBottom: 5,
+      fontWeight: "900",
+      letterSpacing: 0.8,
     },
 
-
-    alertText: {
-      color:
-        GYM_COLORS.textSecondary,
-
-      fontSize: 11,
-
-      lineHeight: 17,
-
-      fontWeight:
-        "500",
+    alertSubtitle: {
+      fontSize: 9,
+      fontWeight: "600",
+      lineHeight: 13,
+      marginTop: 3,
     },
 
 
@@ -3510,66 +2817,46 @@ const createStyles = (
     // SECTION HEADER
     // ========================================================
 
-    sectionHeader: {
+    sectionHeaderSimple: {
       flexDirection:
         "row",
 
       alignItems:
-        "flex-end",
+        "center",
 
       justifyContent:
         "space-between",
 
-      marginBottom: 13,
-
-      marginTop: 4,
+      marginBottom: 11,
+      marginTop: 7,
     },
 
-
-    sectionTitle: {
-      color:
-        GYM_COLORS.text,
-
+    sectionHeading: {
       fontSize: 11,
-
-      fontWeight:
-        "900",
-
-      letterSpacing: 1.5,
+      fontWeight: "900",
+      letterSpacing: 1.2,
     },
 
+    seeAllButton: {
+      flexDirection:
+        "row",
 
-    sectionSubtitle: {
-      color:
-        GYM_COLORS.textMuted,
+      alignItems:
+        "center",
+    },
 
+    seeAllText: {
       fontSize: 10,
-
-      fontWeight:
-        "500",
-
-      marginTop: 4,
-    },
-
-
-    editText: {
-      color:
-        GYM_COLORS.primaryLight,
-
-      fontSize: 9,
-
-      fontWeight:
-        "900",
-
-      letterSpacing: 1,
+      fontWeight: "800",
+      marginRight: 2,
     },
 
 
     // ========================================================
-    // QUICK ACTION GRID
+    // QUICK ACTIONS
     // ========================================================
 
-    actionGrid: {
+    quickGrid: {
       flexDirection:
         "row",
 
@@ -3579,290 +2866,95 @@ const createStyles = (
       justifyContent:
         "space-between",
 
-      marginBottom: 22,
+      marginBottom: 12,
     },
 
-
-    actionCard: {
+    quickCard: {
       width: "48.2%",
+      minHeight: 116,
 
-      minHeight: 118,
-
+      borderWidth: 1,
       borderRadius: 20,
 
-      padding: 15,
+      padding: 13,
 
-      marginBottom: 12,
-
-      backgroundColor:
-        GYM_COLORS.card,
-
-      borderWidth: 1,
-
-      borderColor:
-        GYM_COLORS.border,
-
-      justifyContent:
-        "space-between",
+      marginBottom: 9,
     },
 
-
-    actionIcon: {
-      width: 42,
-      height: 42,
-
+    quickIcon: {
+      width: 43,
+      height: 43,
       borderRadius: 14,
-
       alignItems:
         "center",
-
       justifyContent:
         "center",
-
-      borderWidth: 1,
+      marginBottom: 10,
     },
 
-
-    actionContent: {
-      marginTop: 13,
+    quickTitle: {
+      fontSize: 12,
+      fontWeight: "900",
     },
 
-
-    actionTitle: {
-      color:
-        GYM_COLORS.text,
-
-      fontSize: 13,
-
-      fontWeight:
-        "900",
-    },
-
-
-    actionSubtitle: {
-      color:
-        GYM_COLORS.textMuted,
-
-      fontSize: 9.5,
-
-      fontWeight:
-        "500",
-
+    quickSubtitle: {
+      fontSize: 8,
+      fontWeight: "600",
+      lineHeight: 11,
       marginTop: 4,
     },
 
 
-    actionArrow: {
-      position:
-        "absolute",
-
-      right: 12,
-
-      top: 13,
-    },
-
-
     // ========================================================
-    // SUMMARY
+    // INFO CARD
     // ========================================================
 
-    summaryCard: {
-      flexDirection:
-        "row",
-
-      alignItems:
-        "center",
-
-      backgroundColor:
-        GYM_COLORS.card,
-
-      borderRadius: 21,
-
-      paddingVertical: 19,
-
+    infoCard: {
       borderWidth: 1,
-
-      borderColor:
-        GYM_COLORS.border,
-
-      marginBottom: 22,
-    },
-
-
-    summaryItem: {
-      flex: 1,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-    },
-
-
-    summaryDivider: {
-      width: 1,
-
-      height: 55,
-
-      backgroundColor:
-        GYM_COLORS.border,
-    },
-
-
-    summaryIcon: {
-      width: 36,
-      height: 36,
-
-      borderRadius: 12,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      marginBottom: 7,
-    },
-
-
-    summaryValue: {
-      color:
-        GYM_COLORS.text,
-
-      fontSize: 17,
-
-      fontWeight:
-        "900",
-    },
-
-
-    summaryValueSmall: {
-      color:
-        GYM_COLORS.text,
-
-      fontSize: 15,
-
-      fontWeight:
-        "900",
-    },
-
-
-    summaryLabel: {
-      color:
-        GYM_COLORS.textMuted,
-
-      fontSize: 8.5,
-
-      fontWeight:
-        "800",
-
-      marginTop: 3,
-
-      letterSpacing: 0.4,
-    },
-
-
-    // ========================================================
-    // ACCOUNT
-    // ========================================================
-
-    accountCard: {
-      backgroundColor:
-        GYM_COLORS.card,
-
       borderRadius: 21,
-
-      paddingHorizontal: 15,
-
-      borderWidth: 1,
-
-      borderColor:
-        GYM_COLORS.border,
-
-      marginBottom: 24,
-
-      overflow:
-        "hidden",
+      paddingHorizontal: 13,
+      paddingVertical: 3,
     },
-
 
     infoRow: {
-      minHeight: 67,
+      minHeight: 64,
 
       flexDirection:
         "row",
 
       alignItems:
         "center",
-
-      justifyContent:
-        "space-between",
     },
 
-
-    infoLeft: {
-      flexDirection:
-        "row",
-
+    infoIcon: {
+      width: 41,
+      height: 41,
+      borderRadius: 14,
       alignItems:
         "center",
+      justifyContent:
+        "center",
+      marginRight: 11,
+    },
 
+    infoTextContainer: {
       flex: 1,
     },
 
-
-    infoIcon: {
-      width: 36,
-      height: 36,
-
-      borderRadius: 11,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      backgroundColor:
-        `${GYM_COLORS.primary}15`,
-
-      marginRight: 10,
-    },
-
-
     infoLabel: {
-      color:
-        GYM_COLORS.textSecondary,
-
-      fontSize: 11,
-
-      fontWeight:
-        "600",
+      fontSize: 8,
+      fontWeight: "700",
+      marginBottom: 3,
     },
-
 
     infoValue: {
-      color:
-        GYM_COLORS.text,
-
-      fontSize: 11,
-
-      fontWeight:
-        "800",
-
-      maxWidth: "52%",
-
-      textAlign:
-        "right",
+      fontSize: 12,
+      fontWeight: "800",
     },
 
-
-    infoDivider: {
+    divider: {
       height: 1,
-
-      backgroundColor:
-        GYM_COLORS.border,
+      marginLeft: 52,
     },
 
 
@@ -3877,41 +2969,28 @@ const createStyles = (
       justifyContent:
         "center",
 
-      marginTop: 4,
+      paddingTop: 20,
+      paddingBottom: 8,
 
-      marginBottom: 4,
+      flexDirection:
+        "row",
     },
 
-
-    footerLogo: {
-      width: 30,
-      height: 30,
-
-      borderRadius: 10,
-
+    footerIcon: {
+      width: 27,
+      height: 27,
+      borderRadius: 9,
       alignItems:
         "center",
-
       justifyContent:
         "center",
-
-      backgroundColor:
-        `${GYM_COLORS.primary}15`,
-
-      marginBottom: 7,
+      marginRight: 7,
     },
 
-
     footerText: {
-      color:
-        GYM_COLORS.textMuted,
-
       fontSize: 8,
-
-      fontWeight:
-        "800",
-
-      letterSpacing: 1.4,
+      fontWeight: "800",
+      letterSpacing: 0.7,
     },
 
 
@@ -3923,142 +3002,72 @@ const createStyles = (
       position:
         "absolute",
 
-      bottom: 0,
-
       left: 0,
-
       right: 0,
+      bottom: 0,
 
       height: 82,
 
-      backgroundColor:
-        GYM_COLORS.nav,
-
       borderTopWidth: 1,
 
-      borderTopColor:
-        GYM_COLORS.border,
+      borderTopLeftRadius: 27,
+      borderTopRightRadius: 27,
 
       flexDirection:
         "row",
 
       alignItems:
-        "center",
+        "flex-start",
 
       justifyContent:
         "space-around",
 
-      paddingHorizontal: 8,
+      paddingTop: 8,
 
-      paddingBottom: 4,
+      elevation: 20,
+
+      shadowOffset: {
+        width: 0,
+        height: -4,
+      },
+
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
     },
 
+    bottomNavItem: {
+      flex: 1,
 
-    navItem: {
-      width: 78,
-
-      height: 62,
+      height: 70,
 
       alignItems:
         "center",
 
       justifyContent:
-        "center",
-
-      borderRadius: 17,
+        "flex-start",
     },
 
-
-    activeNavIcon: {
-      width: 39,
-
-      height: 30,
-
-      borderRadius: 12,
-
+    bottomIconContainer: {
+      width: 42,
+      height: 35,
+      borderRadius: 13,
       alignItems:
         "center",
-
       justifyContent:
         "center",
-
-      backgroundColor:
-        `${GYM_COLORS.primary}18`,
-
-      marginBottom: 3,
     },
 
-
-    navText: {
-      color:
-        GYM_COLORS.textMuted,
-
-      fontSize: 9,
-
-      fontWeight:
-        "700",
-
-      marginTop: 4,
-    },
-
-
-    navTextActive: {
-      color:
-        GYM_COLORS.primaryLight,
-
-      fontSize: 9,
-
-      fontWeight:
-        "800",
-
+    bottomLabel: {
+      fontSize: 7.5,
+      fontWeight: "800",
       marginTop: 2,
     },
 
-
-    // ========================================================
-    // NAV PROFILE
-    // ========================================================
-
-    navProfileAvatar: {
-      width: 29,
-      height: 29,
-
-      borderRadius: 10,
-
-      alignItems:
-        "center",
-
-      justifyContent:
-        "center",
-
-      overflow:
-        "hidden",
-
-      backgroundColor:
-        GYM_COLORS.primary,
-
-      borderWidth: 1.5,
-
-      borderColor:
-        GYM_COLORS.primaryLight,
-    },
-
-
-    navProfileImage: {
-      width: "100%",
-
-      height: "100%",
-    },
-
-
-    navProfileText: {
-      color:
-        GYM_COLORS.white,
-
-      fontSize: 9,
-
-      fontWeight:
-        "900",
+    activeIndicator: {
+      width: 25,
+      height: 3,
+      borderRadius: 3,
+      marginTop: 4,
     },
 
   });

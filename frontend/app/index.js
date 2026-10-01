@@ -18,12 +18,16 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
+import { useTheme } from "../context/ThemeContext";
+
 
 // ============================================================
 // API
 // ============================================================
 
-const API_URL = "http://192.168.1.52:8000";
+const API_URL = "http://192.168.1.43:8000";
 
 
 // ============================================================
@@ -31,6 +35,8 @@ const API_URL = "http://192.168.1.52:8000";
 // ============================================================
 
 export default function LoginScreen() {
+
+  const { colors } = useTheme();
 
   // ==========================================================
   // MODE
@@ -1046,412 +1052,376 @@ export default function LoginScreen() {
 
   };
 
-
   // ==========================================================
   // UI
   // ==========================================================
 
   return (
-
     <ImageBackground
       source={require(
         "../assets/images/gymryt-bg.png"
       )}
-
       style={styles.background}
-
       resizeMode="cover"
     >
-
       <View
         style={styles.backgroundOverlay}
       >
-
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-
-          behavior="padding"
-
-          keyboardVerticalOffset={
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior="padding"
+        keyboardVerticalOffset={
+          Platform.OS === "ios"
+            ? 0
+            : 20
+        }
+      >
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContainer,
+            isCreateAccount &&
+              styles.createScrollContainer,
+          ]}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode={
             Platform.OS === "ios"
-              ? 0
-              : 20
+              ? "interactive"
+              : "on-drag"
           }
+          showsVerticalScrollIndicator={
+            false
+          }
+          automaticallyAdjustKeyboardInsets={
+            true
+          }
+          contentInsetAdjustmentBehavior="automatic"
+          nestedScrollEnabled={true}
         >
-
-          <ScrollView
-            ref={scrollViewRef}
-
-            style={styles.scrollView}
-
-            contentContainerStyle={[
-              styles.scrollContainer,
-
-              isCreateAccount &&
-                styles.createScrollContainer,
-            ]}
-
-            keyboardShouldPersistTaps="always"
-
-            keyboardDismissMode={
-              Platform.OS === "ios"
-                ? "interactive"
-                : "on-drag"
-            }
-
-            showsVerticalScrollIndicator={
-              false
-            }
-
-            automaticallyAdjustKeyboardInsets={
-              true
-            }
-
-            contentInsetAdjustmentBehavior="automatic"
-
-            nestedScrollEnabled={true}
+          <View
+            style={styles.content}
           >
 
+            {/* ==================================================
+                LOGO
+            ================================================== */}
+
             <View
-              style={styles.content}
+              style={styles.logoContainer}
+            >
+              <Image
+                source={require(
+                  "../assets/images/gymryt-logo.png"
+                )}
+                style={[
+                  styles.logo,
+                  isCreateAccount &&
+                    styles.createLogo,
+                ]}
+                resizeMode="contain"
+              />
+
+              <Text
+                style={[
+                  styles.eyebrow,
+                  {
+                    color:
+                      colors.primaryLight,
+                  },
+                ]}
+              >
+                {isCreateAccount
+                  ? "GYMRYT • NEW GYM"
+                  : "GYMRYT • WELCOME BACK"}
+              </Text>
+
+              <Text
+                style={[
+                  styles.title,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                {isCreateAccount
+                  ? "Create Account"
+                  : "Login to GymRyt"}
+              </Text>
+            </View>
+
+            {/* ==================================================
+                MODE SWITCH
+            ================================================== */}
+
+            <View
+              style={[
+                styles.modeSwitch,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
             >
 
+              {/* LOGIN */}
 
-              {/* ==================================================
-                  LOGO
-              ================================================== */}
-
-              <View
-                style={styles.logoContainer}
+              <TouchableOpacity
+                style={[
+                  styles.modeButton,
+                  !isCreateAccount && {
+                    backgroundColor:
+                      colors.iconBackground,
+                    borderColor:
+                      colors.primaryLight,
+                  },
+                ]}
+                onPress={() =>
+                  switchMode(false)
+                }
+                disabled={loading}
+                activeOpacity={0.8}
               >
-
-                <Image
-                  source={require(
-                    "../assets/images/gymryt-logo.png"
-                  )}
-
+                <Text
                   style={[
-                    styles.logo,
-
-                    isCreateAccount &&
-                      styles.createLogo,
+                    styles.modeButtonText,
+                    {
+                      color:
+                        !isCreateAccount
+                          ? colors.primaryLight
+                          : colors.secondaryText,
+                    },
                   ]}
-
-                  resizeMode="contain"
-                />
-
-              </View>
-
-
-              {/* ==================================================
-                  MODE SWITCH
-              ================================================== */}
-
-              <View
-                style={styles.modeSwitch}
-              >
-
-                {/* LOGIN */}
-
-                <TouchableOpacity
-                  style={[
-                    styles.modeButton,
-
-                    !isCreateAccount &&
-                      styles.modeButtonActive,
-                  ]}
-
-                  onPress={() =>
-                    switchMode(false)
-                  }
-
-                  disabled={loading}
-
-                  activeOpacity={0.8}
                 >
-
-                  <Text
-                    style={[
-                      styles.modeButtonText,
-
-                      !isCreateAccount &&
-                        styles.modeButtonTextActive,
-                    ]}
-                  >
-                    LOGIN
-                  </Text>
-
-                </TouchableOpacity>
-
-
-                {/* CREATE ACCOUNT */}
-
-                <TouchableOpacity
-                  style={[
-                    styles.modeButton,
-
-                    isCreateAccount &&
-                      styles.modeButtonActive,
-                  ]}
-
-                  onPress={() =>
-                    switchMode(true)
-                  }
-
-                  disabled={loading}
-
-                  activeOpacity={0.8}
-                >
-
-                  <Text
-                    style={[
-                      styles.modeButtonText,
-
-                      isCreateAccount &&
-                        styles.modeButtonTextActive,
-                    ]}
-                  >
-                    CREATE ACCOUNT
-                  </Text>
-
-                </TouchableOpacity>
-
-              </View>
-
-
-              {/* ==================================================
                   LOGIN
-              ================================================== */}
+                </Text>
+              </TouchableOpacity>
 
-              {!isCreateAccount ? (
+              {/* CREATE ACCOUNT */}
 
-                <View
-                  style={styles.loginCard}
+              <TouchableOpacity
+                style={[
+                  styles.modeButton,
+                  isCreateAccount && {
+                    backgroundColor:
+                      colors.iconBackground,
+                    borderColor:
+                      colors.primaryLight,
+                  },
+                ]}
+                onPress={() =>
+                  switchMode(true)
+                }
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.modeButtonText,
+                    {
+                      color:
+                        isCreateAccount
+                          ? colors.primaryLight
+                          : colors.secondaryText,
+                    },
+                  ]}
                 >
+                  CREATE ACCOUNT
+                </Text>
+              </TouchableOpacity>
+            </View>
 
+            {/* ==================================================
+                LOGIN
+            ================================================== */}
 
-                  {/* ==================================================
-                      USERNAME
-                  ================================================== */}
+            {!isCreateAccount ? (
 
-                  <View
-                    style={styles.inputContainer}
-                  >
+              <View
+                style={[
+                  styles.loginCard,
+                  {
+                    backgroundColor:
+                      colors.card,
+                    borderColor:
+                      colors.border,
+                  },
+                ]}
+              >
 
-                    <Text
-                      style={[
-                        styles.floatingLabel,
+                {/* ==================================================
+                    USERNAME
+                ================================================== */}
 
-                        usernameFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Username
-                    </Text>
+                <FormField
+                  icon="person-outline"
+                  label="USERNAME"
+                  focused={usernameFocused}
+                  colors={colors}
+                >
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        color:
+                          colors.text,
+                      },
+                    ]}
+                    value={username}
+                    onChangeText={
+                      setUsername
+                    }
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    placeholder=""
+                    placeholderTextColor="transparent"
+                    returnKeyType="next"
+                    onFocus={() =>
+                      setUsernameFocused(true)
+                    }
+                    onBlur={() =>
+                      setUsernameFocused(false)
+                    }
+                    selectionColor={
+                      colors.primaryLight
+                    }
+                    blurOnSubmit={false}
+                  />
+                </FormField>
 
+                {/* ==================================================
+                    PASSWORD
+                ================================================== */}
 
-                    <TextInput
-                      style={[
-                        styles.input,
+                <FormField
+                  icon="lock-closed-outline"
+                  label="PASSWORD"
+                  focused={passwordFocused}
+                  colors={colors}
+                >
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        color:
+                          colors.text,
+                      },
+                    ]}
+                    value={password}
+                    onChangeText={
+                      setPassword
+                    }
+                    secureTextEntry={
+                      !showPassword
+                    }
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    placeholder=""
+                    placeholderTextColor="transparent"
+                    returnKeyType="done"
+                    onFocus={() =>
+                      setPasswordFocused(true)
+                    }
+                    onBlur={() =>
+                      setPasswordFocused(false)
+                    }
+                    selectionColor={
+                      colors.primaryLight
+                    }
+                    onSubmitEditing={
+                      handleLogin
+                    }
+                  />
 
-                        usernameFocused &&
-                          styles.inputFocused,
-                      ]}
-
-                      value={username}
-
-                      onChangeText={
-                        setUsername
-                      }
-
-                      autoCapitalize="none"
-
-                      autoCorrect={false}
-
-                      editable={!loading}
-
-                      placeholder=""
-
-                      placeholderTextColor="transparent"
-
-                      returnKeyType="next"
-
-                      onFocus={() =>
-                        setUsernameFocused(true)
-                      }
-
-                      onBlur={() =>
-                        setUsernameFocused(false)
-                      }
-
-                      selectionColor="#9DBEFF"
-
-                      blurOnSubmit={false}
-                    />
-
-                  </View>
-
-
-                  {/* ==================================================
-                      PASSWORD
-                  ================================================== */}
-
-                  <View
-                    style={styles.inputContainer}
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        passwordFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Password
-                    </Text>
-
-
-                    <View
-                      style={styles.passwordWrapper}
-                    >
-
-                      <TextInput
-                        style={[
-                          styles.input,
-                          styles.passwordInputDirect,
-
-                          passwordFocused &&
-                            styles.inputFocused,
-                        ]}
-
-                        value={password}
-
-                        onChangeText={
-                          setPassword
-                        }
-
-                        secureTextEntry={
-                          !showPassword
-                        }
-
-                        autoCapitalize="none"
-
-                        autoCorrect={false}
-
-                        editable={!loading}
-
-                        placeholder=""
-
-                        placeholderTextColor="transparent"
-
-                        returnKeyType="done"
-
-                        onFocus={() =>
-                          setPasswordFocused(true)
-                        }
-
-                        onBlur={() =>
-                          setPasswordFocused(false)
-                        }
-
-                        selectionColor="#9DBEFF"
-
-                        onSubmitEditing={
-                          handleLogin
-                        }
-                      />
-
-
-                      {/* SHOW / HIDE */}
-
-                      <TouchableOpacity
-                        style={
-                          styles.showButton
-                        }
-
-                        onPress={() =>
-                          setShowPassword(
-                            !showPassword
-                          )
-                        }
-
-                        disabled={loading}
-
-                        activeOpacity={0.7}
-                      >
-
-                        <Text
-                          style={
-                            styles.showText
-                          }
-                        >
-                          {showPassword
-                            ? "HIDE"
-                            : "SHOW"}
-                        </Text>
-
-                      </TouchableOpacity>
-
-                    </View>
-
-                  </View>
-
-
-                  {/* ==================================================
-                      FORGOT PASSWORD
-                  ================================================== */}
+                  {/* SHOW / HIDE */}
 
                   <TouchableOpacity
                     style={
-                      styles.forgotButton
+                      styles.showButton
                     }
-
+                    onPress={() =>
+                      setShowPassword(
+                        !showPassword
+                      )
+                    }
                     disabled={loading}
-
                     activeOpacity={0.7}
                   >
-
-                    <Text
-                      style={
-                        styles.forgotText
+                    <Ionicons
+                      name={
+                        showPassword
+                          ? "eye-off-outline"
+                          : "eye-outline"
                       }
-                    >
-                      Forgot Password?
-                    </Text>
-
+                      size={19}
+                      color={
+                        colors.secondaryText
+                      }
+                    />
                   </TouchableOpacity>
+                </FormField>
 
+                {/* ==================================================
+                    FORGOT PASSWORD
+                ================================================== */}
 
-                  {/* ==================================================
-                      LOGIN BUTTON
-                  ================================================== */}
-
-                  <TouchableOpacity
+                <TouchableOpacity
+                  style={
+                    styles.forgotButton
+                  }
+                  disabled={loading}
+                  activeOpacity={0.7}
+                >
+                  <Text
                     style={[
-                      styles.loginButton,
-
-                      loading &&
-                        styles.loginButtonDisabled,
+                      styles.forgotText,
+                      {
+                        color:
+                          colors.primaryLight,
+                      },
                     ]}
-
-                    onPress={
-                      handleLogin
-                    }
-
-                    disabled={loading}
-
-                    activeOpacity={0.8}
                   >
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
 
-                    {loading ? (
+                {/* ==================================================
+                    LOGIN BUTTON
+                ================================================== */}
 
-                      <ActivityIndicator
-                        size="small"
+                <TouchableOpacity
+                  style={[
+                    styles.loginButton,
+                    {
+                      backgroundColor:
+                        colors.primary,
+                    },
+                    loading &&
+                      styles.loginButtonDisabled,
+                  ]}
+                  onPress={
+                    handleLogin
+                  }
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color="#FFFFFF"
+                    />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="log-in-outline"
+                        size={19}
                         color="#FFFFFF"
                       />
-
-                    ) : (
 
                       <Text
                         style={
@@ -1460,557 +1430,446 @@ export default function LoginScreen() {
                       >
                         LOGIN
                       </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
 
-                    )}
+                {/* ==================================================
+                    MEMBER QR SCANNER
+                ================================================== */}
 
-                  </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.scannerButton,
+                    {
+                      backgroundColor:
+                        colors.background,
+                      borderColor:
+                        colors.border,
+                    },
+                  ]}
+                  onPress={() =>
+                    router.push(
+                      "/scanner"
+                    )
+                  }
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={[
+                      styles.scannerIcon,
+                      {
+                        backgroundColor:
+                          colors.iconBackground,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="qr-code-outline"
+                      size={21}
+                      color={
+                        colors.primaryLight
+                      }
+                    />
+                  </View>
 
-
-                  {/* ==================================================
-                      MEMBER QR SCANNER
-                  ================================================== */}
-
-                  <TouchableOpacity
+                  <View
                     style={
-                      styles.scannerButton
+                      styles.scannerTextContainer
                     }
+                  >
+                    <Text
+                      style={[
+                        styles.scannerButtonText,
+                        {
+                          color:
+                            colors.text,
+                        },
+                      ]}
+                    >
+                      Scan Gym QR
+                    </Text>
 
-                    onPress={() =>
-                      router.push(
-                        "/scanner"
+                    <Text
+                      style={[
+                        styles.scannerHint,
+                        {
+                          color:
+                            colors.secondaryText,
+                        },
+                      ]}
+                    >
+                      Scan gym QR to register
+                    </Text>
+                  </View>
+
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={
+                      colors.secondaryText
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
+
+            ) : (
+
+              /* ==================================================
+                  CREATE ACCOUNT
+              ================================================== */
+
+              <View
+                style={[
+                  styles.loginCard,
+                  {
+                    backgroundColor:
+                      colors.card,
+                    borderColor:
+                      colors.border,
+                  },
+                ]}
+              >
+
+                {/* ==================================================
+                    FULL NAME
+                ================================================== */}
+
+                <FormField
+                  icon="person-outline"
+                  label="FULL NAME"
+                  focused={fullNameFocused}
+                  colors={colors}
+                >
+                  <TextInput
+                    ref={fullNameRef}
+                    style={[
+                      styles.input,
+                      {
+                        color:
+                          colors.text,
+                      },
+                    ]}
+                    value={fullName}
+                    onChangeText={
+                      setFullName
+                    }
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    editable={!loading}
+                    placeholder=""
+                    placeholderTextColor="transparent"
+                    returnKeyType="next"
+                    onFocus={() =>
+                      setFullNameFocused(true)
+                    }
+                    onBlur={() =>
+                      setFullNameFocused(false)
+                    }
+                    selectionColor={
+                      colors.primaryLight
+                    }
+                    onSubmitEditing={() =>
+                      emailRef.current?.focus()
+                    }
+                    blurOnSubmit={false}
+                  />
+                </FormField>
+
+                {/* ==================================================
+                    EMAIL
+                ================================================== */}
+
+                <FormField
+                  icon="mail-outline"
+                  label="EMAIL"
+                  focused={emailFocused}
+                  colors={colors}
+                >
+                  <TextInput
+                    ref={emailRef}
+                    style={[
+                      styles.input,
+                      {
+                        color:
+                          colors.text,
+                      },
+                    ]}
+                    value={email}
+                    onChangeText={
+                      setEmail
+                    }
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    placeholder=""
+                    placeholderTextColor="transparent"
+                    returnKeyType="next"
+                    onFocus={() =>
+                      setEmailFocused(true)
+                    }
+                    onBlur={() =>
+                      setEmailFocused(false)
+                    }
+                    selectionColor={
+                      colors.primaryLight
+                    }
+                    onSubmitEditing={() =>
+                      createUsernameRef.current?.focus()
+                    }
+                    blurOnSubmit={false}
+                  />
+                </FormField>
+
+                {/* ==================================================
+                    USERNAME
+                ================================================== */}
+
+                <FormField
+                  icon="at-outline"
+                  label="USERNAME"
+                  focused={createUsernameFocused}
+                  colors={colors}
+                >
+                  <TextInput
+                    ref={
+                      createUsernameRef
+                    }
+                    style={[
+                      styles.input,
+                      {
+                        color:
+                          colors.text,
+                      },
+                    ]}
+                    value={
+                      createUsername
+                    }
+                    onChangeText={
+                      setCreateUsername
+                    }
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    placeholder=""
+                    placeholderTextColor="transparent"
+                    returnKeyType="next"
+                    onFocus={() =>
+                      setCreateUsernameFocused(
+                        true
                       )
                     }
-
-                    disabled={loading}
-
-                    activeOpacity={0.8}
-                  >
-
-                    <Text
-                      style={
-                        styles.scannerButtonText
-                      }
-                    >
-                      +
-                    </Text>
-
-                  </TouchableOpacity>
-
-
-                  <Text
-                    style={
-                      styles.scannerHint
+                    onBlur={() =>
+                      setCreateUsernameFocused(
+                        false
+                      )
                     }
-                  >
-                    Scan gym QR to register
-                  </Text>
+                    selectionColor={
+                      colors.primaryLight
+                    }
+                    onSubmitEditing={() =>
+                      createPasswordRef.current?.focus()
+                    }
+                    blurOnSubmit={false}
+                  />
+                </FormField>
 
-                </View>
+                {/* ==================================================
+                    CREATE PASSWORD
+                ================================================== */}
 
-              ) : (
-
-
-                /* ==================================================
-                    CREATE ACCOUNT
-                ================================================== */
-
-                <View
-                  style={[
-                    styles.loginCard,
-                    styles.createAccountCard,
-                  ]}
+                <FormField
+                  icon="lock-closed-outline"
+                  label="PASSWORD"
+                  focused={createPasswordFocused}
+                  colors={colors}
                 >
-
-
-                  {/* ==================================================
-                      FULL NAME
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
+                  <TextInput
+                    ref={
+                      createPasswordRef
                     }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        fullNameFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Full Name
-                    </Text>
-
-
-                    <TextInput
-                      ref={fullNameRef}
-
-                      style={[
-                        styles.input,
-
-                        fullNameFocused &&
-                          styles.inputFocused,
-                      ]}
-
-                      value={fullName}
-
-                      onChangeText={
-                        setFullName
-                      }
-
-                      autoCapitalize="words"
-
-                      autoCorrect={false}
-
-                      editable={!loading}
-
-                      placeholder=""
-
-                      placeholderTextColor="transparent"
-
-                      returnKeyType="next"
-
-                      onFocus={() =>
-                        setFullNameFocused(true)
-                      }
-
-                      onBlur={() =>
-                        setFullNameFocused(false)
-                      }
-
-                      selectionColor="#9DBEFF"
-
-                      onSubmitEditing={() =>
-                        emailRef.current?.focus()
-                      }
-
-                      blurOnSubmit={false}
-                    />
-
-                  </View>
-
-
-                  {/* ==================================================
-                      EMAIL
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
+                    style={[
+                      styles.input,
+                      {
+                        color:
+                          colors.text,
+                      },
+                    ]}
+                    value={
+                      createPassword
                     }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        emailFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Email
-                    </Text>
-
-
-                    <TextInput
-                      ref={emailRef}
-
-                      style={[
-                        styles.input,
-
-                        emailFocused &&
-                          styles.inputFocused,
-                      ]}
-
-                      value={email}
-
-                      onChangeText={
-                        setEmail
-                      }
-
-                      keyboardType="email-address"
-
-                      autoCapitalize="none"
-
-                      autoCorrect={false}
-
-                      editable={!loading}
-
-                      placeholder=""
-
-                      placeholderTextColor="transparent"
-
-                      returnKeyType="next"
-
-                      onFocus={() =>
-                        setEmailFocused(true)
-                      }
-
-                      onBlur={() =>
-                        setEmailFocused(false)
-                      }
-
-                      selectionColor="#9DBEFF"
-
-                      onSubmitEditing={() =>
-                        createUsernameRef.current?.focus()
-                      }
-
-                      blurOnSubmit={false}
-                    />
-
-                  </View>
-
-
-                  {/* ==================================================
-                      USERNAME
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
+                    onChangeText={
+                      setCreatePassword
                     }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        createUsernameFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Username
-                    </Text>
-
-
-                    <TextInput
-                      ref={
-                        createUsernameRef
-                      }
-
-                      style={[
-                        styles.input,
-
-                        createUsernameFocused &&
-                          styles.inputFocused,
-                      ]}
-
-                      value={
-                        createUsername
-                      }
-
-                      onChangeText={
-                        setCreateUsername
-                      }
-
-                      autoCapitalize="none"
-
-                      autoCorrect={false}
-
-                      editable={!loading}
-
-                      placeholder=""
-
-                      placeholderTextColor="transparent"
-
-                      returnKeyType="next"
-
-                      onFocus={() =>
-                        setCreateUsernameFocused(
-                          true
-                        )
-                      }
-
-                      onBlur={() =>
-                        setCreateUsernameFocused(
-                          false
-                        )
-                      }
-
-                      selectionColor="#9DBEFF"
-
-                      onSubmitEditing={() =>
-                        createPasswordRef.current?.focus()
-                      }
-
-                      blurOnSubmit={false}
-                    />
-
-                  </View>
-
-
-                  {/* ==================================================
-                      CREATE PASSWORD
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
+                    secureTextEntry={
+                      !showCreatePassword
                     }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        createPasswordFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Password
-                    </Text>
-
-
-                    <View
-                      style={
-                        styles.passwordWrapper
-                      }
-                    >
-
-                      <TextInput
-                        ref={
-                          createPasswordRef
-                        }
-
-                        style={[
-                          styles.input,
-                          styles.passwordInputDirect,
-
-                          createPasswordFocused &&
-                            styles.inputFocused,
-                        ]}
-
-                        value={
-                          createPassword
-                        }
-
-                        onChangeText={
-                          setCreatePassword
-                        }
-
-                        secureTextEntry={
-                          !showCreatePassword
-                        }
-
-                        autoCapitalize="none"
-
-                        autoCorrect={false}
-
-                        editable={!loading}
-
-                        placeholder=""
-
-                        placeholderTextColor="transparent"
-
-                        returnKeyType="next"
-
-                        onFocus={() =>
-                          setCreatePasswordFocused(
-                            true
-                          )
-                        }
-
-                        onBlur={() =>
-                          setCreatePasswordFocused(
-                            false
-                          )
-                        }
-
-                        selectionColor="#9DBEFF"
-
-                        onSubmitEditing={() =>
-                          confirmPasswordRef.current?.focus()
-                        }
-
-                        blurOnSubmit={false}
-                      />
-
-
-                      <TouchableOpacity
-                        style={
-                          styles.showButton
-                        }
-
-                        onPress={() =>
-                          setShowCreatePassword(
-                            !showCreatePassword
-                          )
-                        }
-
-                        disabled={loading}
-
-                        activeOpacity={0.7}
-                      >
-
-                        <Text
-                          style={
-                            styles.showText
-                          }
-                        >
-                          {showCreatePassword
-                            ? "HIDE"
-                            : "SHOW"}
-                        </Text>
-
-                      </TouchableOpacity>
-
-                    </View>
-
-                  </View>
-
-
-                  {/* ==================================================
-                      CONFIRM PASSWORD
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    placeholder=""
+                    placeholderTextColor="transparent"
+                    returnKeyType="next"
+                    onFocus={() =>
+                      setCreatePasswordFocused(
+                        true
+                      )
                     }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        confirmPasswordFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Confirm Password
-                    </Text>
-
-
-                    <View
-                      style={
-                        styles.passwordWrapper
-                      }
-                    >
-
-                      <TextInput
-                        ref={
-                          confirmPasswordRef
-                        }
-
-                        style={[
-                          styles.input,
-                          styles.passwordInputDirect,
-
-                          confirmPasswordFocused &&
-                            styles.inputFocused,
-                        ]}
-
-                        value={
-                          confirmPassword
-                        }
-
-                        onChangeText={
-                          setConfirmPassword
-                        }
-
-                        secureTextEntry={
-                          !showConfirmPassword
-                        }
-
-                        autoCapitalize="none"
-
-                        autoCorrect={false}
-
-                        editable={!loading}
-
-                        placeholder=""
-
-                        placeholderTextColor="transparent"
-
-                        returnKeyType="done"
-
-                        onFocus={() =>
-                          setConfirmPasswordFocused(
-                            true
-                          )
-                        }
-
-                        onBlur={() =>
-                          setConfirmPasswordFocused(
-                            false
-                          )
-                        }
-
-                        selectionColor="#9DBEFF"
-
-                        onSubmitEditing={
-                          handleCreateAccount
-                        }
-
-                        blurOnSubmit={true}
-                      />
-
-
-                      <TouchableOpacity
-                        style={
-                          styles.showButton
-                        }
-
-                        onPress={() =>
-                          setShowConfirmPassword(
-                            !showConfirmPassword
-                          )
-                        }
-
-                        disabled={loading}
-
-                        activeOpacity={0.7}
-                      >
-
-                        <Text
-                          style={
-                            styles.showText
-                          }
-                        >
-                          {showConfirmPassword
-                            ? "HIDE"
-                            : "SHOW"}
-                        </Text>
-
-                      </TouchableOpacity>
-
-                    </View>
-
-                  </View>
-
-
-                  {/* ==================================================
-                      CREATE ACCOUNT BUTTON
-                  ================================================== */}
+                    onBlur={() =>
+                      setCreatePasswordFocused(
+                        false
+                      )
+                    }
+                    selectionColor={
+                      colors.primaryLight
+                    }
+                    onSubmitEditing={() =>
+                      confirmPasswordRef.current?.focus()
+                    }
+                    blurOnSubmit={false}
+                  />
 
                   <TouchableOpacity
+                    style={
+                      styles.showButton
+                    }
+                    onPress={() =>
+                      setShowCreatePassword(
+                        !showCreatePassword
+                      )
+                    }
+                    disabled={loading}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={
+                        showCreatePassword
+                          ? "eye-off-outline"
+                          : "eye-outline"
+                      }
+                      size={19}
+                      color={
+                        colors.secondaryText
+                      }
+                    />
+                  </TouchableOpacity>
+                </FormField>
+
+                {/* ==================================================
+                    CONFIRM PASSWORD
+                ================================================== */}
+
+                <FormField
+                  icon="shield-checkmark-outline"
+                  label="CONFIRM PASSWORD"
+                  focused={confirmPasswordFocused}
+                  colors={colors}
+                >
+                  <TextInput
+                    ref={
+                      confirmPasswordRef
+                    }
                     style={[
-                      styles.loginButton,
-
-                      loading &&
-                        styles.loginButtonDisabled,
+                      styles.input,
+                      {
+                        color:
+                          colors.text,
+                      },
                     ]}
-
-                    onPress={
+                    value={
+                      confirmPassword
+                    }
+                    onChangeText={
+                      setConfirmPassword
+                    }
+                    secureTextEntry={
+                      !showConfirmPassword
+                    }
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    placeholder=""
+                    placeholderTextColor="transparent"
+                    returnKeyType="done"
+                    onFocus={() =>
+                      setConfirmPasswordFocused(
+                        true
+                      )
+                    }
+                    onBlur={() =>
+                      setConfirmPasswordFocused(
+                        false
+                      )
+                    }
+                    selectionColor={
+                      colors.primaryLight
+                    }
+                    onSubmitEditing={
                       handleCreateAccount
                     }
+                    blurOnSubmit={true}
+                  />
 
+                  <TouchableOpacity
+                    style={
+                      styles.showButton
+                    }
+                    onPress={() =>
+                      setShowConfirmPassword(
+                        !showConfirmPassword
+                      )
+                    }
                     disabled={loading}
-
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                   >
+                    <Ionicons
+                      name={
+                        showConfirmPassword
+                          ? "eye-off-outline"
+                          : "eye-outline"
+                      }
+                      size={19}
+                      color={
+                        colors.secondaryText
+                      }
+                    />
+                  </TouchableOpacity>
+                </FormField>
 
-                    {loading ? (
+                {/* ==================================================
+                    CREATE ACCOUNT BUTTON
+                ================================================== */}
 
-                      <ActivityIndicator
-                        size="small"
+                <TouchableOpacity
+                  style={[
+                    styles.loginButton,
+                    {
+                      backgroundColor:
+                        colors.primary,
+                    },
+                    loading &&
+                      styles.loginButtonDisabled,
+                  ]}
+                  onPress={
+                    handleCreateAccount
+                  }
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color="#FFFFFF"
+                    />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="person-add-outline"
+                        size={18}
                         color="#FFFFFF"
                       />
-
-                    ) : (
 
                       <Text
                         style={
@@ -2019,40 +1878,112 @@ export default function LoginScreen() {
                       >
                         CREATE ACCOUNT
                       </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
 
-                    )}
+            {/* ==================================================
+                FOOTER
+            ================================================== */}
 
-                  </TouchableOpacity>
-
-                </View>
-
-              )}
-
-
-              {/* ==================================================
-                  FOOTER
-              ================================================== */}
+            <View
+              style={styles.footerRow}
+            >
+              <View
+                style={[
+                  styles.footerIcon,
+                  {
+                    backgroundColor:
+                      colors.iconBackground,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="fitness-outline"
+                  size={15}
+                  color={
+                    colors.primaryLight
+                  }
+                />
+              </View>
 
               <Text
-                style={
-                  styles.footer
-                }
+                style={[
+                  styles.footer,
+                  {
+                    color:
+                      colors.secondaryText,
+                  },
+                ]}
               >
                 GYMRYT • TRAIN • TRACK • TRANSFORM
               </Text>
-
             </View>
-
-          </ScrollView>
-
-        </KeyboardAvoidingView>
-
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
       </View>
-
     </ImageBackground>
   );
 }
 
+// ============================================================
+// FORM FIELD
+// ============================================================
+
+function FormField({
+  icon,
+  label,
+  focused,
+  colors,
+  children,
+}) {
+  return (
+    <View
+      style={styles.inputContainer}
+    >
+      <Text
+        style={[
+          styles.floatingLabel,
+          {
+            color: focused
+              ? colors.primaryLight
+              : colors.secondaryText,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
+      <View
+        style={[
+          styles.inputRow,
+          {
+            backgroundColor:
+              colors.background,
+            borderColor: focused
+              ? colors.primaryLight
+              : colors.border,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={
+            focused
+              ? colors.primaryLight
+              : colors.secondaryText
+          }
+        />
+
+        {children}
+      </View>
+    </View>
+  );
+}
 
 // ============================================================
 // STYLES
@@ -2066,18 +1997,13 @@ const styles = StyleSheet.create({
 
   background: {
     flex: 1,
-
-    backgroundColor:
-      "#050816",
   },
 
   backgroundOverlay: {
     flex: 1,
-
     backgroundColor:
       "rgba(2, 8, 23, 0.34)",
   },
-
 
   // ==========================================================
   // KEYBOARD
@@ -2086,7 +2012,6 @@ const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
   },
-
 
   // ==========================================================
   // SCROLL
@@ -2098,31 +2023,18 @@ const styles = StyleSheet.create({
 
   scrollContainer: {
     flexGrow: 1,
-
-    justifyContent:
-      "center",
-
-    paddingHorizontal:
-      24,
-
-    paddingVertical:
-      20,
-
-    paddingBottom:
-      80,
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    paddingTop:
+      Platform.OS === "ios"
+        ? 54
+        : 44,
+    paddingBottom: 40,
   },
 
   createScrollContainer: {
-    justifyContent:
-      "center",
-
-    paddingTop:
-      20,
-
-    paddingBottom:
-      80,
+    justifyContent: "flex-start",
   },
-
 
   // ==========================================================
   // CONTENT
@@ -2130,547 +2042,228 @@ const styles = StyleSheet.create({
 
   content: {
     width: "100%",
-
-    alignItems:
-      "stretch",
-
-    justifyContent:
-      "center",
+    maxWidth: 480,
+    alignSelf: "center",
   },
 
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+
+  headerButton: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
   // ==========================================================
   // LOGO
   // ==========================================================
 
   logoContainer: {
-    alignItems:
-      "center",
-
-    marginBottom:
-      6,
+    alignItems: "center",
+    marginBottom: 20,
   },
 
   logo: {
-    width:
-      190,
-
-    height:
-      190,
+    width: 220,
+    height: 160,
   },
 
   createLogo: {
-    width:
-      120,
-
-    height:
-      120,
+    width: 150,
+    height: 110,
   },
 
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
+    marginTop: 8,
+  },
+
+  title: {
+    fontSize: 22,
+    fontWeight: "900",
+    marginTop: 4,
+  },
 
   // ==========================================================
   // MODE SWITCH
   // ==========================================================
 
   modeSwitch: {
-    height:
-      46,
-
-    flexDirection:
-      "row",
-
-    backgroundColor:
-      "rgba(5, 15, 30, 0.45)",
-
-    borderRadius:
-      14,
-
-    padding:
-      3,
-
-    marginBottom:
-      10,
-
-    borderWidth:
-      1,
-
-    borderColor:
-      "rgba(157, 190, 255, 0.25)",
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 5,
+    marginBottom: 14,
   },
 
   modeButton: {
-    flex:
-      1,
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-
-    borderRadius:
-      11,
-  },
-
-  modeButtonActive: {
-    backgroundColor:
-      "#2563EB",
-
-    shadowColor:
-      "#2563EB",
-
-    shadowOffset: {
-      width:
-        0,
-
-      height:
-        4,
-    },
-
-    shadowOpacity:
-      0.25,
-
-    shadowRadius:
-      8,
-
-    elevation:
-      4,
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   modeButtonText: {
-    color:
-      "#94A3B8",
-
-    fontSize:
-      10,
-
-    fontWeight:
-      "800",
-
-    letterSpacing:
-      0.6,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
-
-  modeButtonTextActive: {
-    color:
-      "#FFFFFF",
-  },
-
 
   // ==========================================================
   // CARD
   // ==========================================================
 
   loginCard: {
-    backgroundColor:
-      "rgba(5, 15, 30, 0.40)",
-
-    borderRadius:
-      22,
-
-    padding:
-      18,
-
-    shadowColor:
-      "#006EFF",
-
-    shadowOffset: {
-      width:
-        0,
-
-      height:
-        5,
-    },
-
-    shadowOpacity:
-      0.20,
-
-    shadowRadius:
-      15,
-
-    elevation:
-      6,
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 16,
   },
-
-  createAccountCard: {
-    padding:
-      16,
-
-    borderRadius:
-      20,
-  },
-
 
   // ==========================================================
-  // INPUT CONTAINER
+  // INPUT
   // ==========================================================
 
   inputContainer: {
-    position:
-      "relative",
-
-    marginBottom:
-      20,
+    marginBottom: 14,
   },
-
-
-  // ==========================================================
-  // LABEL
-  // ==========================================================
 
   floatingLabel: {
-    position:
-      "absolute",
-
-    left:
-      16,
-
-    top:
-      -8,
-
-    zIndex:
-      10,
-
-    backgroundColor:
-      "rgba(4, 14, 28, 0.90)",
-
-    paddingHorizontal:
-      5,
-
-    color:
-      "#9DBEFF",
-
-    fontSize:
-      13,
-
-    fontWeight:
-      "500",
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 7,
   },
 
-  floatingLabelFocused: {
-    color:
-      "#A8C7FF",
+  inputRow: {
+    height: 52,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingLeft: 14,
+    flexDirection: "row",
+    alignItems: "center",
   },
-
-
-  // ==========================================================
-  // NORMAL INPUT
-  // ==========================================================
 
   input: {
-    height:
-      54,
-
-    backgroundColor:
-      "rgba(0, 0, 0, 0.08)",
-
-    borderWidth:
-      2,
-
-    borderColor:
-      "#64748B",
-
-    borderRadius:
-      5,
-
-    paddingHorizontal:
-      16,
-
-    color:
-      "#FFFFFF",
-
-    fontSize:
-      15,
+    flex: 1,
+    height: "100%",
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontWeight: "600",
   },
-
-  inputFocused: {
-    borderColor:
-      "#9DBEFF",
-
-    backgroundColor:
-      "rgba(0, 0, 0, 0.04)",
-
-    shadowColor:
-      "#258DFF",
-
-    shadowOffset: {
-      width:
-        0,
-
-      height:
-        0,
-    },
-
-    shadowOpacity:
-      0.25,
-
-    shadowRadius:
-      6,
-
-    elevation:
-      3,
-  },
-
-
-  // ==========================================================
-  // PASSWORD WRAPPER
-  // ==========================================================
-
-  passwordWrapper: {
-    position:
-      "relative",
-
-    width:
-      "100%",
-
-    height:
-      54,
-  },
-
-  passwordInputDirect: {
-    width:
-      "100%",
-
-    height:
-      54,
-
-    paddingRight:
-      75,
-  },
-
-
-  // ==========================================================
-  // SHOW / HIDE BUTTON
-  // ==========================================================
 
   showButton: {
-    position:
-      "absolute",
-
-    right:
-      0,
-
-    top:
-      0,
-
-    height:
-      54,
-
-    width:
-      68,
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-
-    zIndex:
-      50,
-
-    elevation:
-      10,
+    height: "100%",
+    paddingHorizontal: 14,
+    justifyContent: "center",
   },
-
-  showText: {
-    color:
-      "#9DBEFF",
-
-    fontSize:
-      10,
-
-    fontWeight:
-      "800",
-
-    letterSpacing:
-      0.8,
-  },
-
 
   // ==========================================================
   // FORGOT PASSWORD
   // ==========================================================
 
   forgotButton: {
-    alignSelf:
-      "flex-end",
-
-    marginTop:
-      -1,
-
-    marginBottom:
-      18,
+    alignSelf: "flex-end",
+    paddingVertical: 4,
+    marginBottom: 12,
   },
 
   forgotText: {
-    color:
-      "#60A5FA",
-
-    fontSize:
-      11,
-
-    fontWeight:
-      "600",
+    fontSize: 10,
+    fontWeight: "800",
   },
 
-
   // ==========================================================
-  // LOGIN BUTTON
+  // BUTTONS
   // ==========================================================
 
   loginButton: {
-    height:
-      54,
-
-    backgroundColor:
-      "#2563EB",
-
-    borderRadius:
-      14,
-
-    flexDirection:
-      "row",
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-
-    shadowColor:
-      "#2563EB",
-
-    shadowOffset: {
-      width:
-        0,
-
-      height:
-        6,
-    },
-
-    shadowOpacity:
-      0.30,
-
-    shadowRadius:
-      10,
-
-    elevation:
-      6,
+    height: 54,
+    borderRadius: 17,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
 
   loginButtonDisabled: {
-    opacity:
-      0.7,
+    opacity: 0.7,
   },
 
   loginButtonText: {
-    color:
-      "#FFFFFF",
-
-    fontSize:
-      15,
-
-    fontWeight:
-      "800",
-
-    letterSpacing:
-      0.8,
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
 
-
-  // ==========================================================
-  // QR SCANNER BUTTON
-  // ==========================================================
-
   scannerButton: {
-    width:
-      48,
+    minHeight: 70,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+  },
 
-    height:
-      48,
+  scannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-    borderRadius:
-      24,
-
-    alignSelf:
-      "center",
-
-    marginTop:
-      18,
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-
-    backgroundColor:
-      "rgba(37, 99, 235, 0.18)",
-
-    borderWidth:
-      1,
-
-    borderColor:
-      "rgba(157, 190, 255, 0.45)",
+  scannerTextContainer: {
+    flex: 1,
+    marginLeft: 11,
   },
 
   scannerButtonText: {
-    color:
-      "#9DBEFF",
-
-    fontSize:
-      30,
-
-    fontWeight:
-      "300",
-
-    lineHeight:
-      32,
+    fontSize: 13,
+    fontWeight: "900",
   },
 
   scannerHint: {
-    textAlign:
-      "center",
-
-    color:
-      "#64748B",
-
-    fontSize:
-      9,
-
-    fontWeight:
-      "600",
-
-    marginTop:
-      7,
+    fontSize: 9,
+    fontWeight: "600",
+    marginTop: 3,
   },
-
 
   // ==========================================================
   // FOOTER
   // ==========================================================
 
-  footer: {
-    textAlign:
-      "center",
-
-    color:
-      "#64748B",
-
-    fontSize:
-      9,
-
-    fontWeight:
-      "700",
-
-    letterSpacing:
-      1.5,
-
-    marginTop:
-      18,
-
-    marginBottom:
-      2,
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 20,
   },
 
+  footerIcon: {
+    width: 27,
+    height: 27,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 7,
+  },
+
+  footer: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.7,
+  },
 });

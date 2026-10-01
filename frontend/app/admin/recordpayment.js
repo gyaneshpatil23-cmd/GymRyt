@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   FlatList,
+  Platform,
 } from "react-native";
 
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -21,13 +22,17 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
+import { useTheme } from "../../context/ThemeContext";
+
 
 // ============================================================
 // API
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 const MEMBERS_API =
   `${API_BASE_URL}/`;
@@ -43,6 +48,12 @@ const PAYMENT_API =
 export default function RecordPayment() {
 
   const params = useLocalSearchParams();
+
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
 
   // ==========================================================
@@ -732,7 +743,13 @@ const handleDateDismiss = () => {
     return (
 
       <View
-        style={styles.container}
+        style={[
+          styles.container,
+          {
+            backgroundColor:
+              colors.background,
+          },
+        ]}
       >
 
         <View
@@ -741,77 +758,100 @@ const handleDateDismiss = () => {
 
           {/* HEADER */}
 
+          <ScreenHeader
+            title="Select Member"
+            onBack={handleBack}
+            colors={colors}
+            isDark={isDark}
+            toggleTheme={toggleTheme}
+          />
+
+
+          {/* SUMMARY */}
+
           <View
-            style={styles.header}
+            style={[
+              styles.summaryBanner,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
           >
-
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleBack}
-            >
-
-              <Text
-                style={styles.backText}
-              >
-                ‹
-              </Text>
-
-            </TouchableOpacity>
-
 
             <View
-              style={
-                styles.headerTextContainer
-              }
+              style={[
+                styles.bannerIcon,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                },
+              ]}
             >
-
-              <Text
-                style={styles.smallTitle}
-              >
-                GYMRyt MANAGEMENT
-              </Text>
-
-              <Text
-                style={styles.title}
-              >
-                Select Member
-              </Text>
-
+              <Ionicons
+                name="wallet-outline"
+                size={22}
+                color={
+                  colors.primaryLight
+                }
+              />
             </View>
 
+            <Text
+              style={[
+                styles.selectorDescription,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              Select the member for whom you want to record a payment.
+            </Text>
+
           </View>
-
-
-          {/* DESCRIPTION */}
-
-          <Text
-            style={styles.selectorDescription}
-          >
-            Select the member for whom you want to record a payment.
-          </Text>
 
 
           {/* SEARCH */}
 
           <View
-            style={styles.searchContainer}
+            style={[
+              styles.searchContainer,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  colors.border,
+              },
+            ]}
           >
 
-            <Text
-              style={styles.searchIcon}
-            >
-              ⌕
-            </Text>
-
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={
+                colors.secondaryText
+              }
+            />
 
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
               value={memberSearch}
               onChangeText={
                 setMemberSearch
               }
               placeholder="Search member..."
-              placeholderTextColor="#475569"
+              placeholderTextColor={
+                colors.mutedText
+              }
               autoCapitalize="none"
             />
 
@@ -823,13 +863,17 @@ const handleDateDismiss = () => {
           <View
             style={styles.countRow}
           >
-
             <Text
-              style={styles.countText}
+              style={[
+                styles.countText,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
             >
-              {filteredMembers.length} Members
+              {filteredMembers.length} MEMBERS
             </Text>
-
           </View>
 
 
@@ -843,11 +887,19 @@ const handleDateDismiss = () => {
 
               <ActivityIndicator
                 size="large"
-                color="#2563EB"
+                color={
+                  colors.primary
+                }
               />
 
               <Text
-                style={styles.loadingText}
+                style={[
+                  styles.loadingText,
+                  {
+                    color:
+                      colors.mutedText,
+                  },
+                ]}
               >
                 Loading members...
               </Text>
@@ -872,7 +924,15 @@ const handleDateDismiss = () => {
               }) => (
 
                 <TouchableOpacity
-                  style={styles.selectMemberCard}
+                  style={[
+                    styles.selectMemberCard,
+                    {
+                      backgroundColor:
+                        colors.card,
+                      borderColor:
+                        colors.border,
+                    },
+                  ]}
                   activeOpacity={0.8}
                   onPress={() =>
                     selectMember(item)
@@ -880,21 +940,29 @@ const handleDateDismiss = () => {
                 >
 
                   <View
-                    style={
-                      styles.memberAvatar
-                    }
+                    style={[
+                      styles.memberAvatar,
+                      {
+                        backgroundColor:
+                          colors.iconBackground,
+                        borderColor:
+                          colors.border,
+                      },
+                    ]}
                   >
-
                     <Text
-                      style={
-                        styles.memberAvatarText
-                      }
+                      style={[
+                        styles.memberAvatarText,
+                        {
+                          color:
+                            colors.primaryLight,
+                        },
+                      ]}
                     >
                       {getInitials(
                         item.name
                       )}
                     </Text>
-
                   </View>
 
 
@@ -903,45 +971,67 @@ const handleDateDismiss = () => {
                   >
 
                     <Text
-                      style={styles.memberName}
+                      style={[
+                        styles.memberName,
+                        {
+                          color:
+                            colors.text,
+                        },
+                      ]}
                       numberOfLines={1}
                     >
                       {item.name ||
                         "Unnamed Member"}
                     </Text>
 
-
                     <Text
-                      style={
-                        styles.memberDetails
-                      }
+                      style={[
+                        styles.memberDetails,
+                        {
+                          color:
+                            colors.secondaryText,
+                        },
+                      ]}
                     >
                       {item.phone ||
                         "No phone number"}
                     </Text>
 
-
                     {item.email ? (
-
                       <Text
-                        style={
-                          styles.memberEmail
-                        }
+                        style={[
+                          styles.memberEmail,
+                          {
+                            color:
+                              colors.mutedText,
+                          },
+                        ]}
                         numberOfLines={1}
                       >
                         {item.email}
                       </Text>
-
                     ) : null}
 
                   </View>
 
 
-                  <Text
-                    style={styles.selectArrow}
+                  <View
+                    style={[
+                      styles.selectIcon,
+                      {
+                        backgroundColor:
+                          colors.iconBackground,
+                      },
+                    ]}
                   >
-                    ›
-                  </Text>
+                    <Ionicons
+                      name="wallet-outline"
+                      size={18}
+                      color={
+                        colors.primaryLight
+                      }
+                    />
+                  </View>
 
                 </TouchableOpacity>
 
@@ -949,31 +1039,55 @@ const handleDateDismiss = () => {
               ListEmptyComponent={
 
                 <View
-                  style={
-                    styles.emptyContainer
-                  }
+                  style={[
+                    styles.emptyContainer,
+                    {
+                      backgroundColor:
+                        colors.card,
+                      borderColor:
+                        colors.border,
+                    },
+                  ]}
                 >
 
-                  <Text
-                    style={
-                      styles.emptyIcon
-                    }
+                  <View
+                    style={[
+                      styles.emptyIcon,
+                      {
+                        backgroundColor:
+                          colors.iconBackground,
+                      },
+                    ]}
                   >
-                    👥
-                  </Text>
+                    <Ionicons
+                      name="people-outline"
+                      size={28}
+                      color={
+                        colors.primaryLight
+                      }
+                    />
+                  </View>
 
                   <Text
-                    style={
-                      styles.emptyTitle
-                    }
+                    style={[
+                      styles.emptyTitle,
+                      {
+                        color:
+                          colors.text,
+                      },
+                    ]}
                   >
                     No Members Found
                   </Text>
 
                   <Text
-                    style={
-                      styles.emptyText
-                    }
+                    style={[
+                      styles.emptyText,
+                      {
+                        color:
+                          colors.mutedText,
+                      },
+                    ]}
                   >
                     Try another search.
                   </Text>
@@ -988,9 +1102,7 @@ const handleDateDismiss = () => {
         </View>
 
       </View>
-
     );
-
   }
 
 
@@ -1001,7 +1113,13 @@ const handleDateDismiss = () => {
   return (
 
     <View
-      style={styles.container}
+      style={[
+        styles.container,
+        {
+          backgroundColor:
+            colors.background,
+        },
+      ]}
     >
 
       <ScrollView
@@ -1011,70 +1129,51 @@ const handleDateDismiss = () => {
         contentContainerStyle={
           styles.scrollContent
         }
+        keyboardShouldPersistTaps="handled"
       >
 
         {/* HEADER */}
 
-        <View
-          style={styles.header}
-        >
-
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBack}
-            disabled={loading}
-          >
-
-            <Text
-              style={styles.backText}
-            >
-              ‹
-            </Text>
-
-          </TouchableOpacity>
-
-
-          <View
-            style={
-              styles.headerTextContainer
-            }
-          >
-
-            <Text
-              style={styles.smallTitle}
-            >
-              GYMRyt MANAGEMENT
-            </Text>
-
-            <Text
-              style={styles.title}
-            >
-              Record Payment
-            </Text>
-
-          </View>
-
-        </View>
+        <ScreenHeader
+          title="Record Payment"
+          onBack={handleBack}
+          disabled={loading}
+          colors={colors}
+          isDark={isDark}
+          toggleTheme={toggleTheme}
+        />
 
 
         {/* MEMBER CARD */}
 
         <View
-          style={styles.memberCard}
+          style={[
+            styles.memberCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
 
           <View
-            style={styles.memberAvatar}
+            style={[
+              styles.memberAvatar,
+              {
+                backgroundColor:
+                  "#45E0A518",
+                borderColor:
+                  "#45E0A555",
+              },
+            ]}
           >
-
-            <Text
-              style={
-                styles.memberAvatarText
-              }
-            >
-              ₹
-            </Text>
-
+            <Ionicons
+              name="cash-outline"
+              size={24}
+              color="#45E0A5"
+            />
           </View>
 
 
@@ -1083,23 +1182,40 @@ const handleDateDismiss = () => {
           >
 
             <Text
-              style={styles.memberLabel}
+              style={[
+                styles.memberLabel,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
             >
               PAYMENT FOR
             </Text>
 
             <Text
-              style={styles.memberName}
+              style={[
+                styles.memberName,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
               numberOfLines={1}
             >
               {memberName}
             </Text>
 
             <Text
-              style={styles.memberDetails}
+              style={[
+                styles.memberDetails,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
             >
               Member ID #{memberId}
-
               {memberPhone
                 ? ` • ${memberPhone}`
                 : ""}
@@ -1111,32 +1227,37 @@ const handleDateDismiss = () => {
           {/* CHANGE MEMBER */}
 
           <TouchableOpacity
-            style={styles.changeMemberButton}
+            style={[
+              styles.changeMemberButton,
+              {
+                backgroundColor:
+                  colors.iconBackground,
+                borderColor:
+                  colors.border,
+              },
+            ]}
             onPress={() => {
-
               if (!loading) {
-
                 setMemberId("");
                 setMemberName("");
                 setMemberPhone("");
                 setMemberSearch("");
-
                 fetchMembers();
-
               }
-
             }}
             disabled={loading}
           >
-
             <Text
-              style={
-                styles.changeMemberText
-              }
+              style={[
+                styles.changeMemberText,
+                {
+                  color:
+                    colors.primaryLight,
+                },
+              ]}
             >
               CHANGE
             </Text>
-
           </TouchableOpacity>
 
         </View>
@@ -1144,50 +1265,430 @@ const handleDateDismiss = () => {
 
         {/* PAYMENT INFORMATION */}
 
-        <Text
-          style={styles.sectionTitle}
-        >
-          PAYMENT INFORMATION
-        </Text>
-
-
-        {/* AMOUNT */}
-
         <View
-          style={styles.inputGroup}
+          style={[
+            styles.section,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
 
           <Text
-            style={styles.inputLabel}
+            style={[
+              styles.sectionEyebrow,
+              {
+                color:
+                  colors.primaryLight,
+              },
+            ]}
           >
-            AMOUNT *
+            PAYMENT INFORMATION
+          </Text>
+
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            Payment Details
           </Text>
 
 
+          {/* AMOUNT */}
+
           <View
-            style={
-              styles.amountContainer
-            }
+            style={styles.inputGroup}
           >
 
             <Text
-              style={styles.rupee}
+              style={[
+                styles.inputLabel,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
             >
-              ₹
+              AMOUNT *
             </Text>
 
+            <View
+              style={[
+                styles.amountContainer,
+                {
+                  backgroundColor:
+                    colors.background,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+            >
+
+              <View
+                style={[
+                  styles.rupeeBox,
+                  {
+                    backgroundColor:
+                      colors.iconBackground,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.rupee,
+                    {
+                      color:
+                        colors.primaryLight,
+                    },
+                  ]}
+                >
+                  ₹
+                </Text>
+              </View>
+
+              <TextInput
+                style={[
+                  styles.amountInput,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+                value={amount}
+                onChangeText={
+                  setAmount
+                }
+                placeholder="0"
+                placeholderTextColor={
+                  colors.mutedText
+                }
+                keyboardType="numeric"
+                editable={!loading}
+              />
+
+            </View>
+
+          </View>
+
+
+          {/* PAYMENT DATE */}
+
+          <View
+            style={styles.inputGroup}
+          >
+
+            <Text
+              style={[
+                styles.inputLabel,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              PAYMENT DATE *
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.datePickerButton,
+                {
+                  backgroundColor:
+                    colors.background,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={() =>
+                setShowDatePicker(true)
+              }
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color={
+                  colors.primaryLight
+                }
+              />
+
+              <Text
+                style={[
+                  styles.datePickerText,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                {formatPaymentDate()}
+              </Text>
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={
+                  colors.secondaryText
+                }
+              />
+
+            </TouchableOpacity>
+
+            {showDatePicker ? (
+              <DateTimePicker
+                value={paymentDate}
+                mode="date"
+                display="default"
+                maximumDate={new Date()}
+                onValueChange={handleDateValueChange}
+                onDismiss={handleDateDismiss}
+              />
+            ) : null}
+
+          </View>
+
+
+          {/* MEMBERSHIP PLAN */}
+
+          <View
+            style={styles.inputGroup}
+          >
+
+            <Text
+              style={[
+                styles.inputLabel,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              MEMBERSHIP PLAN *
+            </Text>
+
+            <View
+              style={styles.planContainer}
+            >
+
+              {membershipPlans.map(
+                (membershipPlan) => {
+
+                  const selected =
+                    plan ===
+                    membershipPlan.value;
+
+                  return (
+
+                    <TouchableOpacity
+                      key={
+                        membershipPlan.value
+                      }
+                      style={[
+                        styles.planCard,
+                        {
+                          backgroundColor:
+                            selected
+                              ? colors.iconBackground
+                              : colors.background,
+                          borderColor:
+                            selected
+                              ? colors.primaryLight
+                              : colors.border,
+                        },
+                      ]}
+                      onPress={() =>
+                        setPlan(
+                          membershipPlan.value
+                        )
+                      }
+                      disabled={loading}
+                      activeOpacity={0.8}
+                    >
+
+                      {selected && (
+                        <View
+                          style={styles.selectedCheck}
+                        >
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={16}
+                            color={
+                              colors.primaryLight
+                            }
+                          />
+                        </View>
+                      )}
+
+                      <Text
+                        style={[
+                          styles.planLabel,
+                          {
+                            color:
+                              selected
+                                ? colors.primaryLight
+                                : colors.text,
+                          },
+                        ]}
+                      >
+                        {
+                          membershipPlan.label
+                        }
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.planDuration,
+                          {
+                            color:
+                              colors.secondaryText,
+                          },
+                        ]}
+                      >
+                        {
+                          membershipPlan.duration
+                        }
+                      </Text>
+
+                    </TouchableOpacity>
+                  );
+                }
+              )}
+
+            </View>
+
+          </View>
+
+
+          {/* PAYMENT METHOD */}
+
+          <View
+            style={styles.inputGroup}
+          >
+
+            <Text
+              style={[
+                styles.inputLabel,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              PAYMENT METHOD *
+            </Text>
+
+            <View
+              style={styles.methodContainer}
+            >
+
+              {paymentMethods.map(
+                (method) => {
+
+                  const selected =
+                    paymentMethod ===
+                    method;
+
+                  return (
+
+                    <TouchableOpacity
+                      key={method}
+                      style={[
+                        styles.methodButton,
+                        {
+                          backgroundColor:
+                            selected
+                              ? colors.iconBackground
+                              : colors.background,
+                          borderColor:
+                            selected
+                              ? colors.primaryLight
+                              : colors.border,
+                        },
+                      ]}
+                      onPress={() =>
+                        setPaymentMethod(
+                          method
+                        )
+                      }
+                      disabled={loading}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.methodText,
+                          {
+                            color:
+                              selected
+                                ? colors.primaryLight
+                                : colors.secondaryText,
+                          },
+                        ]}
+                      >
+                        {method === "BANK"
+                          ? "BANK TRANSFER"
+                          : method}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }
+              )}
+
+            </View>
+
+          </View>
+
+
+          {/* NOTES */}
+
+          <View
+            style={styles.inputGroup}
+          >
+
+            <Text
+              style={[
+                styles.inputLabel,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              NOTES
+            </Text>
 
             <TextInput
-              style={
-                styles.amountInput
-              }
-              value={amount}
+              style={[
+                styles.input,
+                styles.notesInput,
+                {
+                  backgroundColor:
+                    colors.background,
+                  borderColor:
+                    colors.border,
+                  color:
+                    colors.text,
+                },
+              ]}
+              value={notes}
               onChangeText={
-                setAmount
+                setNotes
               }
-              placeholder="0"
-              placeholderTextColor="#475569"
-              keyboardType="numeric"
+              placeholder="Optional notes"
+              placeholderTextColor={
+                colors.mutedText
+              }
+              multiline
+              textAlignVertical="top"
               editable={!loading}
             />
 
@@ -1196,389 +1697,81 @@ const handleDateDismiss = () => {
         </View>
 
 
-        {/* PAYMENT DATE */}
-
-        <View
-          style={styles.inputGroup}
-        >
-
-          <Text
-            style={styles.inputLabel}
-          >
-            PAYMENT DATE *
-          </Text>
-
-
-          <TouchableOpacity
-            style={
-              styles.datePickerButton
-            }
-            onPress={() =>
-              setShowDatePicker(true)
-            }
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-
-            <Text
-              style={styles.calendarIcon}
-            >
-              📅
-            </Text>
-
-
-            <Text
-              style={
-                styles.datePickerText
-              }
-            >
-              {formatPaymentDate()}
-            </Text>
-
-
-            <Text
-              style={
-                styles.datePickerArrow
-              }
-            >
-              ›
-            </Text>
-
-          </TouchableOpacity>
-
-
-          {showDatePicker ? (
-            <DateTimePicker
-              value={paymentDate}
-              mode="date"
-              display="default"
-              maximumDate={new Date()}
-              onValueChange={handleDateValueChange}
-              onDismiss={handleDateDismiss}
-              />
-              ) : null}
-
-        </View>
-
-
-        {/* MEMBERSHIP PLAN */}
-
-        <View
-          style={styles.inputGroup}
-        >
-
-          <Text
-            style={styles.inputLabel}
-          >
-            MEMBERSHIP PLAN *
-          </Text>
-
-
-          <View
-            style={styles.planContainer}
-          >
-
-            {membershipPlans.map(
-              (membershipPlan) => {
-
-                const selected =
-                  plan ===
-                  membershipPlan.value;
-
-
-                return (
-
-                  <TouchableOpacity
-                    key={
-                      membershipPlan.value
-                    }
-                    style={[
-                      styles.planCard,
-
-                      selected &&
-                        styles.planCardActive,
-                    ]}
-                    onPress={() =>
-                      setPlan(
-                        membershipPlan.value
-                      )
-                    }
-                    disabled={loading}
-                    activeOpacity={0.8}
-                  >
-
-                    {selected && (
-
-                      <View
-                        style={
-                          styles.selectedCheck
-                        }
-                      >
-
-                        <Text
-                          style={
-                            styles.selectedCheckText
-                          }
-                        >
-                          ✓
-                        </Text>
-
-                      </View>
-
-                    )}
-
-
-                    <Text
-                      style={[
-                        styles.planLabel,
-
-                        selected &&
-                          styles.planLabelActive,
-                      ]}
-                    >
-                      {
-                        membershipPlan.label
-                      }
-                    </Text>
-
-
-                    <Text
-                      style={[
-                        styles.planDuration,
-
-                        selected &&
-                          styles.planDurationActive,
-                      ]}
-                    >
-                      {
-                        membershipPlan.duration
-                      }
-                    </Text>
-
-                  </TouchableOpacity>
-
-                );
-
-              }
-            )}
-
-          </View>
-
-        </View>
-
-
-        {/* PAYMENT METHOD */}
-
-        <View
-          style={styles.inputGroup}
-        >
-
-          <Text
-            style={styles.inputLabel}
-          >
-            PAYMENT METHOD *
-          </Text>
-
-
-          <View
-            style={
-              styles.methodContainer
-            }
-          >
-
-            {paymentMethods.map(
-              (method) => {
-
-                const selected =
-                  paymentMethod ===
-                  method;
-
-
-                return (
-
-                  <TouchableOpacity
-                    key={method}
-                    style={[
-                      styles.methodButton,
-
-                      selected &&
-                        styles.methodButtonActive,
-                    ]}
-                    onPress={() =>
-                      setPaymentMethod(
-                        method
-                      )
-                    }
-                    disabled={loading}
-                    activeOpacity={0.8}
-                  >
-
-                    <Text
-                      style={[
-                        styles.methodText,
-
-                        selected &&
-                          styles.methodTextActive,
-                      ]}
-                    >
-                      {method === "BANK"
-                        ? "BANK TRANSFER"
-                        : method}
-                    </Text>
-
-                  </TouchableOpacity>
-
-                );
-
-              }
-            )}
-
-          </View>
-
-        </View>
-
-
-        {/* NOTES */}
-
-        <View
-          style={styles.inputGroup}
-        >
-
-          <Text
-            style={styles.inputLabel}
-          >
-            NOTES
-          </Text>
-
-
-          <TextInput
-            style={[
-              styles.input,
-              styles.notesInput,
-            ]}
-            value={notes}
-            onChangeText={
-              setNotes
-            }
-            placeholder="Optional notes"
-            placeholderTextColor="#475569"
-            multiline
-            textAlignVertical="top"
-            editable={!loading}
-          />
-
-        </View>
-
-
         {/* SUMMARY */}
 
         <View
-          style={styles.summaryCard}
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
 
           <Text
-            style={styles.summaryTitle}
+            style={[
+              styles.sectionEyebrow,
+              {
+                color:
+                  colors.primaryLight,
+              },
+            ]}
           >
             PAYMENT SUMMARY
           </Text>
 
-
-          <View
-            style={styles.summaryRow}
-          >
-
-            <Text
-              style={styles.summaryLabel}
-            >
-              Member
-            </Text>
-
-
-            <Text
-              style={styles.summaryValue}
-              numberOfLines={1}
-            >
-              {memberName}
-            </Text>
-
-          </View>
-
-
-          <View
-            style={styles.summaryRow}
-          >
-
-            <Text
-              style={styles.summaryLabel}
-            >
-              Payment Date
-            </Text>
-
-
-            <Text
-              style={styles.summaryValue}
-            >
-              {formatPaymentDate()}
-            </Text>
-
-          </View>
-
-
-          <View
-            style={styles.summaryRow}
-          >
-
-            <Text
-              style={styles.summaryLabel}
-            >
-              Plan
-            </Text>
-
-
-            <Text
-              style={styles.summaryValue}
-            >
-              {plan}
-            </Text>
-
-          </View>
-
-
-          <View
-            style={styles.summaryRow}
-          >
-
-            <Text
-              style={styles.summaryLabel}
-            >
-              Payment Method
-            </Text>
-
-
-            <Text
-              style={styles.summaryValue}
-            >
-              {paymentMethod}
-            </Text>
-
-          </View>
-
-
-          <View
-            style={styles.summaryDivider}
+          <SummaryRow
+            label="Member"
+            value={memberName}
+            colors={colors}
           />
 
+          <SummaryRow
+            label="Payment Date"
+            value={formatPaymentDate()}
+            colors={colors}
+          />
+
+          <SummaryRow
+            label="Plan"
+            value={plan}
+            colors={colors}
+          />
+
+          <SummaryRow
+            label="Payment Method"
+            value={paymentMethod}
+            colors={colors}
+          />
+
+          <View
+            style={[
+              styles.summaryDivider,
+              {
+                backgroundColor:
+                  colors.border,
+              },
+            ]}
+          />
 
           <View
             style={styles.totalRow}
           >
 
             <Text
-              style={styles.totalLabel}
+              style={[
+                styles.totalLabel,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
             >
               TOTAL
             </Text>
-
 
             <Text
               style={styles.totalValue}
@@ -1601,7 +1794,10 @@ const handleDateDismiss = () => {
         <TouchableOpacity
           style={[
             styles.recordButton,
-
+            {
+              backgroundColor:
+                colors.primary,
+            },
             loading &&
               styles.recordButtonDisabled,
           ]}
@@ -1623,13 +1819,11 @@ const handleDateDismiss = () => {
 
             <>
 
-              <Text
-                style={
-                  styles.recordIcon
-                }
-              >
-                ✓
-              </Text>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={19}
+                color="#FFFFFF"
+              />
 
               <Text
                 style={
@@ -1657,21 +1851,179 @@ const handleDateDismiss = () => {
           }
           disabled={loading}
         >
-
           <Text
-            style={styles.cancelText}
+            style={[
+              styles.cancelText,
+              {
+                color:
+                  colors.secondaryText,
+              },
+            ]}
           >
             CANCEL
           </Text>
-
         </TouchableOpacity>
 
       </ScrollView>
 
     </View>
-
   );
+}
 
+
+// ============================================================
+// SCREEN HEADER
+// ============================================================
+
+function ScreenHeader({
+  title,
+  onBack,
+  disabled = false,
+  colors,
+  isDark,
+  toggleTheme,
+}) {
+
+  return (
+
+    <View
+      style={styles.header}
+    >
+
+      <View
+        style={
+          styles.headerTextContainer
+        }
+      >
+
+        <Text
+          style={[
+            styles.smallTitle,
+            {
+              color:
+                colors.primaryLight,
+            },
+          ]}
+        >
+          GYMRYT • PAYMENTS
+        </Text>
+
+        <Text
+          style={[
+            styles.title,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+        >
+          {title}
+        </Text>
+
+      </View>
+
+
+      <View
+        style={styles.headerActions}
+      >
+
+        <TouchableOpacity
+          style={[
+            styles.backButton,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
+          onPress={toggleTheme}
+        >
+          <Ionicons
+            name={
+              isDark
+                ? "sunny-outline"
+                : "moon-outline"
+            }
+            size={20}
+            color={
+              colors.text
+            }
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.backButton,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
+          onPress={onBack}
+          disabled={disabled}
+        >
+          <Ionicons
+            name="arrow-back"
+            size={20}
+            color={
+              colors.text
+            }
+          />
+        </TouchableOpacity>
+
+      </View>
+
+    </View>
+  );
+}
+
+
+// ============================================================
+// SUMMARY ROW
+// ============================================================
+
+function SummaryRow({
+  label,
+  value,
+  colors,
+}) {
+
+  return (
+
+    <View
+      style={styles.summaryRow}
+    >
+
+      <Text
+        style={[
+          styles.summaryLabel,
+          {
+            color:
+              colors.secondaryText,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
+      <Text
+        style={[
+          styles.summaryValue,
+          {
+            color:
+              colors.text,
+          },
+        ]}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+
+    </View>
+  );
 }
 
 
@@ -1685,7 +2037,6 @@ function getInitials(name) {
     return "?";
   }
 
-
   return name
     .split(" ")
     .filter(Boolean)
@@ -1696,7 +2047,6 @@ function getInitials(name) {
     .join("")
     .substring(0, 2)
     .toUpperCase();
-
 }
 
 
@@ -1709,21 +2059,24 @@ const styles =
 
     container: {
       flex: 1,
-      backgroundColor: "#050816",
     },
-
-
-    scrollContent: {
-      paddingHorizontal: 20,
-      paddingTop: 55,
-      paddingBottom: 60,
-    },
-
 
     selectorContainer: {
       flex: 1,
-      paddingHorizontal: 20,
-      paddingTop: 55,
+      paddingHorizontal: 18,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
+    },
+
+    scrollContent: {
+      paddingHorizontal: 18,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
+      paddingBottom: 40,
     },
 
 
@@ -1734,236 +2087,166 @@ const styles =
     header: {
       flexDirection: "row",
       alignItems: "center",
-      marginBottom: 30,
+      justifyContent: "space-between",
+      marginBottom: 18,
     },
 
+    headerTextContainer: {
+      flex: 1,
+      marginRight: 10,
+    },
+
+    smallTitle: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.4,
+    },
+
+    title: {
+      fontSize: 22,
+      fontWeight: "900",
+      marginTop: 4,
+    },
+
+    headerActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+    },
 
     backButton: {
-      width: 45,
-      height: 45,
+      width: 43,
+      height: 43,
       borderRadius: 14,
-      backgroundColor: "#0B1220",
       borderWidth: 1,
-      borderColor: "#172554",
       alignItems: "center",
       justifyContent: "center",
     },
 
 
-    backText: {
-      color: "#FFFFFF",
-      fontSize: 34,
-      fontWeight: "300",
-      marginTop: -4,
-    },
-
-
-    headerTextContainer: {
-      marginLeft: 15,
-      flex: 1,
-    },
-
-
-    smallTitle: {
-      color: "#38BDF8",
-      fontSize: 10,
-      fontWeight: "900",
-      letterSpacing: 2,
-    },
-
-
-    title: {
-      color: "#FFFFFF",
-      fontSize: 29,
-      fontWeight: "900",
-      marginTop: 3,
-    },
-
-
-    selectorDescription: {
-      color: "#64748B",
-      fontSize: 13,
-      lineHeight: 20,
-      marginBottom: 20,
-    },
-
-
     // ========================================================
-    // SEARCH
+    // MEMBER SELECTOR
     // ========================================================
 
-    searchContainer: {
-      height: 54,
-      backgroundColor: "#0B1220",
+    summaryBanner: {
+      minHeight: 76,
       borderWidth: 1,
-      borderColor: "#172554",
-      borderRadius: 15,
+      borderRadius: 21,
+      paddingHorizontal: 13,
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 15,
-      marginBottom: 18,
-    },
-
-
-    searchIcon: {
-      color: "#64748B",
-      fontSize: 25,
-      marginRight: 10,
-    },
-
-
-    searchInput: {
-      flex: 1,
-      color: "#FFFFFF",
-      fontSize: 15,
-    },
-
-
-    // ========================================================
-    // COUNT
-    // ========================================================
-
-    countRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
       marginBottom: 12,
     },
 
-
-    countText: {
-      color: "#FFFFFF",
-      fontSize: 14,
-      fontWeight: "800",
+    bannerIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
     },
 
+    selectorDescription: {
+      flex: 1,
+      fontSize: 10,
+      fontWeight: "600",
+      lineHeight: 15,
+      marginLeft: 11,
+    },
 
-    // ========================================================
-    // MEMBER SELECTOR LIST
-    // ========================================================
+    searchContainer: {
+      height: 50,
+      borderWidth: 1,
+      borderRadius: 16,
+      paddingHorizontal: 14,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+
+    searchInput: {
+      flex: 1,
+      marginLeft: 9,
+      fontSize: 13,
+      fontWeight: "600",
+    },
+
+    countRow: {
+      marginTop: 16,
+      marginBottom: 10,
+    },
+
+    countText: {
+      fontSize: 11,
+      fontWeight: "900",
+      letterSpacing: 1.2,
+    },
 
     memberList: {
       paddingBottom: 40,
     },
 
-
     selectMemberCard: {
-      backgroundColor: "#0B1220",
+      minHeight: 78,
       borderWidth: 1,
-      borderColor: "#172554",
-      borderRadius: 18,
-      padding: 14,
-      marginBottom: 11,
+      borderRadius: 20,
+      paddingVertical: 10,
+      paddingLeft: 10,
+      paddingRight: 10,
       flexDirection: "row",
       alignItems: "center",
+      marginBottom: 8,
     },
 
-
-    memberAvatar: {
-      width: 50,
-      height: 50,
-      borderRadius: 16,
-      backgroundColor: "#172554",
+    selectIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
       alignItems: "center",
       justifyContent: "center",
     },
 
 
-    memberAvatarText: {
-      color: "#60A5FA",
-      fontSize: 14,
-      fontWeight: "900",
-    },
-
-
-    memberInfo: {
-      flex: 1,
-      marginLeft: 14,
-    },
-
-
-    memberLabel: {
-      color: "#64748B",
-      fontSize: 9,
-      fontWeight: "900",
-      letterSpacing: 1,
-    },
-
-
-    memberName: {
-      color: "#FFFFFF",
-      fontSize: 16,
-      fontWeight: "900",
-      marginTop: 3,
-    },
-
-
-    memberDetails: {
-      color: "#64748B",
-      fontSize: 11,
-      marginTop: 4,
-    },
-
-
-    memberEmail: {
-      color: "#475569",
-      fontSize: 10,
-      marginTop: 3,
-    },
-
-
-    selectArrow: {
-      color: "#60A5FA",
-      fontSize: 28,
-      fontWeight: "300",
-      marginLeft: 10,
-    },
-
-
     // ========================================================
-    // LOADING
+    // LOADING / EMPTY
     // ========================================================
 
     loadingContainer: {
-      flex: 1,
+      paddingTop: 60,
+      alignItems: "center",
+    },
+
+    loadingText: {
+      marginTop: 12,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+
+    emptyContainer: {
+      borderWidth: 1,
+      borderRadius: 21,
+      paddingVertical: 31,
+      paddingHorizontal: 20,
+      alignItems: "center",
+    },
+
+    emptyIcon: {
+      width: 58,
+      height: 58,
+      borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
     },
 
-
-    loadingText: {
-      color: "#64748B",
-      fontSize: 13,
-      marginTop: 15,
-    },
-
-
-    // ========================================================
-    // EMPTY
-    // ========================================================
-
-    emptyContainer: {
-      alignItems: "center",
-      marginTop: 70,
-    },
-
-
-    emptyIcon: {
-      fontSize: 42,
-      marginBottom: 15,
-    },
-
-
     emptyTitle: {
-      color: "#FFFFFF",
-      fontSize: 18,
-      fontWeight: "800",
+      fontSize: 15,
+      fontWeight: "900",
+      marginTop: 12,
     },
-
 
     emptyText: {
-      color: "#64748B",
-      fontSize: 13,
-      marginTop: 6,
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 5,
     },
 
 
@@ -1972,32 +2255,70 @@ const styles =
     // ========================================================
 
     memberCard: {
-      backgroundColor: "#0B1220",
+      minHeight: 84,
       borderWidth: 1,
-      borderColor: "#172554",
-      borderRadius: 18,
-      padding: 16,
+      borderRadius: 21,
+      paddingHorizontal: 12,
       flexDirection: "row",
       alignItems: "center",
-      marginBottom: 30,
+      marginBottom: 12,
     },
 
+    memberAvatar: {
+      width: 52,
+      height: 52,
+      borderRadius: 17,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    memberAvatarText: {
+      fontSize: 16,
+      fontWeight: "900",
+    },
+
+    memberInfo: {
+      flex: 1,
+      marginLeft: 11,
+      marginRight: 6,
+    },
+
+    memberLabel: {
+      fontSize: 7,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+
+    memberName: {
+      fontSize: 13,
+      fontWeight: "900",
+      marginTop: 2,
+    },
+
+    memberDetails: {
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 3,
+    },
+
+    memberEmail: {
+      fontSize: 8,
+      fontWeight: "600",
+      marginTop: 2,
+    },
 
     changeMemberButton: {
-      backgroundColor: "#172554",
       borderWidth: 1,
-      borderColor: "#2563EB",
-      borderRadius: 10,
+      borderRadius: 13,
       paddingHorizontal: 10,
-      paddingVertical: 8,
+      paddingVertical: 7,
     },
 
-
     changeMemberText: {
-      color: "#60A5FA",
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: "900",
-      letterSpacing: 0.5,
+      letterSpacing: 0.8,
     },
 
 
@@ -2005,43 +2326,49 @@ const styles =
     // SECTION
     // ========================================================
 
-    sectionTitle: {
-      color: "#60A5FA",
-      fontSize: 11,
-      fontWeight: "900",
-      letterSpacing: 1.5,
-      marginBottom: 14,
+    section: {
+      borderWidth: 1,
+      borderRadius: 26,
+      padding: 16,
+      paddingBottom: 4,
+      marginBottom: 12,
     },
 
+    sectionEyebrow: {
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 1.3,
+      marginBottom: 3,
+    },
 
-    // ========================================================
-    // INPUT
-    // ========================================================
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "900",
+      marginBottom: 16,
+    },
 
     inputGroup: {
-      marginBottom: 20,
+      marginBottom: 15,
     },
-
 
     inputLabel: {
-      color: "#64748B",
-      fontSize: 10,
+      fontSize: 8,
       fontWeight: "900",
       letterSpacing: 1,
-      marginBottom: 9,
+      marginBottom: 7,
     },
 
-
     input: {
-      height: 54,
-      backgroundColor: "#0B1220",
       borderWidth: 1,
-      borderColor: "#172554",
-      borderRadius: 15,
-      paddingHorizontal: 15,
-      color: "#FFFFFF",
-      fontSize: 14,
+      borderRadius: 16,
+      paddingHorizontal: 14,
+      fontSize: 13,
       fontWeight: "600",
+    },
+
+    notesInput: {
+      minHeight: 90,
+      paddingTop: 13,
     },
 
 
@@ -2050,31 +2377,33 @@ const styles =
     // ========================================================
 
     amountContainer: {
-      height: 65,
-      backgroundColor: "#0B1220",
+      height: 60,
       borderWidth: 1,
-      borderColor: "#2563EB",
       borderRadius: 16,
+      paddingLeft: 8,
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 16,
     },
 
+    rupeeBox: {
+      width: 42,
+      height: 42,
+      borderRadius: 13,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
     rupee: {
-      color: "#60A5FA",
-      fontSize: 25,
+      fontSize: 20,
       fontWeight: "900",
-      marginRight: 10,
     },
-
 
     amountInput: {
       flex: 1,
-      color: "#FFFFFF",
-      fontSize: 25,
+      height: "100%",
+      paddingHorizontal: 12,
+      fontSize: 24,
       fontWeight: "900",
-      height: 65,
     },
 
 
@@ -2083,164 +2412,83 @@ const styles =
     // ========================================================
 
     datePickerButton: {
-      height: 54,
-      backgroundColor: "#0B1220",
+      height: 52,
       borderWidth: 1,
-      borderColor: "#172554",
-      borderRadius: 15,
-      paddingHorizontal: 15,
+      borderRadius: 16,
+      paddingHorizontal: 14,
       flexDirection: "row",
       alignItems: "center",
     },
 
-
-    calendarIcon: {
-      fontSize: 18,
-      marginRight: 12,
-    },
-
-
     datePickerText: {
       flex: 1,
-      color: "#FFFFFF",
-      fontSize: 14,
+      marginLeft: 10,
+      fontSize: 13,
       fontWeight: "700",
     },
 
 
-    datePickerArrow: {
-      color: "#64748B",
-      fontSize: 26,
-      fontWeight: "300",
-    },
-
-
     // ========================================================
-    // PLANS
+    // PLAN
     // ========================================================
 
     planContainer: {
       flexDirection: "row",
-      justifyContent: "space-between",
-      gap: 9,
+      gap: 8,
     },
-
 
     planCard: {
       flex: 1,
-      minHeight: 78,
-      backgroundColor: "#0B1220",
+      minHeight: 74,
       borderWidth: 1,
-      borderColor: "#172554",
-      borderRadius: 15,
+      borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: 5,
-      position: "relative",
+      paddingHorizontal: 6,
     },
-
-
-    planCardActive: {
-      backgroundColor: "#172554",
-      borderColor: "#2563EB",
-      borderWidth: 2,
-    },
-
-
-    planLabel: {
-      color: "#64748B",
-      fontSize: 10,
-      fontWeight: "900",
-      letterSpacing: 0.5,
-      textAlign: "center",
-    },
-
-
-    planLabelActive: {
-      color: "#60A5FA",
-    },
-
-
-    planDuration: {
-      color: "#475569",
-      fontSize: 9,
-      fontWeight: "700",
-      marginTop: 6,
-      textAlign: "center",
-    },
-
-
-    planDurationActive: {
-      color: "#93C5FD",
-    },
-
 
     selectedCheck: {
       position: "absolute",
-      top: 5,
-      right: 5,
-      width: 17,
-      height: 17,
-      borderRadius: 9,
-      backgroundColor: "#2563EB",
-      alignItems: "center",
-      justifyContent: "center",
+      top: 6,
+      right: 6,
     },
 
-
-    selectedCheckText: {
-      color: "#FFFFFF",
-      fontSize: 10,
+    planLabel: {
+      fontSize: 9,
       fontWeight: "900",
+      letterSpacing: 0.6,
+    },
+
+    planDuration: {
+      fontSize: 8,
+      fontWeight: "600",
+      marginTop: 4,
     },
 
 
     // ========================================================
-    // PAYMENT METHODS
+    // METHOD
     // ========================================================
 
     methodContainer: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 9,
+      gap: 8,
     },
-
 
     methodButton: {
-      backgroundColor: "#0B1220",
+      width: "48.5%",
+      height: 46,
       borderWidth: 1,
-      borderColor: "#172554",
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
     },
-
-
-    methodButtonActive: {
-      backgroundColor: "#172554",
-      borderColor: "#2563EB",
-    },
-
 
     methodText: {
-      color: "#64748B",
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: "900",
-    },
-
-
-    methodTextActive: {
-      color: "#60A5FA",
-    },
-
-
-    // ========================================================
-    // NOTES
-    // ========================================================
-
-    notesInput: {
-      height: 100,
-      paddingTop: 14,
+      letterSpacing: 0.8,
     },
 
 
@@ -2249,127 +2497,89 @@ const styles =
     // ========================================================
 
     summaryCard: {
-      backgroundColor: "#080D19",
       borderWidth: 1,
-      borderColor: "#172554",
-      borderRadius: 18,
-      padding: 17,
-      marginTop: 5,
-      marginBottom: 20,
+      borderRadius: 26,
+      padding: 16,
+      marginBottom: 18,
     },
-
-
-    summaryTitle: {
-      color: "#64748B",
-      fontSize: 10,
-      fontWeight: "900",
-      letterSpacing: 1.3,
-      marginBottom: 15,
-    },
-
 
     summaryRow: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 11,
+      justifyContent: "space-between",
+      marginTop: 10,
     },
-
 
     summaryLabel: {
-      color: "#64748B",
-      fontSize: 12,
+      fontSize: 10,
+      fontWeight: "700",
     },
 
-
     summaryValue: {
-      color: "#FFFFFF",
-      fontSize: 12,
-      fontWeight: "800",
-      maxWidth: "60%",
+      flexShrink: 1,
+      marginLeft: 12,
+      fontSize: 11,
+      fontWeight: "900",
       textAlign: "right",
     },
 
-
     summaryDivider: {
       height: 1,
-      backgroundColor: "#172554",
-      marginVertical: 7,
+      marginVertical: 13,
     },
-
 
     totalRow: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
+      justifyContent: "space-between",
+    },
+
+    totalLabel: {
+      fontSize: 11,
+      fontWeight: "900",
+      letterSpacing: 1.2,
+    },
+
+    totalValue: {
+      color: "#45E0A5",
+      fontSize: 24,
+      fontWeight: "900",
     },
 
 
-    totalLabel: {
+    // ========================================================
+    // BUTTONS
+    // ========================================================
+
+    recordButton: {
+      height: 54,
+      borderRadius: 17,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+    },
+
+    recordButtonDisabled: {
+      opacity: 0.7,
+    },
+
+    recordButtonText: {
       color: "#FFFFFF",
       fontSize: 12,
       fontWeight: "900",
       letterSpacing: 1,
     },
 
-
-    totalValue: {
-      color: "#22C55E",
-      fontSize: 22,
-      fontWeight: "900",
-    },
-
-
-    // ========================================================
-    // RECORD BUTTON
-    // ========================================================
-
-    recordButton: {
-      height: 58,
-      borderRadius: 16,
-      backgroundColor: "#2563EB",
-      flexDirection: "row",
+    cancelButton: {
+      height: 48,
       alignItems: "center",
       justifyContent: "center",
-      elevation: 6,
-      marginBottom: 10,
+      marginTop: 6,
     },
-
-
-    recordButtonDisabled: {
-      opacity: 0.55,
-    },
-
-
-    recordIcon: {
-      color: "#FFFFFF",
-      fontSize: 20,
-      fontWeight: "900",
-      marginRight: 10,
-    },
-
-
-    recordButtonText: {
-      color: "#FFFFFF",
-      fontSize: 13,
-      fontWeight: "900",
-      letterSpacing: 1,
-    },
-
-
-    // ========================================================
-    // CANCEL
-    // ========================================================
-
-    cancelButton: {
-      alignItems: "center",
-      paddingVertical: 18,
-    },
-
 
     cancelText: {
-      color: "#64748B",
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: "900",
       letterSpacing: 1,
     },

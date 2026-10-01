@@ -16,7 +16,13 @@ import {
   useCameraPermissions,
 } from "expo-camera";
 
+import { Ionicons } from "@expo/vector-icons";
+
+import { useTheme } from "../context/ThemeContext";
+
 export default function MemberScannerScreen() {
+  const { colors } = useTheme();
+
   // ============================================================
   // SCREEN SIZE
   // ============================================================
@@ -271,13 +277,23 @@ export default function MemberScannerScreen() {
 
   if (!permission) {
     return (
-      <View style={styles.loadingScreen}>
+      <View
+        style={[
+          styles.loadingScreen,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <ActivityIndicator
           size="large"
-          color="#2563EB"
+          color={colors.primary}
         />
 
-        <Text style={styles.loadingText}>
+        <Text
+          style={[
+            styles.loadingText,
+            { color: colors.mutedText },
+          ]}
+        >
           Checking camera permission...
         </Text>
       </View>
@@ -290,41 +306,99 @@ export default function MemberScannerScreen() {
 
   if (!permission.granted) {
     return (
-      <View style={styles.permissionScreen}>
-        <View style={styles.permissionIcon}>
-          <Text style={styles.permissionIconText}>
-            📷
+      <View
+        style={[
+          styles.permissionScreen,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <View
+          style={[
+            styles.permissionCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.permissionIcon,
+              { backgroundColor: colors.iconBackground },
+            ]}
+          >
+            <Ionicons
+              name="camera-outline"
+              size={30}
+              color={colors.primaryLight}
+            />
+          </View>
+
+          <Text
+            style={[
+              styles.permissionEyebrow,
+              { color: colors.primaryLight },
+            ]}
+          >
+            GYMRYT • QR SCANNER
           </Text>
+
+          <Text
+            style={[
+              styles.permissionTitle,
+              { color: colors.text },
+            ]}
+          >
+            Camera Access Required
+          </Text>
+
+          <Text
+            style={[
+              styles.permissionText,
+              { color: colors.secondaryText },
+            ]}
+          >
+            GymRyt needs access to your camera to
+            scan the gym registration QR code.
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.allowButton,
+              { backgroundColor: colors.primary },
+            ]}
+            onPress={requestPermission}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="camera"
+              size={18}
+              color="#FFFFFF"
+            />
+
+            <Text style={styles.allowButtonText}>
+              ALLOW CAMERA
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.backButton,
+              { borderColor: colors.border },
+            ]}
+            onPress={() => router.back()}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.backButtonText,
+                { color: colors.secondaryText },
+              ]}
+            >
+              GO BACK
+            </Text>
+          </TouchableOpacity>
         </View>
-
-        <Text style={styles.permissionTitle}>
-          Camera Access Required
-        </Text>
-
-        <Text style={styles.permissionText}>
-          GymRyt needs access to your camera to
-          scan the gym registration QR code.
-        </Text>
-
-        <TouchableOpacity
-          style={styles.allowButton}
-          onPress={requestPermission}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.allowButtonText}>
-            ALLOW CAMERA
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.backButtonText}>
-            GO BACK
-          </Text>
-        </TouchableOpacity>
       </View>
     );
   }
@@ -341,8 +415,17 @@ export default function MemberScannerScreen() {
           ======================================================== */}
 
       <View style={styles.header}>
+        <Text
+          style={[
+            styles.eyebrow,
+            { color: colors.primaryLight },
+          ]}
+        >
+          GYMRYT • REGISTRATION
+        </Text>
+
         <Text style={styles.title}>
-          SCAN GYM QR
+          Scan Gym QR
         </Text>
 
         <Text style={styles.subtitle}>
@@ -422,6 +505,7 @@ export default function MemberScannerScreen() {
           style={[
             styles.corner,
             styles.topLeft,
+            { borderColor: colors.primaryLight },
           ]}
         />
 
@@ -429,6 +513,7 @@ export default function MemberScannerScreen() {
           style={[
             styles.corner,
             styles.topRight,
+            { borderColor: colors.primaryLight },
           ]}
         />
 
@@ -436,6 +521,7 @@ export default function MemberScannerScreen() {
           style={[
             styles.corner,
             styles.bottomLeft,
+            { borderColor: colors.primaryLight },
           ]}
         />
 
@@ -443,6 +529,7 @@ export default function MemberScannerScreen() {
           style={[
             styles.corner,
             styles.bottomRight,
+            { borderColor: colors.primaryLight },
           ]}
         />
       </View>
@@ -456,9 +543,11 @@ export default function MemberScannerScreen() {
         onPress={() => router.back()}
         activeOpacity={0.8}
       >
-        <Text style={styles.closeButtonText}>
-          ×
-        </Text>
+        <Ionicons
+          name="arrow-back"
+          size={20}
+          color="#FFFFFF"
+        />
       </TouchableOpacity>
 
       {/* ========================================================
@@ -466,13 +555,29 @@ export default function MemberScannerScreen() {
           ======================================================== */}
 
       <View style={styles.bottomContent}>
-        <Text style={styles.instruction}>
-          Place the QR code inside the frame
-        </Text>
+        <View style={styles.instructionPill}>
+          <Ionicons
+            name="scan-outline"
+            size={16}
+            color={colors.primaryLight}
+          />
 
-        <Text style={styles.secureText}>
-          🔒 Secure GymRyt registration
-        </Text>
+          <Text style={styles.instruction}>
+            Place the QR code inside the frame
+          </Text>
+        </View>
+
+        <View style={styles.secureRow}>
+          <Ionicons
+            name="lock-closed"
+            size={11}
+            color="#CBD5E1"
+          />
+
+          <Text style={styles.secureText}>
+            Secure GymRyt registration
+          </Text>
+        </View>
       </View>
 
       {/* ========================================================
@@ -491,7 +596,6 @@ export default function MemberScannerScreen() {
           </Text>
         </View>
       )}
-
     </View>
   );
 }
@@ -501,7 +605,6 @@ export default function MemberScannerScreen() {
 // ============================================================
 
 const styles = StyleSheet.create({
-
   container: {
     flex: 1,
     backgroundColor: "#000000",
@@ -519,18 +622,25 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
+  },
+
   title: {
     color: "#FFFFFF",
-    fontSize: 25,
-    fontWeight: "800",
-    letterSpacing: 1,
+    fontSize: 22,
+    fontWeight: "900",
+    marginTop: 4,
     textAlign: "center",
   },
 
   subtitle: {
     color: "#E2E8F0",
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 6,
     textAlign: "center",
   },
 
@@ -538,7 +648,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     backgroundColor: "#000000",
     overflow: "hidden",
-    borderRadius: 4,
+    borderRadius: 20,
     zIndex: 5,
   },
 
@@ -557,7 +667,8 @@ const styles = StyleSheet.create({
 
   cameraLoadingText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: "700",
     marginTop: 12,
   },
 
@@ -571,7 +682,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 48,
     height: 48,
-    borderColor: "#FFFFFF",
     zIndex: 60,
   },
 
@@ -580,7 +690,7 @@ const styles = StyleSheet.create({
     left: 0,
     borderTopWidth: 4,
     borderLeftWidth: 4,
-    borderTopLeftRadius: 12,
+    borderTopLeftRadius: 20,
   },
 
   topRight: {
@@ -588,7 +698,7 @@ const styles = StyleSheet.create({
     right: 0,
     borderTopWidth: 4,
     borderRightWidth: 4,
-    borderTopRightRadius: 12,
+    borderTopRightRadius: 20,
   },
 
   bottomLeft: {
@@ -596,7 +706,7 @@ const styles = StyleSheet.create({
     left: 0,
     borderBottomWidth: 4,
     borderLeftWidth: 4,
-    borderBottomLeftRadius: 12,
+    borderBottomLeftRadius: 20,
   },
 
   bottomRight: {
@@ -604,27 +714,22 @@ const styles = StyleSheet.create({
     right: 0,
     borderBottomWidth: 4,
     borderRightWidth: 4,
-    borderBottomRightRadius: 12,
+    borderBottomRightRadius: 20,
   },
 
   closeButton: {
     position: "absolute",
     top: 45,
-    left: 22,
-    width: 45,
-    height: 45,
-    borderRadius: 23,
-    backgroundColor: "rgba(0,0,0,0.75)",
+    left: 18,
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 100,
-  },
-
-  closeButtonText: {
-    color: "#FFFFFF",
-    fontSize: 32,
-    fontWeight: "300",
-    lineHeight: 34,
   },
 
   bottomContent: {
@@ -637,18 +742,35 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
+  instructionPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+
   instruction: {
     color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "600",
-    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "800",
+    marginLeft: 7,
+  },
+
+  secureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
   },
 
   secureText: {
     color: "#CBD5E1",
-    fontSize: 10,
-    marginTop: 10,
-    textAlign: "center",
+    fontSize: 9,
+    fontWeight: "700",
+    marginLeft: 4,
   },
 
   processingOverlay: {
@@ -661,94 +783,101 @@ const styles = StyleSheet.create({
 
   processingText: {
     color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "600",
-    marginTop: 15,
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 14,
   },
 
   permissionScreen: {
     flex: 1,
-    backgroundColor: "#050816",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 30,
+    paddingHorizontal: 18,
+  },
+
+  permissionCard: {
+    width: "100%",
+    maxWidth: 420,
+    borderWidth: 1,
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    paddingVertical: 24,
+    alignItems: "center",
   },
 
   permissionIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#172554",
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 14,
   },
 
-  permissionIconText: {
-    fontSize: 36,
+  permissionEyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
   },
 
   permissionTitle: {
-    color: "#FFFFFF",
-    fontSize: 22,
-    fontWeight: "800",
+    fontSize: 20,
+    fontWeight: "900",
     textAlign: "center",
-    marginBottom: 10,
+    marginTop: 4,
+    marginBottom: 8,
   },
 
   permissionText: {
-    color: "#94A3B8",
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 11,
+    fontWeight: "600",
+    lineHeight: 17,
     textAlign: "center",
-    marginBottom: 28,
+    marginBottom: 22,
   },
 
   allowButton: {
     width: "100%",
     height: 54,
-    backgroundColor: "#2563EB",
-    borderRadius: 14,
+    borderRadius: 17,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
-    elevation: 6,
+    gap: 8,
+    marginBottom: 10,
   },
 
   allowButtonText: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 0.7,
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
 
   backButton: {
     width: "100%",
     height: 50,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#334155",
     alignItems: "center",
     justifyContent: "center",
   },
 
   backButtonText: {
-    color: "#94A3B8",
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
 
   loadingScreen: {
     flex: 1,
-    backgroundColor: "#050816",
     alignItems: "center",
     justifyContent: "center",
   },
 
   loadingText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    marginTop: 15,
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 12,
   },
-
 });

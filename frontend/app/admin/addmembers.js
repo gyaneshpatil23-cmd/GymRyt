@@ -19,6 +19,8 @@ import { router } from "expo-router";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../context/ThemeContext";
 
 // ============================================================
@@ -26,14 +28,18 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members/";
+  "http://192.168.1.43:8000/api/members/";
 
 // ============================================================
 // ADD MEMBER
 // ============================================================
 
 export default function AddMembers() {
-  const { colors } = useTheme();
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
   // ==========================================================
   // PASSWORD
@@ -848,6 +854,7 @@ export default function AddMembers() {
   // ==========================================================
 
   return (
+
     <KeyboardAvoidingView
       style={[
         styles.container,
@@ -862,6 +869,7 @@ export default function AddMembers() {
           : undefined
       }
     >
+
       <ScrollView
         showsVerticalScrollIndicator={
           false
@@ -871,6 +879,7 @@ export default function AddMembers() {
         }
         keyboardShouldPersistTaps="handled"
       >
+
         {/* ==================================================
             HEADER
         ================================================== */}
@@ -880,51 +889,23 @@ export default function AddMembers() {
             styles.header
           }
         >
-          <TouchableOpacity
-            style={[
-              styles.backButton,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.back()
-            }
-            disabled={
-              creating
-            }
-          >
-            <Text
-              style={[
-                styles.backText,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
 
           <View
             style={
               styles.headerText
             }
           >
+
             <Text
               style={[
-                styles.smallTitle,
+                styles.eyebrow,
                 {
                   color:
                     colors.primaryLight,
                 },
               ]}
             >
-              GYMRyt MANAGEMENT
+              GYMRYT • MEMBERS
             </Text>
 
             <Text
@@ -938,18 +919,97 @@ export default function AddMembers() {
             >
               Add Member
             </Text>
+
           </View>
+
+
+          <View
+            style={
+              styles.headerActions
+            }
+          >
+
+            {/* THEME */}
+
+            <TouchableOpacity
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={
+                toggleTheme
+              }
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </TouchableOpacity>
+
+
+            {/* BACK */}
+
+            <TouchableOpacity
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={() =>
+                router.back()
+              }
+              disabled={
+                creating
+              }
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </TouchableOpacity>
+
+          </View>
+
         </View>
+
 
         {/* ==================================================
             PROFILE
         ================================================== */}
 
         <View
-          style={
-            styles.profileSection
-          }
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
+
           <View
             style={[
               styles.avatar,
@@ -957,60 +1017,74 @@ export default function AddMembers() {
                 backgroundColor:
                   colors.iconBackground,
                 borderColor:
-                  colors.primary,
+                  colors.border,
               },
             ]}
           >
+            <Ionicons
+              name="person-add-outline"
+              size={26}
+              color={
+                colors.primaryLight
+              }
+            />
+          </View>
+
+
+          <View
+            style={
+              styles.profileInfo
+            }
+          >
+
             <Text
               style={[
-                styles.avatarText,
+                styles.profileName,
                 {
                   color:
-                    colors.primaryLight,
+                    colors.text,
                 },
               ]}
             >
-              +
+              New Gym Member
             </Text>
+
+            <Text
+              style={[
+                styles.profileSubtitle,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              Enter member information
+            </Text>
+
           </View>
 
-          <Text
-            style={[
-              styles.profileName,
-              {
-                color:
-                  colors.text,
-              },
-            ]}
-          >
-            New Gym Member
-          </Text>
-
-          <Text
-            style={[
-              styles.profileSubtitle,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
-          >
-            Enter member information
-          </Text>
         </View>
+
 
         {/* ==================================================
             PERSONAL INFORMATION
         ================================================== */}
 
         <View
-          style={
-            styles.section
-          }
+          style={[
+            styles.section,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
+
           <Text
             style={[
-              styles.sectionTitle,
+              styles.sectionEyebrow,
               {
                 color:
                   colors.primaryLight,
@@ -1020,7 +1094,21 @@ export default function AddMembers() {
             PERSONAL INFORMATION
           </Text>
 
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            Member Details
+          </Text>
+
+
           <InputField
+            icon="person-outline"
             label="FULL NAME"
             value={
               fullName
@@ -1033,7 +1121,9 @@ export default function AddMembers() {
             }
           />
 
+
           <InputField
+            icon="call-outline"
             label="PHONE NUMBER"
             value={
               phone
@@ -1055,7 +1145,9 @@ export default function AddMembers() {
             }
           />
 
+
           <InputField
+            icon="mail-outline"
             label="EMAIL ADDRESS"
             value={
               email
@@ -1068,20 +1160,29 @@ export default function AddMembers() {
               colors
             }
           />
+
         </View>
+
 
         {/* ==================================================
             ACCOUNT INFORMATION
         ================================================== */}
 
         <View
-          style={
-            styles.section
-          }
+          style={[
+            styles.section,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
+
           <Text
             style={[
-              styles.sectionTitle,
+              styles.sectionEyebrow,
               {
                 color:
                   colors.primaryLight,
@@ -1091,7 +1192,21 @@ export default function AddMembers() {
             ACCOUNT INFORMATION
           </Text>
 
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            Login Details
+          </Text>
+
+
           <InputField
+            icon="at-outline"
             label="USERNAME"
             value={
               username
@@ -1104,11 +1219,13 @@ export default function AddMembers() {
             }
           />
 
+
           <View
             style={
               styles.inputGroup
             }
           >
+
             <Text
               style={[
                 styles.label,
@@ -1121,20 +1238,30 @@ export default function AddMembers() {
               PASSWORD
             </Text>
 
+
             <View
               style={[
-                styles.passwordContainer,
+                styles.inputRow,
                 {
                   backgroundColor:
-                    colors.input,
+                    colors.background,
                   borderColor:
                     colors.border,
                 },
               ]}
             >
+
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={
+                  colors.primaryLight
+                }
+              />
+
               <TextInput
                 style={[
-                  styles.passwordInput,
+                  styles.input,
                   {
                     color:
                       colors.text,
@@ -1156,78 +1283,89 @@ export default function AddMembers() {
               />
 
               <TouchableOpacity
+                style={
+                  styles.eyeButton
+                }
                 onPress={() =>
                   setShowPassword(
                     !showPassword
                   )
                 }
               >
-                <Text
-                  style={[
-                    styles.showPassword,
-                    {
-                      color:
-                        colors.primaryLight,
-                    },
-                  ]}
-                >
-                  {showPassword
-                    ? "HIDE"
-                    : "SHOW"}
-                </Text>
+                <Ionicons
+                  name={
+                    showPassword
+                      ? "eye-off-outline"
+                      : "eye-outline"
+                  }
+                  size={19}
+                  color={
+                    colors.secondaryText
+                  }
+                />
               </TouchableOpacity>
+
             </View>
+
           </View>
+
 
           <View
             style={[
               styles.infoBox,
               {
                 backgroundColor:
-                  colors.card,
+                  colors.iconBackground,
                 borderColor:
                   colors.border,
               },
             ]}
           >
-            <Text
-              style={[
-                styles.infoIcon,
-                {
-                  color:
-                    colors.primaryLight,
-                },
-              ]}
-            >
-              🔒
-            </Text>
+
+            <Ionicons
+              name="lock-closed-outline"
+              size={17}
+              color={
+                colors.primaryLight
+              }
+            />
 
             <Text
               style={[
                 styles.infoText,
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
               The member will use this username and password to log in.
             </Text>
+
           </View>
+
         </View>
+
 
         {/* ==================================================
             MEMBERSHIP
         ================================================== */}
 
         <View
-          style={
-            styles.section
-          }
+          style={[
+            styles.section,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
+
           <Text
             style={[
-              styles.sectionTitle,
+              styles.sectionEyebrow,
               {
                 color:
                   colors.primaryLight,
@@ -1236,6 +1374,19 @@ export default function AddMembers() {
           >
             MEMBERSHIP
           </Text>
+
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            Plan & Trainer
+          </Text>
+
 
           {/* ==================================================
               TRAINER
@@ -1246,6 +1397,7 @@ export default function AddMembers() {
               styles.inputGroup
             }
           >
+
             <Text
               style={[
                 styles.label,
@@ -1258,12 +1410,13 @@ export default function AddMembers() {
               TRAINER
             </Text>
 
+
             <TouchableOpacity
               style={[
-                styles.trainerSelector,
+                styles.inputRow,
                 {
                   backgroundColor:
-                    colors.input,
+                    colors.background,
                   borderColor:
                     colors.border,
                 },
@@ -1280,6 +1433,15 @@ export default function AddMembers() {
                 0.8
               }
             >
+
+              <Ionicons
+                name="barbell-outline"
+                size={18}
+                color={
+                  colors.primaryLight
+                }
+              />
+
               <Text
                 style={[
                   styles.trainerText,
@@ -1299,33 +1461,43 @@ export default function AddMembers() {
               </Text>
 
               {loadingTrainers ? (
+
                 <ActivityIndicator
                   size="small"
                   color={
                     colors.primaryLight
                   }
+                  style={
+                    styles.dropdownIcon
+                  }
                 />
+
               ) : (
-                <Text
-                  style={[
-                    styles.dropdownArrow,
-                    {
-                      color:
-                        colors.primaryLight,
-                    },
-                  ]}
-                >
-                  ▼
-                </Text>
+
+                <Ionicons
+                  name="chevron-down"
+                  size={18}
+                  color={
+                    colors.primaryLight
+                  }
+                  style={
+                    styles.dropdownIcon
+                  }
+                />
+
               )}
+
             </TouchableOpacity>
+
           </View>
+
 
           {/* ==================================================
               START DATE
           ================================================== */}
 
           <InputField
+            icon="calendar-outline"
             label="MEMBERSHIP START"
             value={
               startDate
@@ -1338,11 +1510,13 @@ export default function AddMembers() {
             }
           />
 
+
           {/* ==================================================
               END DATE
           ================================================== */}
 
           <InputField
+            icon="calendar-clear-outline"
             label="MEMBERSHIP END"
             value={
               endDate
@@ -1354,7 +1528,9 @@ export default function AddMembers() {
               colors
             }
           />
+
         </View>
+
 
         {/* ==================================================
             VERIFICATION
@@ -1362,7 +1538,7 @@ export default function AddMembers() {
 
         <View
           style={[
-            styles.infoBox,
+            styles.verificationCard,
             {
               backgroundColor:
                 colors.card,
@@ -1371,23 +1547,26 @@ export default function AddMembers() {
             },
           ]}
         >
-          <Text
-            style={[
-              styles.infoIcon,
-              {
-                color:
-                  colors.success,
-              },
-            ]}
+
+          <View
+            style={
+              styles.verificationIcon
+            }
           >
-            ✓
-          </Text>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={22}
+              color="#45E0A5"
+            />
+          </View>
+
 
           <View
             style={
               styles.verificationText
             }
           >
+
             <Text
               style={[
                 styles.verificationTitle,
@@ -1405,14 +1584,17 @@ export default function AddMembers() {
                 styles.verificationSubtitle,
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
               Member verification can be completed later.
             </Text>
+
           </View>
+
         </View>
+
 
         {/* ==================================================
             CREATE BUTTON
@@ -1438,12 +1620,23 @@ export default function AddMembers() {
             creating
           }
         >
+
           {creating ? (
+
             <ActivityIndicator
               color="#FFFFFF"
             />
+
           ) : (
+
             <>
+
+              <Ionicons
+                name="person-add-outline"
+                size={18}
+                color="#FFFFFF"
+              />
+
               <Text
                 style={
                   styles.createText
@@ -1452,16 +1645,12 @@ export default function AddMembers() {
                 CREATE MEMBER
               </Text>
 
-              <Text
-                style={
-                  styles.arrow
-                }
-              >
-                →
-              </Text>
             </>
+
           )}
+
         </TouchableOpacity>
+
 
         {/* ==================================================
             CANCEL
@@ -1483,14 +1672,16 @@ export default function AddMembers() {
               styles.cancelText,
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
             CANCEL
           </Text>
         </TouchableOpacity>
+
       </ScrollView>
+
 
       {/* ======================================================
           TRAINER MODAL
@@ -1510,11 +1701,13 @@ export default function AddMembers() {
           )
         }
       >
+
         <View
           style={
             styles.modalOverlay
           }
         >
+
           <View
             style={[
               styles.modalContainer,
@@ -1526,12 +1719,27 @@ export default function AddMembers() {
               },
             ]}
           >
+
             <View
               style={
                 styles.modalHeader
               }
             >
+
               <View>
+
+                <Text
+                  style={[
+                    styles.sectionEyebrow,
+                    {
+                      color:
+                        colors.primaryLight,
+                    },
+                  ]}
+                >
+                  ASSIGN TRAINER
+                </Text>
+
                 <Text
                   style={[
                     styles.modalTitle,
@@ -1549,34 +1757,43 @@ export default function AddMembers() {
                     styles.modalSubtitle,
                     {
                       color:
-                        colors.mutedText,
+                        colors.secondaryText,
                     },
                   ]}
                 >
                   Assign this member to a trainer
                 </Text>
+
               </View>
 
+
               <TouchableOpacity
+                style={[
+                  styles.headerButton,
+                  {
+                    backgroundColor:
+                      colors.background,
+                    borderColor:
+                      colors.border,
+                  },
+                ]}
                 onPress={() =>
                   setTrainerModalVisible(
                     false
                   )
                 }
               >
-                <Text
-                  style={[
-                    styles.closeButton,
-                    {
-                      color:
-                        colors.text,
-                    },
-                  ]}
-                >
-                  ×
-                </Text>
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={
+                    colors.text
+                  }
+                />
               </TouchableOpacity>
+
             </View>
+
 
             {/* ==================================================
                 NO TRAINER
@@ -1587,11 +1804,13 @@ export default function AddMembers() {
                 styles.trainerOption,
                 {
                   borderColor:
-                    colors.border,
+                    !selectedTrainer
+                      ? colors.primaryLight
+                      : colors.border,
                   backgroundColor:
                     !selectedTrainer
                       ? colors.iconBackground
-                      : "transparent",
+                      : colors.background,
                 },
               ]}
               onPress={() =>
@@ -1600,35 +1819,34 @@ export default function AddMembers() {
                 )
               }
             >
+
               <View
                 style={[
                   styles.trainerAvatar,
                   {
                     backgroundColor:
-                      colors.input,
+                      colors.card,
                     borderColor:
                       colors.border,
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.trainerAvatarText,
-                    {
-                      color:
-                        colors.mutedText,
-                    },
-                  ]}
-                >
-                  —
-                </Text>
+                <Ionicons
+                  name="remove-outline"
+                  size={18}
+                  color={
+                    colors.secondaryText
+                  }
+                />
               </View>
+
 
               <View
                 style={
                   styles.trainerOptionContent
                 }
               >
+
                 <Text
                   style={[
                     styles.trainerOptionName,
@@ -1646,28 +1864,30 @@ export default function AddMembers() {
                     styles.trainerOptionUsername,
                     {
                       color:
-                        colors.mutedText,
+                        colors.secondaryText,
                     },
                   ]}
                 >
                   Member can be assigned later
                 </Text>
+
               </View>
 
+
               {!selectedTrainer && (
-                <Text
-                  style={[
-                    styles.selectedCheck,
-                    {
-                      color:
-                        colors.primaryLight,
-                    },
-                  ]}
-                >
-                  ✓
-                </Text>
+
+                <Ionicons
+                  name="checkmark-circle"
+                  size={20}
+                  color={
+                    colors.primaryLight
+                  }
+                />
+
               )}
+
             </TouchableOpacity>
+
 
             {/* ==================================================
                 TRAINER LIST
@@ -1688,11 +1908,21 @@ export default function AddMembers() {
                 false
               }
               ListEmptyComponent={
+
                 <View
                   style={
                     styles.emptyTrainer
                   }
                 >
+
+                  <Ionicons
+                    name="barbell-outline"
+                    size={26}
+                    color={
+                      colors.primaryLight
+                    }
+                  />
+
                   <Text
                     style={[
                       styles.emptyTrainerTitle,
@@ -1710,17 +1940,20 @@ export default function AddMembers() {
                       styles.emptyTrainerSubtitle,
                       {
                         color:
-                          colors.mutedText,
+                          colors.secondaryText,
                       },
                     ]}
                   >
                     Add a trainer from Manage Trainers first.
                   </Text>
+
                 </View>
+
               }
               renderItem={({
                 item,
               }) => {
+
                 const isSelected =
                   selectedTrainer &&
                   selectedTrainer.id ===
@@ -1736,17 +1969,21 @@ export default function AddMembers() {
                     .charAt(0)
                     .toUpperCase();
 
+
                 return (
+
                   <TouchableOpacity
                     style={[
                       styles.trainerOption,
                       {
                         borderColor:
-                          colors.border,
+                          isSelected
+                            ? colors.primaryLight
+                            : colors.border,
                         backgroundColor:
                           isSelected
                             ? colors.iconBackground
-                            : "transparent",
+                            : colors.background,
                       },
                     ]}
                     onPress={() =>
@@ -1758,14 +1995,15 @@ export default function AddMembers() {
                       0.8
                     }
                   >
+
                     <View
                       style={[
                         styles.trainerAvatar,
                         {
                           backgroundColor:
-                            colors.input,
+                            colors.iconBackground,
                           borderColor:
-                            colors.primary,
+                            colors.border,
                         },
                       ]}
                     >
@@ -1782,11 +2020,13 @@ export default function AddMembers() {
                       </Text>
                     </View>
 
+
                     <View
                       style={
                         styles.trainerOptionContent
                       }
                     >
+
                       <Text
                         style={[
                           styles.trainerOptionName,
@@ -1806,7 +2046,7 @@ export default function AddMembers() {
                           styles.trainerOptionUsername,
                           {
                             color:
-                              colors.mutedText,
+                              colors.secondaryText,
                           },
                         ]}
                       >
@@ -1815,37 +2055,44 @@ export default function AddMembers() {
                           : item.email ||
                             "Active trainer"}
                       </Text>
+
                     </View>
 
+
                     {isSelected && (
-                      <Text
-                        style={[
-                          styles.selectedCheck,
-                          {
-                            color:
-                              colors.primaryLight,
-                          },
-                        ]}
-                      >
-                        ✓
-                      </Text>
+
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color={
+                          colors.primaryLight
+                        }
+                      />
+
                     )}
+
                   </TouchableOpacity>
                 );
               }}
             />
+
           </View>
+
         </View>
+
       </Modal>
+
     </KeyboardAvoidingView>
   );
 }
+
 
 // ============================================================
 // INPUT FIELD
 // ============================================================
 
 function InputField({
+  icon,
   label,
   value,
   onChangeText,
@@ -1853,12 +2100,15 @@ function InputField({
   maxLength,
   colors,
 }) {
+
   return (
+
     <View
       style={
         styles.inputGroup
       }
     >
+
       <Text
         style={[
           styles.label,
@@ -1871,357 +2121,400 @@ function InputField({
         {label}
       </Text>
 
-      <TextInput
+
+      <View
         style={[
-          styles.input,
+          styles.inputRow,
           {
             backgroundColor:
-              colors.input,
+              colors.background,
             borderColor:
               colors.border,
-            color:
-              colors.text,
           },
         ]}
-        value={
-          value
-        }
-        onChangeText={
-          onChangeText
-        }
-        placeholderTextColor={
-          colors.mutedText
-        }
-        keyboardType={
-          keyboardType
-        }
-        maxLength={
-          maxLength
-        }
-        autoCapitalize="none"
-      />
+      >
+
+        <Ionicons
+          name={icon}
+          size={18}
+          color={
+            colors.primaryLight
+          }
+        />
+
+        <TextInput
+          style={[
+            styles.input,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+          value={
+            value
+          }
+          onChangeText={
+            onChangeText
+          }
+          placeholderTextColor={
+            colors.mutedText
+          }
+          keyboardType={
+            keyboardType
+          }
+          maxLength={
+            maxLength
+          }
+          autoCapitalize="none"
+        />
+
+      </View>
+
     </View>
   );
 }
+
 
 // ============================================================
 // STYLES
 // ============================================================
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
   },
 
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 50,
+    paddingHorizontal: 18,
+    paddingTop:
+      Platform.OS === "ios"
+        ? 54
+        : 44,
+    paddingBottom: 40,
   },
 
-  // ========================================================
+
+  // ==========================================================
   // HEADER
-  // ========================================================
+  // ==========================================================
 
   header: {
-    marginTop: 55,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  backButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  backText: {
-    fontSize: 34,
-    fontWeight: "300",
-    marginTop: -4,
-  },
-
-  headerText: {
-    marginLeft: 15,
-  },
-
-  smallTitle: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 2,
-  },
-
-  title: {
-    fontSize: 30,
-    fontWeight: "900",
-    marginTop: 3,
-  },
-
-  // ========================================================
-  // PROFILE
-  // ========================================================
-
-  profileSection: {
-    alignItems: "center",
-    marginTop: 30,
-    marginBottom: 30,
-  },
-
-  avatar: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  avatarText: {
-    fontSize: 32,
-    fontWeight: "900",
-  },
-
-  profileName: {
-    fontSize: 19,
-    fontWeight: "900",
-    marginTop: 12,
-  },
-
-  profileSubtitle: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-
-  // ========================================================
-  // SECTION
-  // ========================================================
-
-  section: {
-    marginBottom: 24,
-  },
-
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    marginBottom: 14,
-  },
-
-  // ========================================================
-  // INPUTS
-  // ========================================================
-
-  inputGroup: {
-    marginBottom: 15,
-  },
-
-  label: {
-    fontSize: 10,
-    fontWeight: "800",
-    marginBottom: 7,
-  },
-
-  input: {
-    height: 54,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 15,
-    fontSize: 14,
-  },
-
-  passwordContainer: {
-    height: 54,
-    borderWidth: 1,
-    borderRadius: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: 15,
-    paddingRight: 14,
-  },
-
-  passwordInput: {
-    flex: 1,
-    fontSize: 14,
-  },
-
-  showPassword: {
-    fontSize: 10,
-    fontWeight: "900",
-  },
-
-  // ========================================================
-  // TRAINER SELECTOR
-  // ========================================================
-
-  trainerSelector: {
-    minHeight: 54,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 18,
   },
+
+  headerText: {
+    flex: 1,
+    marginRight: 10,
+  },
+
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
+  },
+
+  title: {
+    fontSize: 22,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+
+  headerButton: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+
+  // ==========================================================
+  // PROFILE
+  // ==========================================================
+
+  profileCard: {
+    minHeight: 84,
+    borderWidth: 1,
+    borderRadius: 21,
+    paddingHorizontal: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  profileInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+
+  profileName: {
+    fontSize: 16,
+    fontWeight: "900",
+  },
+
+  profileSubtitle: {
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 3,
+  },
+
+
+  // ==========================================================
+  // SECTION
+  // ==========================================================
+
+  section: {
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 16,
+    paddingBottom: 4,
+    marginBottom: 12,
+  },
+
+  sectionEyebrow: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1.3,
+    marginBottom: 3,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 16,
+  },
+
+
+  // ==========================================================
+  // INPUTS
+  // ==========================================================
+
+  inputGroup: {
+    marginBottom: 14,
+  },
+
+  label: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 7,
+  },
+
+  inputRow: {
+    height: 52,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingLeft: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  input: {
+    flex: 1,
+    height: "100%",
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  eyeButton: {
+    height: "100%",
+    paddingHorizontal: 14,
+    justifyContent: "center",
+  },
+
+
+  // ==========================================================
+  // TRAINER SELECTOR
+  // ==========================================================
 
   trainerText: {
-    fontSize: 14,
     flex: 1,
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontWeight: "600",
   },
 
-  dropdownArrow: {
-    fontSize: 12,
-    marginLeft: 10,
+  dropdownIcon: {
+    marginRight: 14,
   },
 
-  // ========================================================
+
+  // ==========================================================
   // INFO BOX
-  // ========================================================
+  // ==========================================================
 
   infoBox: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 24,
-  },
-
-  infoIcon: {
-    fontSize: 18,
-    width: 25,
-    textAlign: "center",
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
   },
 
   infoText: {
     flex: 1,
-    fontSize: 11,
-    marginLeft: 10,
-    lineHeight: 17,
+    fontSize: 10,
+    fontWeight: "600",
+    lineHeight: 15,
+    marginLeft: 9,
+  },
+
+  verificationCard: {
+    minHeight: 76,
+    borderWidth: 1,
+    borderRadius: 21,
+    paddingHorizontal: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  verificationIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#45E0A518",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   verificationText: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 11,
   },
 
   verificationTitle: {
     fontSize: 13,
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
   verificationSubtitle: {
-    fontSize: 10,
+    fontSize: 9,
+    fontWeight: "600",
     marginTop: 3,
   },
 
-  // ========================================================
+
+  // ==========================================================
   // CREATE BUTTON
-  // ========================================================
+  // ==========================================================
 
   createButton: {
-    height: 58,
-    borderRadius: 16,
+    height: 54,
+    borderRadius: 17,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    elevation: 6,
+    gap: 8,
   },
 
   createButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
 
   createText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
     letterSpacing: 1,
   },
 
-  arrow: {
-    color: "#FFFFFF",
-    fontSize: 22,
-    marginLeft: 12,
-  },
 
-  // ========================================================
+  // ==========================================================
   // CANCEL
-  // ========================================================
+  // ==========================================================
 
   cancelButton: {
+    height: 48,
     alignItems: "center",
-    paddingVertical: 18,
+    justifyContent: "center",
+    marginTop: 6,
   },
 
   cancelText: {
-    fontSize: 11,
-    fontWeight: "800",
+    fontSize: 10,
+    fontWeight: "900",
     letterSpacing: 1,
   },
 
-  // ========================================================
+
+  // ==========================================================
   // TRAINER MODAL
-  // ========================================================
+  // ==========================================================
 
   modalOverlay: {
     flex: 1,
-    backgroundColor:
-      "rgba(0, 0, 0, 0.75)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
   },
 
   modalContainer: {
     maxHeight: "75%",
     borderWidth: 1,
-    borderRadius: 20,
-    padding: 18,
-    overflow: "hidden",
+    borderRadius: 26,
+    padding: 16,
   },
 
   modalHeader: {
     flexDirection: "row",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 14,
   },
 
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "900",
   },
 
   modalSubtitle: {
-    fontSize: 11,
-    marginTop: 4,
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 3,
   },
 
-  closeButton: {
-    fontSize: 30,
-    fontWeight: "300",
-    paddingHorizontal: 5,
-  },
 
-  // ========================================================
+  // ==========================================================
   // TRAINER OPTION
-  // ========================================================
+  // ==========================================================
 
   trainerOption: {
     minHeight: 68,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 18,
+    paddingHorizontal: 11,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    marginBottom: 10,
+    marginBottom: 8,
   },
 
   trainerAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -2234,42 +2527,41 @@ const styles = StyleSheet.create({
 
   trainerOptionContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 11,
   },
 
   trainerOptionName: {
-    fontSize: 14,
-    fontWeight: "800",
+    fontSize: 13,
+    fontWeight: "900",
   },
 
   trainerOptionUsername: {
-    fontSize: 10,
-    marginTop: 4,
+    fontSize: 9,
+    fontWeight: "600",
+    marginTop: 3,
   },
 
-  selectedCheck: {
-    fontSize: 20,
-    fontWeight: "900",
-    marginLeft: 8,
-  },
 
-  // ========================================================
+  // ==========================================================
   // EMPTY TRAINERS
-  // ========================================================
+  // ==========================================================
 
   emptyTrainer: {
     alignItems: "center",
-    paddingVertical: 30,
+    paddingVertical: 22,
   },
 
   emptyTrainerTitle: {
     fontSize: 14,
-    fontWeight: "800",
+    fontWeight: "900",
+    marginTop: 9,
   },
 
   emptyTrainerSubtitle: {
-    fontSize: 11,
-    marginTop: 6,
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 4,
     textAlign: "center",
   },
+
 });

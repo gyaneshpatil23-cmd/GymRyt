@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
 } from "react-native";
 
 import {
@@ -21,13 +22,17 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
+import { useTheme } from "../../context/ThemeContext";
+
 
 // ============================================================
 // API
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 const TRAINER_APPLICATIONS_API =
   API_BASE_URL + "/trainer-applications/list/";
@@ -45,6 +50,12 @@ export default function TrainerApplicationDetails() {
   const {
     applicationId,
   } = useLocalSearchParams();
+
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
 
   // ==========================================================
@@ -673,31 +684,134 @@ export default function TrainerApplicationDetails() {
   // STATUS COLOR
   // ==========================================================
 
-  const getStatusStyle = (
+  const getStatusColor = (
     status
   ) => {
 
     if (
       status === "APPROVED"
     ) {
-
-      return styles.statusApproved;
-
+      return "#45E0A5";
     }
-
 
     if (
       status === "REJECTED"
     ) {
-
-      return styles.statusRejected;
-
+      return "#FF5870";
     }
 
-
-    return styles.statusPending;
-
+    return "#FFB21C";
   };
+
+
+  // ==========================================================
+  // HEADER
+  // ==========================================================
+
+  const renderHeader = () => (
+
+    <View
+      style={
+        styles.header
+      }
+    >
+
+      <View
+        style={
+          styles.headerContent
+        }
+      >
+
+        <Text
+          style={[
+            styles.headerSmallTitle,
+            {
+              color:
+                colors.primaryLight,
+            },
+          ]}
+        >
+          GYMRYT • TRAINER APPLICATION
+        </Text>
+
+        <Text
+          style={[
+            styles.headerTitle,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+        >
+          Application Details
+        </Text>
+
+      </View>
+
+
+      <View
+        style={
+          styles.headerActions
+        }
+      >
+
+        <TouchableOpacity
+          style={[
+            styles.backButton,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
+          onPress={
+            toggleTheme
+          }
+          activeOpacity={0.75}
+        >
+          <Ionicons
+            name={
+              isDark
+                ? "sunny-outline"
+                : "moon-outline"
+            }
+            size={20}
+            color={
+              colors.text
+            }
+          />
+        </TouchableOpacity>
+
+
+        <TouchableOpacity
+          style={[
+            styles.backButton,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
+          onPress={() =>
+            router.back()
+          }
+          activeOpacity={0.75}
+        >
+          <Ionicons
+            name="arrow-back"
+            size={20}
+            color={
+              colors.text
+            }
+          />
+        </TouchableOpacity>
+
+      </View>
+
+    </View>
+  );
 
 
   // ==========================================================
@@ -709,9 +823,13 @@ export default function TrainerApplicationDetails() {
     return (
 
       <View
-        style={
-          styles.container
-        }
+        style={[
+          styles.container,
+          {
+            backgroundColor:
+              colors.background,
+          },
+        ]}
       >
 
         <View
@@ -721,30 +839,28 @@ export default function TrainerApplicationDetails() {
         >
 
           <ActivityIndicator
-
             size="large"
-
-            color="#2563EB"
-
+            color={
+              colors.primary
+            }
           />
 
-
           <Text
-            style={
-              styles.loadingText
-            }
+            style={[
+              styles.loadingText,
+              {
+                color:
+                  colors.mutedText,
+              },
+            ]}
           >
-
             Loading application...
-
           </Text>
 
         </View>
 
       </View>
-
     );
-
   }
 
 
@@ -757,54 +873,16 @@ export default function TrainerApplicationDetails() {
     return (
 
       <View
-        style={
-          styles.container
-        }
+        style={[
+          styles.container,
+          {
+            backgroundColor:
+              colors.background,
+          },
+        ]}
       >
 
-        <View
-          style={
-            styles.header
-          }
-        >
-
-          <TouchableOpacity
-
-            style={
-              styles.backButton
-            }
-
-            onPress={() =>
-              router.back()
-            }
-
-          >
-
-            <Text
-              style={
-                styles.backText
-              }
-            >
-
-              ‹
-
-            </Text>
-
-          </TouchableOpacity>
-
-
-          <Text
-            style={
-              styles.headerTitle
-            }
-          >
-
-            Application
-
-          </Text>
-
-        </View>
-
+        {renderHeader()}
 
         <View
           style={
@@ -812,35 +890,54 @@ export default function TrainerApplicationDetails() {
           }
         >
 
-          <Text
-            style={
-              styles.errorTitle
-            }
+          <View
+            style={[
+              styles.errorIcon,
+              {
+                backgroundColor:
+                  colors.iconBackground,
+              },
+            ]}
           >
+            <Ionicons
+              name="document-text-outline"
+              size={28}
+              color={
+                colors.primaryLight
+              }
+            />
+          </View>
 
+          <Text
+            style={[
+              styles.errorTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
             Application Not Found
-
           </Text>
 
-
           <Text
-            style={
-              styles.errorText
-            }
+            style={[
+              styles.errorText,
+              {
+                color:
+                  colors.secondaryText,
+              },
+            ]}
           >
-
             The trainer application may
             have been removed or is no
             longer available.
-
           </Text>
 
         </View>
 
       </View>
-
     );
-
   }
 
 
@@ -848,82 +945,29 @@ export default function TrainerApplicationDetails() {
   // MAIN SCREEN
   // ==========================================================
 
+  const statusColor =
+    getStatusColor(
+      application.status
+    );
+
+
   return (
 
     <View
-      style={
-        styles.container
-      }
+      style={[
+        styles.container,
+        {
+          backgroundColor:
+            colors.background,
+        },
+      ]}
     >
-
 
       {/* =====================================================
           HEADER
       ===================================================== */}
 
-      <View
-        style={
-          styles.header
-        }
-      >
-
-        <TouchableOpacity
-
-          style={
-            styles.backButton
-          }
-
-          onPress={() =>
-            router.back()
-          }
-
-          activeOpacity={0.75}
-
-        >
-
-          <Text
-            style={
-              styles.backText
-            }
-          >
-
-            ‹
-
-          </Text>
-
-        </TouchableOpacity>
-
-
-        <View
-          style={
-            styles.headerContent
-          }
-        >
-
-          <Text
-            style={
-              styles.headerSmallTitle
-            }
-          >
-
-            TRAINER MANAGEMENT
-
-          </Text>
-
-
-          <Text
-            style={
-              styles.headerTitle
-            }
-          >
-
-            Application Details
-
-          </Text>
-
-        </View>
-
-      </View>
+      {renderHeader()}
 
 
       {/* =====================================================
@@ -931,26 +975,28 @@ export default function TrainerApplicationDetails() {
       ===================================================== */}
 
       <ScrollView
-
         showsVerticalScrollIndicator={
           false
         }
-
         contentContainerStyle={
           styles.scrollContent
         }
-
       >
-
 
         {/* ===================================================
             PROFILE CARD
         =================================================== */}
 
         <View
-          style={
-            styles.profileCard
-          }
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
 
           {/* =================================================
@@ -960,38 +1006,45 @@ export default function TrainerApplicationDetails() {
           {application.profile_picture ? (
 
             <Image
-
               source={{
                 uri:
                   application.profile_picture,
               }}
-
-              style={
-                styles.profileImage
-              }
-
+              style={[
+                styles.profileImage,
+                {
+                  borderColor:
+                    `${statusColor}88`,
+                },
+              ]}
             />
 
           ) : (
 
             <View
-              style={
-                styles.profilePlaceholder
-              }
+              style={[
+                styles.profilePlaceholder,
+                {
+                  backgroundColor:
+                    colors.iconBackground,
+                  borderColor:
+                    `${statusColor}88`,
+                },
+              ]}
             >
-
               <Text
-                style={
-                  styles.profileInitials
-                }
+                style={[
+                  styles.profileInitials,
+                  {
+                    color:
+                      colors.primaryLight,
+                  },
+                ]}
               >
-
                 {getInitials(
                   application.name
                 )}
-
               </Text>
-
             </View>
 
           )}
@@ -1002,14 +1055,16 @@ export default function TrainerApplicationDetails() {
           ================================================= */}
 
           <Text
-            style={
-              styles.profileName
-            }
+            style={[
+              styles.profileName,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
           >
-
             {application.name ||
               "Trainer"}
-
           </Text>
 
 
@@ -1017,16 +1072,32 @@ export default function TrainerApplicationDetails() {
               SPECIALIZATION
           ================================================= */}
 
-          <Text
+          <View
             style={
-              styles.profileSpecialization
+              styles.specializationRow
             }
           >
+            <Ionicons
+              name="barbell-outline"
+              size={13}
+              color={
+                colors.secondaryText
+              }
+            />
 
-            {application.specialization ||
-              "Fitness Trainer"}
-
-          </Text>
+            <Text
+              style={[
+                styles.profileSpecialization,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              {application.specialization ||
+                "Fitness Trainer"}
+            </Text>
+          </View>
 
 
           {/* =================================================
@@ -1036,23 +1107,36 @@ export default function TrainerApplicationDetails() {
           <View
             style={[
               styles.statusBadge,
-              getStatusStyle(
-                application.status
-              ),
+              {
+                backgroundColor:
+                  `${statusColor}18`,
+                borderColor:
+                  `${statusColor}55`,
+              },
             ]}
           >
+            <View
+              style={[
+                styles.statusDot,
+                {
+                  backgroundColor:
+                    statusColor,
+                },
+              ]}
+            />
 
             <Text
-              style={
-                styles.statusText
-              }
+              style={[
+                styles.statusText,
+                {
+                  color:
+                    statusColor,
+                },
+              ]}
             >
-
               {application.status ||
                 "PENDING"}
-
             </Text>
-
           </View>
 
         </View>
@@ -1062,165 +1146,63 @@ export default function TrainerApplicationDetails() {
             PERSONAL INFORMATION
         =================================================== */}
 
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+        >
+          PERSONAL INFORMATION
+        </Text>
+
         <View
-          style={
-            styles.sectionCard
-          }
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
 
-          <Text
-            style={
-              styles.sectionTitle
-            }
-          >
-
-            Personal Information
-
-          </Text>
-
-
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={
-                styles.infoLabel
-              }
-            >
-
-              Full Name
-
-            </Text>
-
-
-            <Text
-              style={
-                styles.infoValue
-              }
-            >
-
-              {application.name ||
-                "—"}
-
-            </Text>
-
-          </View>
-
-
-          <View
-            style={
-              styles.divider
-            }
+          <InfoRow
+            icon="person-outline"
+            label="Full Name"
+            value={application.name}
+            colors={colors}
           />
 
+          <Divider colors={colors} />
 
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={
-                styles.infoLabel
-              }
-            >
-
-              Email
-
-            </Text>
-
-
-            <Text
-              style={
-                styles.infoValue
-              }
-            >
-
-              {application.email ||
-                "—"}
-
-            </Text>
-
-          </View>
-
-
-          <View
-            style={
-              styles.divider
-            }
+          <InfoRow
+            icon="mail-outline"
+            label="Email"
+            value={application.email}
+            colors={colors}
           />
 
+          <Divider colors={colors} />
 
-          <View
-            style={
-              styles.infoRow
-            }
-          >
+          <InfoRow
+            icon="call-outline"
+            label="Phone"
+            value={application.phone}
+            colors={colors}
+          />
 
-            <Text
-              style={
-                styles.infoLabel
-              }
-            >
+          <Divider colors={colors} />
 
-              Phone
-
-            </Text>
-
-
-            <Text
-              style={
-                styles.infoValue
-              }
-            >
-
-              {application.phone ||
-                "—"}
-
-            </Text>
-
-          </View>
-
-
-          <View
-            style={
-              styles.divider
-            } />
-
-
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={
-                styles.infoLabel
-              }
-            >
-
-              Username
-
-            </Text>
-
-
-            <Text
-              style={
-                styles.infoValue
-              }
-            >
-
-              {application.username ||
-                "—"}
-
-            </Text>
-
-          </View>
+          <InfoRow
+            icon="at-outline"
+            label="Username"
+            value={application.username}
+            colors={colors}
+          />
 
         </View>
 
@@ -1229,97 +1211,53 @@ export default function TrainerApplicationDetails() {
             PROFESSIONAL INFORMATION
         =================================================== */}
 
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+        >
+          PROFESSIONAL INFORMATION
+        </Text>
+
         <View
-          style={
-            styles.sectionCard
-          }
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
 
-          <Text
-            style={
-              styles.sectionTitle
-            }
-          >
-
-            Professional Information
-
-          </Text>
-
-
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={
-                styles.infoLabel
-              }
-            >
-
-              Specialization
-
-            </Text>
-
-
-            <Text
-              style={
-                styles.infoValue
-              }
-            >
-
-              {application.specialization ||
-                "—"}
-
-            </Text>
-
-          </View>
-
-
-          <View
-            style={
-              styles.divider
-            }
+          <InfoRow
+            icon="barbell-outline"
+            label="Specialization"
+            value={application.specialization}
+            colors={colors}
           />
 
+          <Divider colors={colors} />
 
-          <View
-            style={
-              styles.infoRow
-            }
-          >
-
-            <Text
-              style={
-                styles.infoLabel
-              }
-            >
-
-              Experience
-
-            </Text>
-
-
-            <Text
-              style={
-                styles.infoValue
-              }
-            >
-
-              {application.experience_years !==
+          <InfoRow
+            icon="trophy-outline"
+            label="Experience"
+            value={
+              application.experience_years !==
               undefined &&
               application.experience_years !==
               null
-
                 ? application.experience_years +
                   " years"
-
-                : "—"}
-
-            </Text>
-
-          </View>
+                : "—"
+            }
+            colors={colors}
+          />
 
         </View>
 
@@ -1328,34 +1266,41 @@ export default function TrainerApplicationDetails() {
             BIO
         =================================================== */}
 
-        <View
-          style={
-            styles.sectionCard
-          }
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color:
+                colors.text,
+            },
+          ]}
         >
+          ABOUT TRAINER
+        </Text>
 
+        <View
+          style={[
+            styles.bioCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
+        >
           <Text
-            style={
-              styles.sectionTitle
-            }
+            style={[
+              styles.bioText,
+              {
+                color:
+                  colors.secondaryText,
+              },
+            ]}
           >
-
-            About Trainer
-
-          </Text>
-
-
-          <Text
-            style={
-              styles.bioText
-            }
-          >
-
             {application.bio ||
               "No bio was provided by the applicant."}
-
           </Text>
-
         </View>
 
 
@@ -1367,44 +1312,76 @@ export default function TrainerApplicationDetails() {
           "PENDING" ? (
 
           <View
-            style={
-              styles.sectionCard
-            }
+            style={[
+              styles.statusCard,
+              {
+                backgroundColor:
+                  colors.card,
+                borderColor:
+                  `${statusColor}55`,
+              },
+            ]}
           >
 
-            <Text
+            <View
               style={
-                styles.sectionTitle
+                styles.statusCardHeader
               }
             >
+              <Ionicons
+                name={
+                  application.status ===
+                    "APPROVED"
+                    ? "checkmark-circle"
+                    : "close-circle"
+                }
+                size={20}
+                color={
+                  statusColor
+                }
+              />
 
-              Application Status
-
-            </Text>
-
+              <Text
+                style={[
+                  styles.statusCardTitle,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                Application Status
+              </Text>
+            </View>
 
             <Text
-              style={
-                styles.statusDescription
-              }
+              style={[
+                styles.statusDescription,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
             >
-
               This application has already been{" "}
-
               {application.status ===
                 "APPROVED"
                 ? "approved."
                 : "rejected."}
-
             </Text>
-
 
             {application.rejection_reason ? (
 
               <View
-                style={
-                  styles.rejectionBox
-                }
+                style={[
+                  styles.rejectionBox,
+                  {
+                    backgroundColor:
+                      "#FF587012",
+                    borderColor:
+                      "#FF587044",
+                  },
+                ]}
               >
 
                 <Text
@@ -1412,22 +1389,21 @@ export default function TrainerApplicationDetails() {
                     styles.rejectionLabel
                   }
                 >
-
-                  Rejection Reason
-
+                  REJECTION REASON
                 </Text>
 
-
                 <Text
-                  style={
-                    styles.rejectionText
-                  }
+                  style={[
+                    styles.rejectionText,
+                    {
+                      color:
+                        colors.text,
+                    },
+                  ]}
                 >
-
                   {
                     application.rejection_reason
                   }
-
                 </Text>
 
               </View>
@@ -1452,46 +1428,54 @@ export default function TrainerApplicationDetails() {
             }
           >
 
-
             {/* =================================================
                 REJECT
             ================================================= */}
 
             <TouchableOpacity
-
-              style={
-                styles.rejectButton
-              }
-
+              style={[
+                styles.rejectButton,
+                {
+                  backgroundColor:
+                    isDark
+                      ? "#100D15"
+                      : "#FFF5F6",
+                },
+              ]}
               onPress={
                 rejectApplication
               }
-
               disabled={
                 processing
               }
-
               activeOpacity={0.8}
-
             >
 
               {processing ? (
 
                 <ActivityIndicator
-                  color="#FFFFFF"
+                  color="#FF4D5E"
                 />
 
               ) : (
 
-                <Text
-                  style={
-                    styles.rejectButtonText
-                  }
-                >
+                <>
 
-                  Reject Application
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={19}
+                    color="#FF4D5E"
+                  />
 
-                </Text>
+                  <Text
+                    style={
+                      styles.rejectButtonText
+                    }
+                  >
+                    Reject
+                  </Text>
+
+                </>
 
               )}
 
@@ -1503,21 +1487,20 @@ export default function TrainerApplicationDetails() {
             ================================================= */}
 
             <TouchableOpacity
-
-              style={
-                styles.approveButton
-              }
-
+              style={[
+                styles.approveButton,
+                {
+                  backgroundColor:
+                    colors.primary,
+                },
+              ]}
               onPress={
                 approveApplication
               }
-
               disabled={
                 processing
               }
-
               activeOpacity={0.8}
-
             >
 
               {processing ? (
@@ -1528,15 +1511,23 @@ export default function TrainerApplicationDetails() {
 
               ) : (
 
-                <Text
-                  style={
-                    styles.approveButtonText
-                  }
-                >
+                <>
 
-                  Accept Trainer
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={19}
+                    color="#FFFFFF"
+                  />
 
-                </Text>
+                  <Text
+                    style={
+                      styles.approveButtonText
+                    }
+                  >
+                    Accept Trainer
+                  </Text>
+
+                </>
 
               )}
 
@@ -1556,9 +1547,105 @@ export default function TrainerApplicationDetails() {
       </ScrollView>
 
     </View>
-
   );
+}
 
+
+// ============================================================
+// DIVIDER
+// ============================================================
+
+function Divider({
+  colors,
+}) {
+
+  return (
+    <View
+      style={[
+        styles.divider,
+        {
+          backgroundColor:
+            colors.border,
+        },
+      ]}
+    />
+  );
+}
+
+
+// ============================================================
+// INFO ROW
+// ============================================================
+
+function InfoRow({
+  icon,
+  label,
+  value,
+  colors,
+}) {
+
+  return (
+
+    <View
+      style={
+        styles.infoRow
+      }
+    >
+
+      <View
+        style={[
+          styles.infoIcon,
+          {
+            backgroundColor:
+              colors.iconBackground,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={20}
+          color={
+            colors.primaryLight
+          }
+        />
+      </View>
+
+
+      <View
+        style={
+          styles.infoText
+        }
+      >
+
+        <Text
+          style={[
+            styles.infoLabel,
+            {
+              color:
+                colors.secondaryText,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+
+        <Text
+          style={[
+            styles.infoValue,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {value || "—"}
+        </Text>
+
+      </View>
+
+    </View>
+  );
 }
 
 
@@ -1574,12 +1661,42 @@ const styles =
     // ========================================================
 
     container: {
-
       flex: 1,
+    },
 
-      backgroundColor:
-        "#050816",
+    loadingContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 24,
+    },
 
+    loadingText: {
+      marginTop: 12,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+
+    errorIcon: {
+      width: 58,
+      height: 58,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    errorTitle: {
+      fontSize: 16,
+      fontWeight: "900",
+      marginTop: 12,
+    },
+
+    errorText: {
+      fontSize: 10,
+      fontWeight: "600",
+      lineHeight: 15,
+      textAlign: "center",
+      marginTop: 5,
     },
 
 
@@ -1588,354 +1705,189 @@ const styles =
     // ========================================================
 
     header: {
-
-      paddingHorizontal: 20,
-
-      paddingTop: 55,
-
-      paddingBottom: 18,
-
+      paddingHorizontal: 18,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
+      paddingBottom: 14,
       flexDirection: "row",
-
       alignItems: "center",
-
-      borderBottomWidth: 1,
-
-      borderBottomColor:
-        "#172554",
-
+      justifyContent: "space-between",
     },
-
-
-    backButton: {
-
-      width: 45,
-
-      height: 45,
-
-      borderRadius: 14,
-
-      backgroundColor:
-        "#0B1220",
-
-      borderWidth: 1,
-
-      borderColor:
-        "#172554",
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-    },
-
-
-    backText: {
-
-      color: "#FFFFFF",
-
-      fontSize: 34,
-
-      fontWeight: "300",
-
-      marginTop: -4,
-
-    },
-
 
     headerContent: {
-
       flex: 1,
-
-      marginLeft: 15,
-
+      marginRight: 10,
     },
-
 
     headerSmallTitle: {
-
-      color: "#38BDF8",
-
       fontSize: 9,
-
       fontWeight: "900",
-
-      letterSpacing: 2,
-
+      letterSpacing: 1.4,
     },
 
-
     headerTitle: {
-
-      color: "#FFFFFF",
-
-      fontSize: 21,
-
+      fontSize: 22,
       fontWeight: "900",
+      marginTop: 4,
+    },
 
-      marginTop: 3,
+    headerActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+    },
 
+    backButton: {
+      width: 43,
+      height: 43,
+      borderRadius: 14,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
     },
 
 
     // ========================================================
-    // SCROLL
+    // CONTENT
     // ========================================================
 
     scrollContent: {
-
-      paddingHorizontal: 20,
-
-      paddingTop: 18,
-
+      paddingHorizontal: 18,
+      paddingTop: 4,
+      paddingBottom: 30,
     },
 
 
     // ========================================================
-    // PROFILE CARD
+    // PROFILE
     // ========================================================
 
     profileCard: {
-
-      backgroundColor:
-        "#0B1220",
-
       borderWidth: 1,
-
-      borderColor:
-        "#172554",
-
-      borderRadius: 22,
-
+      borderRadius: 26,
+      paddingHorizontal: 18,
+      paddingVertical: 20,
       alignItems: "center",
-
-      paddingVertical: 25,
-
-      paddingHorizontal: 20,
-
-      marginBottom: 15,
-
     },
-
 
     profileImage: {
-
-      width: 105,
-
-      height: 105,
-
-      borderRadius: 52.5,
-
-      borderWidth: 3,
-
-      borderColor:
-        "#2563EB",
-
+      width: 100,
+      height: 100,
+      borderRadius: 30,
+      borderWidth: 2,
     },
-
 
     profilePlaceholder: {
-
-      width: 105,
-
-      height: 105,
-
-      borderRadius: 52.5,
-
-      backgroundColor:
-        "#172554",
-
-      borderWidth: 3,
-
-      borderColor:
-        "#2563EB",
-
+      width: 100,
+      height: 100,
+      borderRadius: 30,
+      borderWidth: 2,
       alignItems: "center",
-
       justifyContent: "center",
-
     },
-
 
     profileInitials: {
-
-      color: "#FFFFFF",
-
-      fontSize: 32,
-
+      fontSize: 31,
       fontWeight: "900",
-
     },
-
 
     profileName: {
-
-      color: "#FFFFFF",
-
-      fontSize: 23,
-
+      fontSize: 22,
       fontWeight: "900",
-
-      marginTop: 15,
-
       textAlign: "center",
-
+      marginTop: 12,
     },
 
+    specializationRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 6,
+    },
 
     profileSpecialization: {
-
-      color: "#64748B",
-
-      fontSize: 12,
-
-      marginTop: 5,
-
+      fontSize: 10,
+      fontWeight: "600",
+      marginLeft: 4,
     },
-
-
-    // ========================================================
-    // STATUS
-    // ========================================================
 
     statusBadge: {
-
-      paddingHorizontal: 15,
-
-      paddingVertical: 7,
-
-      borderRadius: 20,
-
-      marginTop: 12,
-
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      marginTop: 10,
     },
 
-
-    statusPending: {
-
-      backgroundColor:
-        "#78350F",
-
+    statusDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      marginRight: 5,
     },
-
-
-    statusApproved: {
-
-      backgroundColor:
-        "#14532D",
-
-    },
-
-
-    statusRejected: {
-
-      backgroundColor:
-        "#7F1D1D",
-
-    },
-
 
     statusText: {
-
-      color: "#FFFFFF",
-
-      fontSize: 9,
-
+      fontSize: 7.5,
       fontWeight: "900",
-
-      letterSpacing: 1,
-
+      letterSpacing: 1.2,
     },
 
 
     // ========================================================
-    // SECTION CARD
+    // SECTIONS
     // ========================================================
-
-    sectionCard: {
-
-      backgroundColor:
-        "#0B1220",
-
-      borderWidth: 1,
-
-      borderColor:
-        "#172554",
-
-      borderRadius: 18,
-
-      padding: 18,
-
-      marginBottom: 15,
-
-    },
-
 
     sectionTitle: {
-
-      color: "#FFFFFF",
-
-      fontSize: 15,
-
+      fontSize: 10,
       fontWeight: "900",
-
-      marginBottom: 14,
-
+      letterSpacing: 1.2,
+      marginTop: 20,
+      marginBottom: 9,
     },
 
-
-    // ========================================================
-    // INFORMATION ROW
-    // ========================================================
+    sectionCard: {
+      borderWidth: 1,
+      borderRadius: 21,
+      paddingHorizontal: 13,
+      paddingVertical: 3,
+    },
 
     infoRow: {
-
+      minHeight: 67,
       flexDirection: "row",
-
-      justifyContent: "space-between",
-
-      alignItems: "flex-start",
-
-      paddingVertical: 8,
-
+      alignItems: "center",
     },
 
+    infoIcon: {
+      width: 43,
+      height: 43,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 11,
+    },
+
+    infoText: {
+      flex: 1,
+    },
 
     infoLabel: {
-
-      color: "#64748B",
-
-      fontSize: 11,
-
+      fontSize: 8,
       fontWeight: "700",
-
-      width: "38%",
-
+      marginBottom: 3,
     },
-
 
     infoValue: {
-
-      color: "#E2E8F0",
-
       fontSize: 12,
-
-      fontWeight: "700",
-
-      textAlign: "right",
-
-      flex: 1,
-
+      fontWeight: "800",
     },
 
-
     divider: {
-
       height: 1,
-
-      backgroundColor:
-        "#172554",
-
+      marginLeft: 54,
     },
 
 
@@ -1943,72 +1895,70 @@ const styles =
     // BIO
     // ========================================================
 
+    bioCard: {
+      minHeight: 80,
+      borderWidth: 1,
+      borderRadius: 21,
+      paddingHorizontal: 16,
+      paddingVertical: 15,
+      justifyContent: "center",
+    },
+
     bioText: {
-
-      color: "#94A3B8",
-
-      fontSize: 12,
-
-      lineHeight: 20,
-
+      fontSize: 11,
+      fontWeight: "600",
+      lineHeight: 18,
     },
 
 
     // ========================================================
-    // STATUS DESCRIPTION
+    // STATUS CARD
     // ========================================================
+
+    statusCard: {
+      borderWidth: 1,
+      borderRadius: 21,
+      padding: 15,
+      marginTop: 18,
+    },
+
+    statusCardHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+
+    statusCardTitle: {
+      fontSize: 13,
+      fontWeight: "900",
+      marginLeft: 7,
+    },
 
     statusDescription: {
-
-      color: "#94A3B8",
-
-      fontSize: 12,
-
-      lineHeight: 19,
-
+      fontSize: 10,
+      fontWeight: "600",
+      lineHeight: 15,
+      marginTop: 7,
     },
-
 
     rejectionBox: {
-
-      backgroundColor:
-        "#1C0B0B",
-
       borderWidth: 1,
-
-      borderColor:
-        "#7F1D1D",
-
-      borderRadius: 12,
-
-      padding: 13,
-
-      marginTop: 15,
-
+      borderRadius: 16,
+      padding: 12,
+      marginTop: 12,
     },
-
 
     rejectionLabel: {
-
-      color: "#F87171",
-
-      fontSize: 10,
-
+      color: "#FF5870",
+      fontSize: 7.5,
       fontWeight: "900",
-
-      marginBottom: 5,
-
+      letterSpacing: 1,
     },
 
-
     rejectionText: {
-
-      color: "#CBD5E1",
-
-      fontSize: 12,
-
-      lineHeight: 18,
-
+      fontSize: 11,
+      fontWeight: "700",
+      lineHeight: 16,
+      marginTop: 5,
     },
 
 
@@ -2017,135 +1967,47 @@ const styles =
     // ========================================================
 
     actionContainer: {
-
-      marginTop: 3,
-
-      marginBottom: 10,
-
+      flexDirection: "row",
+      gap: 9,
+      marginTop: 20,
     },
-
 
     rejectButton: {
-
-      height: 55,
-
-      borderRadius: 16,
-
-      backgroundColor:
-        "#7F1D1D",
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      marginBottom: 12,
-
+      flex: 1,
+      height: 54,
+      borderRadius: 17,
       borderWidth: 1,
-
-      borderColor:
-        "#991B1B",
-
+      borderColor: "#55202B",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
     },
-
 
     rejectButtonText: {
-
-      color: "#FFFFFF",
-
-      fontSize: 13,
-
+      color: "#FF4D5E",
+      fontSize: 12,
       fontWeight: "900",
-
+      marginLeft: 7,
     },
-
 
     approveButton: {
-
-      height: 55,
-
-      borderRadius: 16,
-
-      backgroundColor:
-        "#2563EB",
-
+      flex: 1.4,
+      height: 54,
+      borderRadius: 17,
+      flexDirection: "row",
       alignItems: "center",
-
       justifyContent: "center",
-
     },
-
 
     approveButtonText: {
-
       color: "#FFFFFF",
-
-      fontSize: 13,
-
-      fontWeight: "900",
-
-    },
-
-
-    // ========================================================
-    // LOADING
-    // ========================================================
-
-    loadingContainer: {
-
-      flex: 1,
-
-      alignItems: "center",
-
-      justifyContent: "center",
-
-      paddingHorizontal: 30,
-
-    },
-
-
-    loadingText: {
-
-      color: "#64748B",
-
-      fontSize: 13,
-
-      marginTop: 15,
-
-    },
-
-
-    errorTitle: {
-
-      color: "#FFFFFF",
-
-      fontSize: 20,
-
-      fontWeight: "900",
-
-      textAlign: "center",
-
-    },
-
-
-    errorText: {
-
-      color: "#64748B",
-
       fontSize: 12,
-
-      lineHeight: 19,
-
-      textAlign: "center",
-
-      marginTop: 10,
-
+      fontWeight: "900",
+      marginLeft: 7,
     },
-
 
     bottomSpace: {
-
-      height: 40,
-
+      height: 30,
     },
 
   });

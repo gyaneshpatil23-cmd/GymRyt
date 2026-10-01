@@ -9,11 +9,12 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   RefreshControl,
   ActivityIndicator,
   Alert,
   TextInput,
+  Platform,
 } from "react-native";
 
 import {
@@ -23,6 +24,8 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../context/ThemeContext";
 
 // ============================================================
@@ -30,7 +33,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 // ============================================================
 // MONTH NAMES
@@ -56,7 +59,11 @@ const MONTHS = [
 // ============================================================
 
 export default function Revenue() {
-  const { colors } = useTheme();
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
   // ==========================================================
   // STATE
@@ -749,6 +756,29 @@ export default function Revenue() {
     ]);
 
   // ==========================================================
+  // PAYMENT STATUS COLOR
+  // ==========================================================
+
+  const getStatusColor = (
+    paymentStatus
+  ) => {
+    const value =
+      String(
+        paymentStatus || "PAID"
+      ).toUpperCase();
+
+    if (value === "FAILED") {
+      return "#FF5870";
+    }
+
+    if (value === "PENDING") {
+      return "#FFB21C";
+    }
+
+    return "#45E0A5";
+  };
+
+  // ==========================================================
   // PAYMENT CARD
   // ==========================================================
 
@@ -763,24 +793,27 @@ export default function Revenue() {
       payment?.username ||
       "Unknown Member";
 
+    const statusColor =
+      getStatusColor(
+        payment?.status
+      );
+
     return (
       <View
         key={payment.id}
         style={[
-          monthly
-            ? styles.monthPaymentCard
-            : styles.paymentCard,
+          styles.paymentCard,
           {
             backgroundColor:
               monthly
                 ? colors.background
                 : colors.card,
-
             borderColor:
               colors.border,
           },
         ]}
       >
+
         {/* AVATAR */}
 
         <View
@@ -789,6 +822,8 @@ export default function Revenue() {
             {
               backgroundColor:
                 colors.iconBackground,
+              borderColor:
+                `${statusColor}55`,
             },
           ]}
         >
@@ -833,29 +868,42 @@ export default function Revenue() {
                   colors.secondaryText,
               },
             ]}
+            numberOfLines={1}
           >
             {getPlanLabel(
               payment?.plan
             )}
-
             {" • "}
-
             {getMethodLabel(
               payment?.method
             )}
           </Text>
 
-          <Text
-            style={[
-              styles.paymentDate,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
+          <View
+            style={
+              styles.dateRow
+            }
           >
-            {formatDate(payment)}
-          </Text>
+            <Ionicons
+              name="calendar-outline"
+              size={10}
+              color={
+                colors.mutedText
+              }
+            />
+
+            <Text
+              style={[
+                styles.paymentDate,
+                {
+                  color:
+                    colors.mutedText,
+                },
+              ]}
+            >
+              {formatDate(payment)}
+            </Text>
+          </View>
         </View>
 
         {/* AMOUNT */}
@@ -870,7 +918,7 @@ export default function Revenue() {
               styles.paymentAmount,
               {
                 color:
-                  colors.success,
+                  statusColor,
               },
             ]}
           >
@@ -880,24 +928,26 @@ export default function Revenue() {
             )}
           </Text>
 
-          {/* PAID BADGE */}
+          {/* STATUS BADGE */}
 
           {!monthly && (
             <View
               style={[
-                styles.paidBadge,
+                styles.statusBadge,
                 {
                   backgroundColor:
-                    colors.successBackground,
+                    `${statusColor}18`,
+                  borderColor:
+                    `${statusColor}55`,
                 },
               ]}
             >
               <Text
                 style={[
-                  styles.paidText,
+                  styles.statusText,
                   {
                     color:
-                      colors.success,
+                      statusColor,
                   },
                 ]}
               >
@@ -923,7 +973,6 @@ export default function Revenue() {
           {
             backgroundColor:
               colors.card,
-
             borderColor:
               colors.border,
           },
@@ -938,17 +987,13 @@ export default function Revenue() {
             },
           ]}
         >
-          <Text
-            style={[
-              styles.emptyIconText,
-              {
-                color:
-                  colors.primaryLight,
-              },
-            ]}
-          >
-            ₹
-          </Text>
+          <Ionicons
+            name="wallet-outline"
+            size={28}
+            color={
+              colors.primaryLight
+            }
+          />
         </View>
 
         <Text
@@ -977,7 +1022,7 @@ export default function Revenue() {
           members make payments.
         </Text>
 
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.emptyButton,
             {
@@ -990,16 +1035,21 @@ export default function Revenue() {
               "/admin/members"
             )
           }
-          activeOpacity={0.8}
         >
           <Text
             style={
               styles.emptyButtonText
             }
           >
-            VIEW MEMBERS →
+            VIEW MEMBERS
           </Text>
-        </TouchableOpacity>
+
+          <Ionicons
+            name="arrow-forward"
+            size={14}
+            color="#FFFFFF"
+          />
+        </Pressable>
       </View>
     );
   };
@@ -1022,7 +1072,7 @@ export default function Revenue() {
         <ActivityIndicator
           size="large"
           color={
-            colors.primaryLight
+            colors.primary
           }
         />
 
@@ -1071,11 +1121,15 @@ export default function Revenue() {
               handleRefresh
             }
             tintColor={
-              colors.primaryLight
+              colors.primary
             }
+            colors={[
+              colors.primary,
+            ]}
           />
         }
       >
+
         {/* ==================================================
             HEADER
         ================================================== */}
@@ -1085,45 +1139,21 @@ export default function Revenue() {
             styles.header
           }
         >
-          <TouchableOpacity
-            style={[
-              styles.backButton,
-              {
-                backgroundColor:
-                  colors.card,
-
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.back()
+          <View
+            style={
+              styles.headerLeft
             }
           >
             <Text
               style={[
-                styles.backText,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
-
-          <View>
-            <Text
-              style={[
-                styles.smallTitle,
+                styles.eyebrow,
                 {
                   color:
                     colors.primaryLight,
                 },
               ]}
             >
-              GYM FINANCE
+              GYMRYT • GYM FINANCE
             </Text>
 
             <Text
@@ -1138,70 +1168,189 @@ export default function Revenue() {
               Revenue Dashboard
             </Text>
           </View>
+
+          <View
+            style={
+              styles.headerActions
+            }
+          >
+
+            {/* THEME */}
+
+            <Pressable
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={
+                toggleTheme
+              }
+            >
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </Pressable>
+
+            {/* BACK */}
+
+            <Pressable
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={() =>
+                router.back()
+              }
+            >
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </Pressable>
+
+          </View>
         </View>
 
         {/* ==================================================
             REVENUE OVERVIEW
         ================================================== */}
 
-        <Text
+        <View
           style={[
-            styles.sectionTitle,
-            {
-              color:
-                colors.mutedText,
-            },
-          ]}
-        >
-          REVENUE OVERVIEW
-        </Text>
-
-        {/* ==================================================
-            TOTAL REVENUE CARD
-        ================================================== */}
-
-        <TouchableOpacity
-          style={[
-            styles.totalRevenueCard,
+            styles.overviewCard,
             {
               backgroundColor:
                 colors.card,
-
               borderColor:
                 colors.border,
             },
           ]}
-          onPress={() => {
-            setShowRevenueHistory(
-              (value) => !value
-            );
-
-            setSelectedYear(null);
-
-            setSelectedMonth(null);
-
-            setPaymentSearch("");
-          }}
-          activeOpacity={0.85}
         >
           <View
             style={
-              styles.revenueTop
+              styles.sectionHeader
             }
           >
             <View>
               <Text
                 style={[
-                  styles.revenueLabel,
+                  styles.sectionEyebrow,
                   {
                     color:
-                      colors.mutedText,
+                      colors.primaryLight,
                   },
                 ]}
               >
-                TOTAL REVENUE
+                REVENUE OVERVIEW
               </Text>
 
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  {
+                    color:
+                      colors.text,
+                  },
+                ]}
+              >
+                Total Revenue
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.liveBadge,
+                {
+                  backgroundColor:
+                    "#45E0A518",
+                  borderColor:
+                    "#45E0A555",
+                },
+              ]}
+            >
+              <View
+                style={
+                  styles.liveDot
+                }
+              />
+
+              <Text
+                style={
+                  styles.liveText
+                }
+              >
+                LIVE
+              </Text>
+            </View>
+          </View>
+
+          {/* ==================================================
+              TOTAL REVENUE (TAP FOR HISTORY)
+          ================================================== */}
+
+          <Pressable
+            style={[
+              styles.totalRow,
+              {
+                backgroundColor:
+                  colors.background,
+                borderColor:
+                  showRevenueHistory
+                    ? colors.primaryLight
+                    : colors.border,
+              },
+            ]}
+            onPress={() => {
+              setShowRevenueHistory(
+                (value) => !value
+              );
+              setSelectedYear(null);
+              setSelectedMonth(null);
+              setPaymentSearch("");
+            }}
+          >
+            <View
+              style={[
+                styles.totalIcon,
+                {
+                  backgroundColor:
+                    "#45E0A518",
+                },
+              ]}
+            >
+              <Ionicons
+                name="cash-outline"
+                size={26}
+                color="#45E0A5"
+              />
+            </View>
+
+            <View
+              style={
+                styles.totalInfo
+              }
+            >
               <Text
                 style={[
                   styles.totalRevenue,
@@ -1210,69 +1359,85 @@ export default function Revenue() {
                       colors.text,
                   },
                 ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
               >
                 ₹
                 {formatMoney(
                   revenue.total_revenue
                 )}
               </Text>
-            </View>
 
-            <View
-              style={[
-                styles.revenueIcon,
-                {
-                  backgroundColor:
-                    colors.iconBackground,
-                },
-              ]}
-            >
               <Text
                 style={[
-                  styles.revenueIconText,
+                  styles.totalSubtext,
                   {
                     color:
-                      colors.primaryLight,
+                      colors.secondaryText,
                   },
                 ]}
               >
-                ₹
+                {showRevenueHistory
+                  ? "Tap to close history"
+                  : "Tap to view revenue history"}
               </Text>
             </View>
-          </View>
+
+            <Ionicons
+              name={
+                showRevenueHistory
+                  ? "chevron-up"
+                  : "chevron-down"
+              }
+              size={20}
+              color={
+                colors.primaryLight
+              }
+            />
+          </Pressable>
+
+          {/* ==================================================
+              THIS MONTH + THIS YEAR
+          ================================================== */}
 
           <View
             style={
-              styles.revenueBottom
+              styles.statsGrid
             }
           >
-            <Text
-              style={[
-                styles.revenueGrowth,
+            <FinanceStat
+              label="THIS MONTH"
+              value={`₹${formatMoney(
+                revenue.monthly_revenue
+              )}`}
+              subtext={new Date().toLocaleDateString(
+                "en-IN",
                 {
-                  color:
-                    colors.success,
-                },
-              ]}
-            >
-              ● LIVE
-            </Text>
+                  month:
+                    "long",
+                  year:
+                    "numeric",
+                }
+              )}
+              icon="calendar-outline"
+              iconColor="#36B7FF"
+              colors={colors}
+            />
 
-            <Text
-              style={[
-                styles.revenuePeriod,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              {showRevenueHistory
-                ? "tap to close history"
-                : "tap to view revenue history"}
-            </Text>
+            <FinanceStat
+              label="THIS YEAR"
+              value={`₹${formatMoney(
+                revenue.yearly_revenue
+              )}`}
+              subtext={String(
+                new Date().getFullYear()
+              )}
+              icon="trending-up-outline"
+              iconColor="#45E0A5"
+              colors={colors}
+            />
           </View>
-        </TouchableOpacity>
+        </View>
 
         {/* ==================================================
             REVENUE HISTORY
@@ -1285,12 +1450,12 @@ export default function Revenue() {
               {
                 backgroundColor:
                   colors.card,
-
                 borderColor:
                   colors.border,
               },
             ]}
           >
+
             {/* ==================================================
                 YEAR SELECTION
             ================================================== */}
@@ -1305,7 +1470,7 @@ export default function Revenue() {
                   <View>
                     <Text
                       style={[
-                        styles.historyEyebrow,
+                        styles.sectionEyebrow,
                         {
                           color:
                             colors.primaryLight,
@@ -1328,21 +1493,33 @@ export default function Revenue() {
                     </Text>
                   </View>
 
-                  <Text
+                  <View
                     style={[
-                      styles.historyHint,
+                      styles.countPill,
                       {
-                        color:
-                          colors.mutedText,
+                        backgroundColor:
+                          colors.iconBackground,
+                        borderColor:
+                          colors.border,
                       },
                     ]}
                   >
-                    {yearData.length}{" "}
-                    {yearData.length ===
-                    1
-                      ? "Year"
-                      : "Years"}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.countPillText,
+                        {
+                          color:
+                            colors.primaryLight,
+                        },
+                      ]}
+                    >
+                      {yearData.length}{" "}
+                      {yearData.length ===
+                      1
+                        ? "Year"
+                        : "Years"}
+                    </Text>
+                  </View>
                 </View>
 
                 {yearData.length ===
@@ -1362,7 +1539,7 @@ export default function Revenue() {
                 ) : (
                   yearData.map(
                     (item) => (
-                      <TouchableOpacity
+                      <Pressable
                         key={
                           item.year
                         }
@@ -1371,7 +1548,6 @@ export default function Revenue() {
                           {
                             backgroundColor:
                               colors.background,
-
                             borderColor:
                               colors.border,
                           },
@@ -1380,20 +1556,37 @@ export default function Revenue() {
                           setSelectedYear(
                             item.year
                           );
-
                           setSelectedMonth(
                             null
                           );
-
                           setPaymentSearch(
                             ""
                           );
                         }}
-                        activeOpacity={
-                          0.8
-                        }
                       >
-                        <View>
+                        <View
+                          style={[
+                            styles.yearIcon,
+                            {
+                              backgroundColor:
+                                colors.iconBackground,
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name="calendar-outline"
+                            size={18}
+                            color={
+                              colors.primaryLight
+                            }
+                          />
+                        </View>
+
+                        <View
+                          style={
+                            styles.yearInfo
+                          }
+                        >
                           <Text
                             style={[
                               styles.yearText,
@@ -1411,7 +1604,7 @@ export default function Revenue() {
                               styles.yearSubtext,
                               {
                                 color:
-                                  colors.mutedText,
+                                  colors.secondaryText,
                               },
                             ]}
                           >
@@ -1423,39 +1616,23 @@ export default function Revenue() {
                           </Text>
                         </View>
 
-                        <View
-                          style={
-                            styles.yearRight
-                          }
+                        <Text
+                          style={styles.yearAmount}
                         >
-                          <Text
-                            style={[
-                              styles.yearAmount,
-                              {
-                                color:
-                                  colors.success,
-                              },
-                            ]}
-                          >
-                            ₹
-                            {formatMoney(
-                              item.total
-                            )}
-                          </Text>
+                          ₹
+                          {formatMoney(
+                            item.total
+                          )}
+                        </Text>
 
-                          <Text
-                            style={[
-                              styles.historyArrow,
-                              {
-                                color:
-                                  colors.primaryLight,
-                              },
-                            ]}
-                          >
-                            →
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={18}
+                          color={
+                            colors.secondaryText
+                          }
+                        />
+                      </Pressable>
                     )
                   )
                 )}
@@ -1469,7 +1646,7 @@ export default function Revenue() {
             {selectedYear &&
               !selectedMonthData && (
                 <>
-                  <TouchableOpacity
+                  <Pressable
                     style={
                       styles.historyBack
                     }
@@ -1477,16 +1654,22 @@ export default function Revenue() {
                       setSelectedYear(
                         null
                       );
-
                       setSelectedMonth(
                         null
                       );
-
                       setPaymentSearch(
                         ""
                       );
                     }}
                   >
+                    <Ionicons
+                      name="chevron-back"
+                      size={15}
+                      color={
+                        colors.primaryLight
+                      }
+                    />
+
                     <Text
                       style={[
                         styles.historyBackText,
@@ -1496,9 +1679,9 @@ export default function Revenue() {
                         },
                       ]}
                     >
-                      ‹ ALL YEARS
+                      ALL YEARS
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
 
                   <View
                     style={
@@ -1508,7 +1691,7 @@ export default function Revenue() {
                     <View>
                       <Text
                         style={[
-                          styles.historyEyebrow,
+                          styles.sectionEyebrow,
                           {
                             color:
                               colors.primaryLight,
@@ -1533,13 +1716,9 @@ export default function Revenue() {
                     </View>
 
                     <Text
-                      style={[
-                        styles.yearAmount,
-                        {
-                          color:
-                            colors.success,
-                        },
-                      ]}
+                      style={
+                        styles.yearAmount
+                      }
                     >
                       ₹
                       {formatMoney(
@@ -1566,7 +1745,7 @@ export default function Revenue() {
                           ];
 
                         return (
-                          <TouchableOpacity
+                          <Pressable
                             key={
                               monthName
                             }
@@ -1580,10 +1759,8 @@ export default function Revenue() {
                                   monthData
                                     ? colors.background
                                     : colors.iconBackground,
-
                                 borderColor:
                                   colors.border,
-
                                 opacity:
                                   monthData
                                     ? 1
@@ -1594,14 +1771,10 @@ export default function Revenue() {
                               setSelectedMonth(
                                 index
                               );
-
                               setPaymentSearch(
                                 ""
                               );
                             }}
-                            activeOpacity={
-                              0.8
-                            }
                           >
                             <Text
                               style={[
@@ -1626,10 +1799,12 @@ export default function Revenue() {
                                 {
                                   color:
                                     monthData
-                                      ? colors.success
+                                      ? "#45E0A5"
                                       : colors.mutedText,
                                 },
                               ]}
+                              numberOfLines={1}
+                              adjustsFontSizeToFit
                             >
                               ₹
                               {formatMoney(
@@ -1643,7 +1818,7 @@ export default function Revenue() {
                                 styles.monthCount,
                                 {
                                   color:
-                                    colors.mutedText,
+                                    colors.secondaryText,
                                 },
                               ]}
                             >
@@ -1651,7 +1826,7 @@ export default function Revenue() {
                                 0}{" "}
                               paid
                             </Text>
-                          </TouchableOpacity>
+                          </Pressable>
                         );
                       }
                     )}
@@ -1666,9 +1841,10 @@ export default function Revenue() {
             {selectedYear &&
               selectedMonthData && (
                 <>
+
                   {/* BACK TO MONTHS */}
 
-                  <TouchableOpacity
+                  <Pressable
                     style={
                       styles.historyBack
                     }
@@ -1676,12 +1852,19 @@ export default function Revenue() {
                       setSelectedMonth(
                         null
                       );
-
                       setPaymentSearch(
                         ""
                       );
                     }}
                   >
+                    <Ionicons
+                      name="chevron-back"
+                      size={15}
+                      color={
+                        colors.primaryLight
+                      }
+                    />
+
                     <Text
                       style={[
                         styles.historyBackText,
@@ -1691,9 +1874,9 @@ export default function Revenue() {
                         },
                       ]}
                     >
-                      ‹ {selectedYear}
+                      {selectedYear}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
 
                   {/* MONTH HEADER */}
 
@@ -1705,7 +1888,7 @@ export default function Revenue() {
                     <View>
                       <Text
                         style={[
-                          styles.historyEyebrow,
+                          styles.sectionEyebrow,
                           {
                             color:
                               colors.primaryLight,
@@ -1734,13 +1917,9 @@ export default function Revenue() {
                     </View>
 
                     <Text
-                      style={[
-                        styles.yearAmount,
-                        {
-                          color:
-                            colors.success,
-                        },
-                      ]}
+                      style={
+                        styles.yearAmount
+                      }
                     >
                       ₹
                       {formatMoney(
@@ -1759,23 +1938,18 @@ export default function Revenue() {
                       {
                         backgroundColor:
                           colors.background,
-
                         borderColor:
                           colors.border,
                       },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.searchIcon,
-                        {
-                          color:
-                            colors.mutedText,
-                        },
-                      ]}
-                    >
-                      ⌕
-                    </Text>
+                    <Ionicons
+                      name="search-outline"
+                      size={17}
+                      color={
+                        colors.secondaryText
+                      }
+                    />
 
                     <TextInput
                       value={
@@ -1803,25 +1977,21 @@ export default function Revenue() {
 
                     {paymentSearch.length >
                       0 && (
-                      <TouchableOpacity
+                      <Pressable
                         onPress={() =>
                           setPaymentSearch(
                             ""
                           )
                         }
                       >
-                        <Text
-                          style={[
-                            styles.clearSearch,
-                            {
-                              color:
-                                colors.mutedText,
-                            },
-                          ]}
-                        >
-                          ×
-                        </Text>
-                      </TouchableOpacity>
+                        <Ionicons
+                          name="close-circle"
+                          size={18}
+                          color={
+                            colors.mutedText
+                          }
+                        />
+                      </Pressable>
                     )}
                   </View>
 
@@ -1832,7 +2002,7 @@ export default function Revenue() {
                       styles.monthResultText,
                       {
                         color:
-                          colors.mutedText,
+                          colors.secondaryText,
                       },
                     ]}
                   >
@@ -1843,7 +2013,6 @@ export default function Revenue() {
                     1
                       ? "payment"
                       : "payments"}
-
                     {paymentSearch.trim()
                       ? " found"
                       : ""}
@@ -1881,146 +2050,20 @@ export default function Revenue() {
         )}
 
         {/* ==================================================
-            THIS MONTH + THIS YEAR
-        ================================================== */}
-
-        <View
-          style={
-            styles.statsRow
-          }
-        >
-          {/* THIS MONTH */}
-
-          <View
-            style={[
-              styles.smallStatCard,
-              {
-                backgroundColor:
-                  colors.card,
-
-                borderColor:
-                  colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.smallStatLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              THIS MONTH
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ₹
-              {formatMoney(
-                revenue.monthly_revenue
-              )}
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatSubtext,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              {new Date().toLocaleDateString(
-                "en-IN",
-                {
-                  month:
-                    "long",
-                  year:
-                    "numeric",
-                }
-              )}
-            </Text>
-          </View>
-
-          {/* THIS YEAR */}
-
-          <View
-            style={[
-              styles.smallStatCard,
-              {
-                backgroundColor:
-                  colors.card,
-
-                borderColor:
-                  colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.smallStatLabel,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              THIS YEAR
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatValue,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ₹
-              {formatMoney(
-                revenue.yearly_revenue
-              )}
-            </Text>
-
-            <Text
-              style={[
-                styles.smallStatSubtext,
-                {
-                  color:
-                    colors.mutedText,
-                },
-              ]}
-            >
-              {new Date().getFullYear()}
-            </Text>
-          </View>
-        </View>
-
-        {/* ==================================================
             PAYMENT RECORDS
         ================================================== */}
 
         <View
           style={
-            styles.recordsHeader
+            styles.sectionHeaderSimple
           }
         >
           <Text
             style={[
-              styles.sectionTitle,
+              styles.sectionHeading,
               {
                 color:
-                  colors.mutedText,
+                  colors.text,
               },
             ]}
           >
@@ -2072,15 +2115,14 @@ export default function Revenue() {
 
         {payments.length >
           3 && (
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.seeMoreButton,
               {
                 backgroundColor:
                   colors.card,
-
                 borderColor:
-                  colors.primary,
+                  colors.border,
               },
             ]}
             onPress={() =>
@@ -2089,7 +2131,6 @@ export default function Revenue() {
                   !value
               )
             }
-            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -2105,47 +2146,146 @@ export default function Revenue() {
                 : "SEE MORE"}
             </Text>
 
-            <Text
-              style={[
-                styles.seeMoreArrow,
-                {
-                  color:
-                    colors.primaryLight,
-                },
-              ]}
-            >
-              {showAllPayments
-                ? "↑"
-                : "→"}
-            </Text>
-          </TouchableOpacity>
+            <Ionicons
+              name={
+                showAllPayments
+                  ? "chevron-up"
+                  : "chevron-down"
+              }
+              size={15}
+              color={
+                colors.primaryLight
+              }
+            />
+          </Pressable>
         )}
 
         {/* ==================================================
             BACK TO DASHBOARD
         ================================================== */}
 
-        <TouchableOpacity
+        <Pressable
           style={
-            styles.backBottom
+            styles.footer
           }
           onPress={() =>
             router.back()
           }
         >
+          <View
+            style={[
+              styles.footerIcon,
+              {
+                backgroundColor:
+                  colors.iconBackground,
+              },
+            ]}
+          >
+            <Ionicons
+              name="home-outline"
+              size={14}
+              color={
+                colors.primaryLight
+              }
+            />
+          </View>
+
           <Text
             style={[
-              styles.backBottomText,
+              styles.footerText,
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
             BACK TO DASHBOARD
           </Text>
-        </TouchableOpacity>
+        </Pressable>
+
       </ScrollView>
+    </View>
+  );
+}
+
+// ============================================================
+// FINANCE STAT
+// ============================================================
+
+function FinanceStat({
+  label,
+  value,
+  subtext,
+  icon,
+  iconColor,
+  colors,
+}) {
+  return (
+    <View
+      style={[
+        styles.statCard,
+        {
+          backgroundColor:
+            colors.background,
+          borderColor:
+            colors.border,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.statIcon,
+          {
+            backgroundColor:
+              `${iconColor}18`,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={20}
+          color={iconColor}
+        />
+      </View>
+
+      <Text
+        style={[
+          styles.statLabel,
+          {
+            color:
+              colors.secondaryText,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+
+      <Text
+        style={[
+          styles.statValue,
+          {
+            color:
+              colors.text,
+          },
+        ]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {value}
+      </Text>
+
+      <Text
+        style={[
+          styles.statSubtext,
+          {
+            color:
+              colors.mutedText,
+          },
+        ]}
+        numberOfLines={1}
+      >
+        {subtext}
+      </Text>
     </View>
   );
 }
@@ -2156,6 +2296,7 @@ export default function Revenue() {
 
 const styles =
   StyleSheet.create({
+
     // ========================================================
     // CONTAINER
     // ========================================================
@@ -2165,8 +2306,11 @@ const styles =
     },
 
     content: {
-      paddingHorizontal: 20,
-      paddingTop: 55,
+      paddingHorizontal: 18,
+      paddingTop:
+        Platform.OS === "ios"
+          ? 54
+          : 44,
       paddingBottom: 40,
     },
 
@@ -2176,13 +2320,14 @@ const styles =
 
     loadingContainer: {
       flex: 1,
-      justifyContent: "center",
       alignItems: "center",
+      justifyContent: "center",
     },
 
     loadingText: {
       marginTop: 12,
       fontSize: 12,
+      fontWeight: "700",
     },
 
     // ========================================================
@@ -2192,196 +2337,274 @@ const styles =
     header: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 15,
-      marginBottom: 30,
+      justifyContent: "space-between",
+      marginBottom: 20,
     },
 
-    backButton: {
-      width: 45,
-      height: 45,
-      borderRadius: 14,
-      borderWidth: 1,
-      justifyContent: "center",
-      alignItems: "center",
+    headerLeft: {
+      flex: 1,
+      marginRight: 10,
     },
 
-    backText: {
-      fontSize: 34,
-      marginTop: -4,
-    },
-
-    smallTitle: {
-      fontSize: 10,
+    eyebrow: {
+      fontSize: 9,
       fontWeight: "900",
-      letterSpacing: 2,
+      letterSpacing: 1.4,
     },
 
     title: {
-      fontSize: 27,
+      fontSize: 22,
       fontWeight: "900",
-      marginTop: 3,
+      marginTop: 4,
+    },
+
+    headerActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+    },
+
+    headerButton: {
+      width: 43,
+      height: 43,
+      borderRadius: 14,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
     },
 
     // ========================================================
-    // SECTION
+    // OVERVIEW CARD
     // ========================================================
 
-    sectionTitle: {
-      fontSize: 10,
+    overviewCard: {
+      borderWidth: 1,
+      borderRadius: 26,
+      padding: 16,
+      marginBottom: 14,
+    },
+
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 15,
+    },
+
+    sectionEyebrow: {
+      fontSize: 8,
       fontWeight: "900",
-      letterSpacing: 1.7,
-      marginBottom: 13,
+      letterSpacing: 1.3,
+      marginBottom: 3,
+    },
+
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "900",
+    },
+
+    liveBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderRadius: 14,
+      paddingHorizontal: 9,
+      paddingVertical: 6,
+    },
+
+    liveDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: "#45E0A5",
+      marginRight: 5,
+    },
+
+    liveText: {
+      color: "#45E0A5",
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 0.6,
     },
 
     // ========================================================
     // TOTAL REVENUE
     // ========================================================
 
-    totalRevenueCard: {
-      borderRadius: 20,
+    totalRow: {
       borderWidth: 1,
-      padding: 20,
-      marginBottom: 12,
-    },
-
-    revenueTop: {
+      borderRadius: 20,
+      padding: 12,
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
+      marginBottom: 9,
     },
 
-    revenueLabel: {
-      fontSize: 10,
-      fontWeight: "900",
-      letterSpacing: 1.5,
-    },
-
-    totalRevenue: {
-      fontSize: 36,
-      fontWeight: "900",
-      marginTop: 7,
-    },
-
-    revenueIcon: {
-      width: 52,
-      height: 52,
+    totalIcon: {
+      width: 50,
+      height: 50,
       borderRadius: 16,
       alignItems: "center",
       justifyContent: "center",
     },
 
-    revenueIconText: {
-      fontSize: 25,
+    totalInfo: {
+      flex: 1,
+      marginLeft: 12,
+      marginRight: 8,
+    },
+
+    totalRevenue: {
+      fontSize: 28,
       fontWeight: "900",
     },
 
-    revenueBottom: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginTop: 12,
-    },
-
-    revenueGrowth: {
-      fontSize: 11,
-      fontWeight: "900",
-    },
-
-    revenuePeriod: {
-      fontSize: 10,
-      marginLeft: 7,
+    totalSubtext: {
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 2,
     },
 
     // ========================================================
-    // HISTORY
+    // STATS
+    // ========================================================
+
+    statsGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    },
+
+    statCard: {
+      width: "48.2%",
+      borderWidth: 1,
+      borderRadius: 20,
+      padding: 12,
+    },
+
+    statIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 13,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 9,
+    },
+
+    statLabel: {
+      fontSize: 7,
+      fontWeight: "900",
+      letterSpacing: 0.8,
+    },
+
+    statValue: {
+      fontSize: 19,
+      fontWeight: "900",
+      marginTop: 3,
+    },
+
+    statSubtext: {
+      fontSize: 8,
+      fontWeight: "600",
+      marginTop: 2,
+    },
+
+    // ========================================================
+    // REVENUE HISTORY
     // ========================================================
 
     historyCard: {
-      borderRadius: 20,
       borderWidth: 1,
+      borderRadius: 26,
       padding: 16,
-      marginBottom: 14,
+      marginBottom: 21,
     },
 
     historyHeader: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 14,
-    },
-
-    historyEyebrow: {
-      fontSize: 9,
-      fontWeight: "900",
-      letterSpacing: 1.4,
+      justifyContent: "space-between",
+      marginBottom: 13,
     },
 
     historyTitle: {
-      fontSize: 19,
+      fontSize: 16,
       fontWeight: "900",
-      marginTop: 4,
     },
 
-    historyHint: {
-      fontSize: 9,
-      fontWeight: "800",
+    countPill: {
+      borderWidth: 1,
+      borderRadius: 14,
+      paddingHorizontal: 9,
+      paddingVertical: 6,
     },
 
-    historyBack: {
-      alignSelf: "flex-start",
-      marginBottom: 12,
-    },
-
-    historyBackText: {
-      fontSize: 9,
+    countPillText: {
+      fontSize: 8,
       fontWeight: "900",
-      letterSpacing: 1,
     },
 
-    // ========================================================
-    // YEAR ROW
-    // ========================================================
+    noHistoryText: {
+      fontSize: 10,
+      fontWeight: "600",
+      textAlign: "center",
+      paddingVertical: 18,
+    },
 
     yearRow: {
-      minHeight: 70,
-      borderRadius: 15,
+      minHeight: 66,
       borderWidth: 1,
-      paddingHorizontal: 15,
-      paddingVertical: 12,
+      borderRadius: 18,
+      paddingHorizontal: 11,
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 9,
+      marginBottom: 8,
+    },
+
+    yearIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    yearInfo: {
+      flex: 1,
+      marginLeft: 10,
     },
 
     yearText: {
-      fontSize: 17,
+      fontSize: 15,
       fontWeight: "900",
     },
 
     yearSubtext: {
       fontSize: 9,
-      marginTop: 4,
-    },
-
-    yearRight: {
-      flexDirection: "row",
-      alignItems: "center",
+      fontWeight: "600",
+      marginTop: 2,
     },
 
     yearAmount: {
-      fontSize: 13,
+      color: "#45E0A5",
+      fontSize: 14,
       fontWeight: "900",
+      marginRight: 4,
     },
 
-    historyArrow: {
-      fontSize: 18,
-      fontWeight: "900",
-      marginLeft: 10,
+    historyBack: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "flex-start",
+      marginBottom: 10,
     },
 
-    // ========================================================
-    // MONTH GRID
-    // ========================================================
+    historyBackText: {
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 0.6,
+      marginLeft: 2,
+    },
 
     monthGrid: {
       flexDirection: "row",
@@ -2390,130 +2613,78 @@ const styles =
     },
 
     monthTile: {
-      width: "48.5%",
-      minHeight: 86,
-      borderRadius: 14,
+      width: "31.5%",
       borderWidth: 1,
-      padding: 12,
-      marginBottom: 9,
+      borderRadius: 16,
+      paddingVertical: 11,
+      paddingHorizontal: 8,
+      alignItems: "center",
+      marginBottom: 8,
     },
 
     monthName: {
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: "900",
-      letterSpacing: 1,
+      letterSpacing: 0.6,
     },
 
     monthAmount: {
-      fontSize: 15,
+      fontSize: 12,
       fontWeight: "900",
-      marginTop: 8,
+      marginTop: 5,
     },
 
     monthCount: {
       fontSize: 8,
-      marginTop: 3,
+      fontWeight: "600",
+      marginTop: 2,
     },
-
-    // ========================================================
-    // SEARCH
-    // ========================================================
 
     searchContainer: {
-      height: 46,
-      borderRadius: 13,
+      height: 48,
       borderWidth: 1,
+      borderRadius: 16,
+      paddingHorizontal: 13,
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 12,
-      marginBottom: 8,
-    },
-
-    searchIcon: {
-      fontSize: 20,
-      marginRight: 7,
+      marginBottom: 10,
     },
 
     searchInput: {
       flex: 1,
-      fontSize: 11,
-      paddingVertical: 0,
-    },
-
-    clearSearch: {
-      fontSize: 23,
-      lineHeight: 24,
-      paddingLeft: 8,
+      marginLeft: 8,
+      fontSize: 12,
+      fontWeight: "600",
     },
 
     monthResultText: {
       fontSize: 9,
-      marginBottom: 10,
-    },
-
-    // ========================================================
-    // MONTH PAYMENT CARD
-    // ========================================================
-
-    monthPaymentCard: {
-      minHeight: 68,
-      borderRadius: 14,
-      borderWidth: 1,
-      padding: 10,
-      flexDirection: "row",
-      alignItems: "center",
+      fontWeight: "800",
+      letterSpacing: 0.4,
       marginBottom: 8,
     },
 
     // ========================================================
-    // STATS
+    // RECORDS HEADER
     // ========================================================
 
-    statsRow: {
+    sectionHeaderSimple: {
       flexDirection: "row",
+      alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: 12,
+      marginBottom: 11,
+      marginTop: 7,
     },
 
-    smallStatCard: {
-      width: "48.5%",
-      borderRadius: 17,
-      borderWidth: 1,
-      padding: 16,
-    },
-
-    smallStatLabel: {
-      fontSize: 9,
+    sectionHeading: {
+      fontSize: 11,
       fontWeight: "900",
       letterSpacing: 1.2,
-    },
-
-    smallStatValue: {
-      fontSize: 21,
-      fontWeight: "900",
-      marginTop: 8,
-    },
-
-    smallStatSubtext: {
-      fontSize: 9,
-      marginTop: 5,
-    },
-
-    // ========================================================
-    // PAYMENT RECORD HEADER
-    // ========================================================
-
-    recordsHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginTop: 25,
     },
 
     recordCount: {
       fontSize: 10,
       fontWeight: "800",
-      marginBottom: 13,
     },
 
     // ========================================================
@@ -2521,31 +2692,35 @@ const styles =
     // ========================================================
 
     paymentCard: {
+      minHeight: 78,
+      borderWidth: 1,
+      borderRadius: 20,
+      paddingVertical: 10,
+      paddingLeft: 10,
+      paddingRight: 12,
       flexDirection: "row",
       alignItems: "center",
-      borderRadius: 17,
-      borderWidth: 1,
-      padding: 13,
-      marginBottom: 10,
+      marginBottom: 8,
     },
 
     paymentAvatar: {
-      width: 45,
-      height: 45,
-      borderRadius: 23,
+      width: 50,
+      height: 50,
+      borderRadius: 17,
+      borderWidth: 1,
       alignItems: "center",
       justifyContent: "center",
     },
 
     paymentAvatarText: {
-      fontSize: 12,
+      fontSize: 15,
       fontWeight: "900",
     },
 
     paymentInfo: {
       flex: 1,
-      marginLeft: 12,
-      marginRight: 8,
+      marginLeft: 11,
+      marginRight: 6,
     },
 
     memberName: {
@@ -2555,12 +2730,20 @@ const styles =
 
     paymentPlan: {
       fontSize: 9,
+      fontWeight: "600",
+      marginTop: 3,
+    },
+
+    dateRow: {
+      flexDirection: "row",
+      alignItems: "center",
       marginTop: 4,
     },
 
     paymentDate: {
-      fontSize: 9,
-      marginTop: 4,
+      fontSize: 8,
+      fontWeight: "700",
+      marginLeft: 4,
     },
 
     paymentAmountContainer: {
@@ -2568,20 +2751,22 @@ const styles =
     },
 
     paymentAmount: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: "900",
     },
 
-    paidBadge: {
+    statusBadge: {
+      borderWidth: 1,
+      borderRadius: 13,
       paddingHorizontal: 7,
       paddingVertical: 4,
-      borderRadius: 6,
-      marginTop: 5,
+      marginTop: 6,
     },
 
-    paidText: {
-      fontSize: 7,
+    statusText: {
+      fontSize: 6.5,
       fontWeight: "900",
+      letterSpacing: 0.3,
     },
 
     // ========================================================
@@ -2589,103 +2774,98 @@ const styles =
     // ========================================================
 
     seeMoreButton: {
-      height: 52,
-      borderRadius: 14,
       borderWidth: 1,
+      borderRadius: 16,
+      paddingVertical: 13,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      marginTop: 8,
-      marginBottom: 8,
+      marginTop: 4,
     },
 
     seeMoreText: {
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: "900",
-      letterSpacing: 1,
-    },
-
-    seeMoreArrow: {
-      fontSize: 17,
-      fontWeight: "900",
-      marginLeft: 10,
+      letterSpacing: 0.8,
+      marginRight: 5,
     },
 
     // ========================================================
-    // EMPTY STATE
+    // EMPTY
     // ========================================================
 
     emptyCard: {
-      borderRadius: 18,
       borderWidth: 1,
-      padding: 25,
+      borderRadius: 21,
+      paddingVertical: 28,
+      paddingHorizontal: 18,
       alignItems: "center",
-      marginBottom: 15,
     },
 
     emptyIcon: {
       width: 55,
       height: 55,
-      borderRadius: 18,
+      borderRadius: 17,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 14,
-    },
-
-    emptyIconText: {
-      fontSize: 25,
-      fontWeight: "900",
     },
 
     emptyTitle: {
-      fontSize: 17,
+      fontSize: 14,
       fontWeight: "900",
+      marginTop: 11,
     },
 
     emptySubtitle: {
-      fontSize: 11,
+      fontSize: 9,
+      fontWeight: "600",
+      marginTop: 4,
       textAlign: "center",
-      lineHeight: 18,
-      marginTop: 7,
-      marginBottom: 18,
+      lineHeight: 13,
     },
 
     emptyButton: {
-      borderRadius: 12,
-      paddingHorizontal: 18,
-      paddingVertical: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: 14,
+      paddingHorizontal: 16,
+      paddingVertical: 11,
+      marginTop: 16,
     },
 
     emptyButtonText: {
       color: "#FFFFFF",
       fontSize: 10,
       fontWeight: "900",
-      letterSpacing: 1,
+      letterSpacing: 0.6,
+      marginRight: 6,
     },
 
     // ========================================================
-    // NO HISTORY
+    // FOOTER
     // ========================================================
 
-    noHistoryText: {
-      fontSize: 11,
-      textAlign: "center",
-      paddingVertical: 15,
-      lineHeight: 18,
-    },
-
-    // ========================================================
-    // BACK TO DASHBOARD
-    // ========================================================
-
-    backBottom: {
+    footer: {
+      flexDirection: "row",
       alignItems: "center",
-      paddingVertical: 22,
+      justifyContent: "center",
+      paddingTop: 22,
+      paddingBottom: 8,
     },
 
-    backBottomText: {
-      fontSize: 10,
-      fontWeight: "800",
-      letterSpacing: 1,
+    footerIcon: {
+      width: 27,
+      height: 27,
+      borderRadius: 9,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 7,
     },
+
+    footerText: {
+      fontSize: 8,
+      fontWeight: "800",
+      letterSpacing: 0.7,
+    },
+
   });

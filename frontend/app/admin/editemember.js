@@ -20,6 +20,8 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../context/ThemeContext";
 
 // ============================================================
@@ -27,14 +29,18 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  "http://192.168.1.43:8000/api/members";
 
 // ============================================================
 // EDIT MEMBER
 // ============================================================
 
 export default function EditMember() {
-  const { colors } = useTheme();
+  const {
+    colors,
+    isDark,
+    toggleTheme,
+  } = useTheme();
 
   const params = useLocalSearchParams();
 
@@ -816,7 +822,9 @@ export default function EditMember() {
   // ==========================================================
 
   if (loading) {
+
     return (
+
       <View
         style={[
           styles.loadingContainer,
@@ -826,6 +834,7 @@ export default function EditMember() {
           },
         ]}
       >
+
         <ActivityIndicator
           size="large"
           color={colors.primary}
@@ -842,15 +851,18 @@ export default function EditMember() {
         >
           Loading member...
         </Text>
+
       </View>
     );
   }
+
 
   // ==========================================================
   // SCREEN
   // ==========================================================
 
   return (
+
     <KeyboardAvoidingView
       style={[
         styles.container,
@@ -865,6 +877,7 @@ export default function EditMember() {
           : undefined
       }
     >
+
       <ScrollView
         showsVerticalScrollIndicator={
           false
@@ -872,7 +885,9 @@ export default function EditMember() {
         contentContainerStyle={
           styles.scrollContent
         }
+        keyboardShouldPersistTaps="handled"
       >
+
         {/* ==================================================
             HEADER
         ================================================== */}
@@ -882,49 +897,23 @@ export default function EditMember() {
             styles.header
           }
         >
-          <TouchableOpacity
-            style={[
-              styles.backButton,
-              {
-                backgroundColor:
-                  colors.card,
-                borderColor:
-                  colors.border,
-              },
-            ]}
-            onPress={() =>
-              router.back()
-            }
-            disabled={saving}
-          >
-            <Text
-              style={[
-                styles.backText,
-                {
-                  color:
-                    colors.text,
-                },
-              ]}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
 
           <View
             style={
               styles.headerText
             }
           >
+
             <Text
               style={[
-                styles.smallTitle,
+                styles.eyebrow,
                 {
                   color:
                     colors.primaryLight,
                 },
               ]}
             >
-              GYMRyt MANAGEMENT
+              GYMRYT • MEMBERS
             </Text>
 
             <Text
@@ -938,18 +927,95 @@ export default function EditMember() {
             >
               Edit Member
             </Text>
+
           </View>
+
+
+          <View
+            style={
+              styles.headerActions
+            }
+          >
+
+            {/* THEME */}
+
+            <TouchableOpacity
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={
+                toggleTheme
+              }
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={
+                  isDark
+                    ? "sunny-outline"
+                    : "moon-outline"
+                }
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </TouchableOpacity>
+
+
+            {/* BACK */}
+
+            <TouchableOpacity
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor:
+                    colors.card,
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+              onPress={() =>
+                router.back()
+              }
+              disabled={saving}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={
+                  colors.text
+                }
+              />
+            </TouchableOpacity>
+
+          </View>
+
         </View>
+
 
         {/* ==================================================
             PROFILE
         ================================================== */}
 
         <View
-          style={
-            styles.profileSection
-          }
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
+
           <View
             style={[
               styles.avatar,
@@ -957,7 +1023,7 @@ export default function EditMember() {
                 backgroundColor:
                   colors.iconBackground,
                 borderColor:
-                  colors.primary,
+                  colors.border,
               },
             ]}
           >
@@ -974,43 +1040,62 @@ export default function EditMember() {
             </Text>
           </View>
 
-          <Text
-            style={[
-              styles.profileName,
-              {
-                color:
-                  colors.text,
-              },
-            ]}
-          >
-            {name}
-          </Text>
 
-          <Text
-            style={[
-              styles.profileSubtitle,
-              {
-                color:
-                  colors.mutedText,
-              },
-            ]}
+          <View
+            style={
+              styles.profileInfo
+            }
           >
-            Update member information
-          </Text>
+
+            <Text
+              style={[
+                styles.profileName,
+                {
+                  color:
+                    colors.text,
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {name}
+            </Text>
+
+            <Text
+              style={[
+                styles.profileSubtitle,
+                {
+                  color:
+                    colors.secondaryText,
+                },
+              ]}
+            >
+              Update member information
+            </Text>
+
+          </View>
+
         </View>
+
 
         {/* ==================================================
             PERSONAL INFORMATION
         ================================================== */}
 
         <View
-          style={
-            styles.section
-          }
+          style={[
+            styles.section,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
+
           <Text
             style={[
-              styles.sectionTitle,
+              styles.sectionEyebrow,
               {
                 color:
                   colors.primaryLight,
@@ -1020,7 +1105,21 @@ export default function EditMember() {
             PERSONAL INFORMATION
           </Text>
 
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            Member Details
+          </Text>
+
+
           <InputField
+            icon="person-outline"
             label="FULL NAME"
             value={name}
             onChangeText={setName}
@@ -1028,7 +1127,9 @@ export default function EditMember() {
             colors={colors}
           />
 
+
           <InputField
+            icon="call-outline"
             label="PHONE NUMBER"
             value={phone}
             onChangeText={(text) =>
@@ -1045,7 +1146,9 @@ export default function EditMember() {
             colors={colors}
           />
 
+
           <InputField
+            icon="mail-outline"
             label="EMAIL ADDRESS"
             value={email}
             onChangeText={setEmail}
@@ -1053,20 +1156,29 @@ export default function EditMember() {
             keyboardType="email-address"
             colors={colors}
           />
+
         </View>
+
 
         {/* ==================================================
             ACCOUNT INFORMATION
         ================================================== */}
 
         <View
-          style={
-            styles.section
-          }
+          style={[
+            styles.section,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
+
           <Text
             style={[
-              styles.sectionTitle,
+              styles.sectionEyebrow,
               {
                 color:
                   colors.primaryLight,
@@ -1076,7 +1188,21 @@ export default function EditMember() {
             ACCOUNT INFORMATION
           </Text>
 
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            Login Details
+          </Text>
+
+
           <InputField
+            icon="at-outline"
             label="USERNAME"
             value={username}
             onChangeText={setUsername}
@@ -1084,55 +1210,63 @@ export default function EditMember() {
             colors={colors}
           />
 
+
           <View
             style={[
               styles.infoBox,
               {
                 backgroundColor:
-                  colors.card,
+                  colors.iconBackground,
                 borderColor:
                   colors.border,
               },
             ]}
           >
-            <Text
-              style={[
-                styles.infoIcon,
-                {
-                  color:
-                    colors.primaryLight,
-                },
-              ]}
-            >
-              🔒
-            </Text>
+
+            <Ionicons
+              name="lock-closed-outline"
+              size={17}
+              color={
+                colors.primaryLight
+              }
+            />
 
             <Text
               style={[
                 styles.infoText,
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
               Password changes are handled separately.
             </Text>
+
           </View>
+
         </View>
+
 
         {/* ==================================================
             MEMBERSHIP
         ================================================== */}
 
         <View
-          style={
-            styles.section
-          }
+          style={[
+            styles.section,
+            {
+              backgroundColor:
+                colors.card,
+              borderColor:
+                colors.border,
+            },
+          ]}
         >
+
           <Text
             style={[
-              styles.sectionTitle,
+              styles.sectionEyebrow,
               {
                 color:
                   colors.primaryLight,
@@ -1142,7 +1276,21 @@ export default function EditMember() {
             MEMBERSHIP
           </Text>
 
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  colors.text,
+              },
+            ]}
+          >
+            Membership Dates
+          </Text>
+
+
           <InputField
+            icon="calendar-outline"
             label="MEMBERSHIP START"
             value={startDate}
             onChangeText={
@@ -1152,7 +1300,9 @@ export default function EditMember() {
             colors={colors}
           />
 
+
           <InputField
+            icon="calendar-clear-outline"
             label="MEMBERSHIP END"
             value={endDate}
             onChangeText={
@@ -1161,7 +1311,9 @@ export default function EditMember() {
             placeholder="YYYY-MM-DD"
             colors={colors}
           />
+
         </View>
+
 
         {/* ==================================================
             SAVE
@@ -1183,12 +1335,23 @@ export default function EditMember() {
           disabled={saving}
           activeOpacity={0.85}
         >
+
           {saving ? (
+
             <ActivityIndicator
               color="#FFFFFF"
             />
+
           ) : (
+
             <>
+
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={19}
+                color="#FFFFFF"
+              />
+
               <Text
                 style={
                   styles.saveText
@@ -1197,16 +1360,12 @@ export default function EditMember() {
                 SAVE CHANGES
               </Text>
 
-              <Text
-                style={
-                  styles.arrow
-                }
-              >
-                →
-              </Text>
             </>
+
           )}
+
         </TouchableOpacity>
+
 
         {/* ==================================================
             CANCEL
@@ -1226,23 +1385,27 @@ export default function EditMember() {
               styles.cancelText,
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
             CANCEL
           </Text>
         </TouchableOpacity>
+
       </ScrollView>
+
     </KeyboardAvoidingView>
   );
 }
+
 
 // ============================================================
 // INPUT FIELD
 // ============================================================
 
 function InputField({
+  icon,
   label,
   value,
   onChangeText,
@@ -1251,12 +1414,15 @@ function InputField({
   maxLength,
   colors,
 }) {
+
   return (
+
     <View
       style={
         styles.inputGroup
       }
     >
+
       <Text
         style={[
           styles.label,
@@ -1269,46 +1435,68 @@ function InputField({
         {label}
       </Text>
 
-      <TextInput
+
+      <View
         style={[
-          styles.input,
+          styles.inputRow,
           {
             backgroundColor:
-              colors.input,
+              colors.background,
             borderColor:
               colors.border,
-            color:
-              colors.text,
           },
         ]}
-        value={value}
-        onChangeText={
-          onChangeText
-        }
-        placeholder={
-          placeholder
-        }
-        placeholderTextColor={
-          colors.mutedText
-        }
-        keyboardType={
-          keyboardType
-        }
-        maxLength={
-          maxLength
-        }
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
+      >
+
+        <Ionicons
+          name={icon}
+          size={18}
+          color={
+            colors.primaryLight
+          }
+        />
+
+        <TextInput
+          style={[
+            styles.input,
+            {
+              color:
+                colors.text,
+            },
+          ]}
+          value={value}
+          onChangeText={
+            onChangeText
+          }
+          placeholder={
+            placeholder
+          }
+          placeholderTextColor={
+            colors.mutedText
+          }
+          keyboardType={
+            keyboardType
+          }
+          maxLength={
+            maxLength
+          }
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+      </View>
+
     </View>
   );
 }
+
 
 // ============================================================
 // INITIALS
 // ============================================================
 
 function getInitials(name) {
+
   if (!name) {
     return "?";
   }
@@ -1328,18 +1516,16 @@ function getInitials(name) {
     .toUpperCase();
 }
 
+
 // ============================================================
 // STYLES
 // ============================================================
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
   },
-
-  // ========================================================
-  // LOADING
-  // ========================================================
 
   loadingContainer: {
     flex: 1,
@@ -1348,226 +1534,237 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    marginTop: 15,
-    fontSize: 13,
+    marginTop: 12,
+    fontSize: 12,
+    fontWeight: "700",
   },
-
-  // ========================================================
-  // SCROLL
-  // ========================================================
 
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 50,
+    paddingHorizontal: 18,
+    paddingTop:
+      Platform.OS === "ios"
+        ? 54
+        : 44,
+    paddingBottom: 40,
   },
 
-  // ========================================================
+
+  // ==========================================================
   // HEADER
-  // ========================================================
+  // ==========================================================
 
   header: {
-    marginTop: 55,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
   },
 
-  backButton: {
-    width: 45,
-    height: 45,
+  headerText: {
+    flex: 1,
+    marginRight: 10,
+  },
+
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.4,
+  },
+
+  title: {
+    fontSize: 22,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+
+  headerButton: {
+    width: 43,
+    height: 43,
     borderRadius: 14,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  backText: {
-    fontSize: 34,
-    marginTop: -4,
-  },
 
-  headerText: {
-    marginLeft: 15,
-  },
-
-  smallTitle: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 2,
-  },
-
-  title: {
-    fontSize: 30,
-    fontWeight: "900",
-    marginTop: 3,
-  },
-
-  // ========================================================
+  // ==========================================================
   // PROFILE
-  // ========================================================
+  // ==========================================================
 
-  profileSection: {
+  profileCard: {
+    minHeight: 84,
+    borderWidth: 1,
+    borderRadius: 21,
+    paddingHorizontal: 13,
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 30,
-    marginBottom: 30,
+    marginBottom: 12,
   },
 
   avatar: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    borderWidth: 2,
+    width: 54,
+    height: 54,
+    borderRadius: 17,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
 
   avatarText: {
-    fontSize: 25,
+    fontSize: 18,
     fontWeight: "900",
+  },
+
+  profileInfo: {
+    flex: 1,
+    marginLeft: 12,
   },
 
   profileName: {
-    fontSize: 19,
+    fontSize: 16,
     fontWeight: "900",
-    marginTop: 12,
   },
 
   profileSubtitle: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 3,
   },
 
-  // ========================================================
+
+  // ==========================================================
   // SECTION
-  // ========================================================
+  // ==========================================================
 
   section: {
-    marginBottom: 24,
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 16,
+    paddingBottom: 4,
+    marginBottom: 12,
+  },
+
+  sectionEyebrow: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1.3,
+    marginBottom: 3,
   },
 
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 18,
     fontWeight: "900",
-    letterSpacing: 1.5,
+    marginBottom: 16,
+  },
+
+
+  // ==========================================================
+  // INPUTS
+  // ==========================================================
+
+  inputGroup: {
     marginBottom: 14,
   },
 
-  // ========================================================
-  // INPUT
-  // ========================================================
-
-  inputGroup: {
-    marginBottom: 15,
-  },
-
   label: {
-    fontSize: 10,
-    fontWeight: "800",
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1,
     marginBottom: 7,
   },
 
-  input: {
-    height: 54,
+  inputRow: {
+    height: 52,
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 15,
-    fontSize: 14,
+    borderRadius: 16,
+    paddingLeft: 14,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
-  // ========================================================
+  input: {
+    flex: 1,
+    height: "100%",
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  eyeButton: {
+    height: "100%",
+    paddingHorizontal: 14,
+    justifyContent: "center",
+  },
+
+
+  // ==========================================================
   // INFO BOX
-  // ========================================================
+  // ==========================================================
 
   infoBox: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-  },
-
-  infoIcon: {
-    fontSize: 18,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
   },
 
   infoText: {
     flex: 1,
-    fontSize: 11,
-    marginLeft: 10,
+    fontSize: 10,
+    fontWeight: "600",
+    lineHeight: 15,
+    marginLeft: 9,
   },
 
-  // ========================================================
-  // STATUS
-  // ========================================================
 
-  statusButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  statusButton: {
-    flex: 1,
-    borderWidth: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    marginHorizontal: 3,
-  },
-
-  statusButtonSelected: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
-  },
-
-  statusButtonText: {
-    fontSize: 9,
-    fontWeight: "900",
-  },
-
-  statusButtonTextSelected: {
-    color: "#FFFFFF",
-  },
-
-  // ========================================================
-  // SAVE
-  // ========================================================
+  // ==========================================================
+  // SAVE BUTTON
+  // ==========================================================
 
   saveButton: {
-    height: 58,
-    borderRadius: 16,
+    height: 54,
+    borderRadius: 17,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
   },
 
   saveButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
 
   saveText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
     letterSpacing: 1,
   },
 
-  arrow: {
-    color: "#FFFFFF",
-    fontSize: 22,
-    marginLeft: 12,
-  },
 
-  // ========================================================
+  // ==========================================================
   // CANCEL
-  // ========================================================
+  // ==========================================================
 
   cancelButton: {
+    height: 48,
     alignItems: "center",
-    paddingVertical: 18,
+    justifyContent: "center",
+    marginTop: 6,
   },
 
   cancelText: {
-    fontSize: 11,
-    fontWeight: "800",
+    fontSize: 10,
+    fontWeight: "900",
     letterSpacing: 1,
   },
+
 });

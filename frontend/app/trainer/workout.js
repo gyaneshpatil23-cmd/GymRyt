@@ -14,6 +14,7 @@ import {
     ActivityIndicator,
     Modal,
     RefreshControl,
+    Platform,
 } from "react-native";
 
 import {
@@ -36,7 +37,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_BASE_URL =
-    "http://192.168.1.52:8000/api/members";
+    "http://192.168.1.43:8000/api/members";
 
 
 // ============================================================
@@ -3269,10 +3270,14 @@ const styles =
         // ====================================================
 
         header: {
-            minHeight: 105,
             paddingHorizontal: 18,
-            paddingTop: 45,
-            paddingBottom: 12,
+
+            paddingTop:
+                Platform.OS === "ios"
+                    ? 54
+                    : 44,
+
+            paddingBottom: 14,
 
             flexDirection:
                 "row",
@@ -3282,9 +3287,6 @@ const styles =
 
             justifyContent:
                 "space-between",
-
-            borderBottomWidth:
-                1,
         },
 
         headerTextContainer: {
@@ -3292,14 +3294,14 @@ const styles =
         },
 
         headerEyebrow: {
-            fontSize: 10,
+            fontSize: 9,
             fontWeight: "900",
-            letterSpacing: 1.8,
-            marginBottom: 3,
+            letterSpacing: 1.4,
+            marginBottom: 4,
         },
 
         headerTitle: {
-            fontSize: 26,
+            fontSize: 22,
             fontWeight: "900",
         },
 
@@ -3435,14 +3437,14 @@ const styles =
         },
 
         sectionEyebrow: {
-            fontSize: 9,
+            fontSize: 8,
             fontWeight: "900",
-            letterSpacing: 1.5,
-            marginBottom: 2,
+            letterSpacing: 1.3,
+            marginBottom: 3,
         },
 
         sectionTitle: {
-            fontSize: 17,
+            fontSize: 18,
             fontWeight: "900",
         },
 
