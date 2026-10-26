@@ -1,29 +1,38 @@
 import { router } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   Image,
-  ImageBackground,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Alert,
   ActivityIndicator,
+  BackHandler,
+  useWindowDimensions,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { crest } from "../constants/brand";
+import { SERVER_URL } from "../constants/api";
 
 
 // ============================================================
 // API
 // ============================================================
 
-const API_URL = "http://192.168.1.52:8000";
+const API_URL = SERVER_URL;
 
 
 // ============================================================
@@ -31,6 +40,19 @@ const API_URL = "http://192.168.1.52:8000";
 // ============================================================
 
 export default function LoginScreen() {
+
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+
+  // ==========================================================
+  // STAGE
+  // ==========================================================
+
+  // "welcome" → intro slides, "choose" → join or register a gym,
+  // "form" → login or create account
+
+  const [stage, setStage] = useState("welcome");
+  const [slide, setSlide] = useState(0);
 
   // ==========================================================
   // MODE
@@ -1046,1010 +1068,776 @@ export default function LoginScreen() {
 
   };
 
+  // ==========================================================
+  // NAVIGATION BETWEEN STAGES
+  // ==========================================================
+
+  const openForm = (createAccount) => {
+    switchMode(createAccount);
+    setStage("form");
+  };
+
+  const goBack = () => {
+    if (stage === "form" && isCreateAccount) {
+      setStage("choose");
+    } else {
+      setStage("welcome");
+    }
+  };
+
+
+  // ==========================================================
+  // ANDROID BACK BUTTON
+  // ==========================================================
+
+  useEffect(() => {
+
+    if (stage === "welcome") {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        setStage(
+          stage === "form" && isCreateAccount
+            ? "choose"
+            : "welcome"
+        );
+        return true;
+      }
+    );
+
+    return () => subscription.remove();
+
+  }, [stage, isCreateAccount]);
+
 
   // ==========================================================
   // UI
   // ==========================================================
 
   return (
+    <View style={styles.screen}>
 
-    <ImageBackground
-      source={require(
-        "../assets/images/gymryt-bg.png"
+      <StatusBar style="light" />
+
+      {/* ==================================================
+          BACKGROUND
+      ================================================== */}
+
+      <Image
+        source={require(
+          "../assets/images/crest-login-background.jpg"
+        )}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+
+      <LinearGradient
+        colors={[
+          "rgba(15, 11, 31, 0)",
+          "rgba(15, 11, 31, 0.6)",
+          crest.bg,
+        ]}
+        locations={[0.35, 0.6, 0.9]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {stage === "form" && (
+        <View style={styles.formDim} />
       )}
 
-      style={styles.background}
+      {stage === "form"
+        ? renderForm()
+        : renderIntro()}
+    </View>
+  );
 
-      resizeMode="cover"
-    >
 
+  // ==========================================================
+  // WELCOME + CHOOSE
+  // ==========================================================
+
+  function renderIntro() {
+    return (
       <View
-        style={styles.backgroundOverlay}
+        style={[
+          styles.introContainer,
+          {
+            paddingTop: insets.top + 24,
+            paddingBottom: insets.bottom + 28,
+          },
+        ]}
       >
+        <Wordmark size={22} />
 
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
+        <View style={styles.introSpacer} />
 
-          behavior="padding"
+        {stage === "welcome"
+          ? renderWelcome()
+          : renderChoose()}
+      </View>
+    );
+  }
 
-          keyboardVerticalOffset={
-            Platform.OS === "ios"
-              ? 0
-              : 20
+
+  // ==========================================================
+  // WELCOME
+  // ==========================================================
+
+  function renderWelcome() {
+    return (
+      <>
+
+        {/* SLIDES */}
+
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(event) =>
+            setSlide(
+              Math.round(
+                event.nativeEvent.contentOffset.x / width
+              )
+            )
           }
+          style={styles.slides}
         >
-
-          <ScrollView
-            ref={scrollViewRef}
-
-            style={styles.scrollView}
-
-            contentContainerStyle={[
-              styles.scrollContainer,
-
-              isCreateAccount &&
-                styles.createScrollContainer,
-            ]}
-
-            keyboardShouldPersistTaps="always"
-
-            keyboardDismissMode={
-              Platform.OS === "ios"
-                ? "interactive"
-                : "on-drag"
-            }
-
-            showsVerticalScrollIndicator={
-              false
-            }
-
-            automaticallyAdjustKeyboardInsets={
-              true
-            }
-
-            contentInsetAdjustmentBehavior="automatic"
-
-            nestedScrollEnabled={true}
-          >
-
+          {SLIDES.map((item) => (
             <View
-              style={styles.content}
+              key={item.title}
+              style={[styles.slide, { width }]}
             >
-
-
-              {/* ==================================================
-                  LOGO
-              ================================================== */}
-
-              <View
-                style={styles.logoContainer}
-              >
-
-                <Image
-                  source={require(
-                    "../assets/images/gymryt-logo.png"
-                  )}
-
-                  style={[
-                    styles.logo,
-
-                    isCreateAccount &&
-                      styles.createLogo,
-                  ]}
-
-                  resizeMode="contain"
-                />
-
-              </View>
-
-
-              {/* ==================================================
-                  MODE SWITCH
-              ================================================== */}
-
-              <View
-                style={styles.modeSwitch}
-              >
-
-                {/* LOGIN */}
-
-                <TouchableOpacity
-                  style={[
-                    styles.modeButton,
-
-                    !isCreateAccount &&
-                      styles.modeButtonActive,
-                  ]}
-
-                  onPress={() =>
-                    switchMode(false)
-                  }
-
-                  disabled={loading}
-
-                  activeOpacity={0.8}
-                >
-
-                  <Text
-                    style={[
-                      styles.modeButtonText,
-
-                      !isCreateAccount &&
-                        styles.modeButtonTextActive,
-                    ]}
-                  >
-                    LOGIN
-                  </Text>
-
-                </TouchableOpacity>
-
-
-                {/* CREATE ACCOUNT */}
-
-                <TouchableOpacity
-                  style={[
-                    styles.modeButton,
-
-                    isCreateAccount &&
-                      styles.modeButtonActive,
-                  ]}
-
-                  onPress={() =>
-                    switchMode(true)
-                  }
-
-                  disabled={loading}
-
-                  activeOpacity={0.8}
-                >
-
-                  <Text
-                    style={[
-                      styles.modeButtonText,
-
-                      isCreateAccount &&
-                        styles.modeButtonTextActive,
-                    ]}
-                  >
-                    CREATE ACCOUNT
-                  </Text>
-
-                </TouchableOpacity>
-
-              </View>
-
-
-              {/* ==================================================
-                  LOGIN
-              ================================================== */}
-
-              {!isCreateAccount ? (
-
-                <View
-                  style={styles.loginCard}
-                >
-
-
-                  {/* ==================================================
-                      USERNAME
-                  ================================================== */}
-
-                  <View
-                    style={styles.inputContainer}
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        usernameFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Username
-                    </Text>
-
-
-                    <TextInput
-                      style={[
-                        styles.input,
-
-                        usernameFocused &&
-                          styles.inputFocused,
-                      ]}
-
-                      value={username}
-
-                      onChangeText={
-                        setUsername
-                      }
-
-                      autoCapitalize="none"
-
-                      autoCorrect={false}
-
-                      editable={!loading}
-
-                      placeholder=""
-
-                      placeholderTextColor="transparent"
-
-                      returnKeyType="next"
-
-                      onFocus={() =>
-                        setUsernameFocused(true)
-                      }
-
-                      onBlur={() =>
-                        setUsernameFocused(false)
-                      }
-
-                      selectionColor="#9DBEFF"
-
-                      blurOnSubmit={false}
-                    />
-
-                  </View>
-
-
-                  {/* ==================================================
-                      PASSWORD
-                  ================================================== */}
-
-                  <View
-                    style={styles.inputContainer}
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        passwordFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Password
-                    </Text>
-
-
-                    <View
-                      style={styles.passwordWrapper}
-                    >
-
-                      <TextInput
-                        style={[
-                          styles.input,
-                          styles.passwordInputDirect,
-
-                          passwordFocused &&
-                            styles.inputFocused,
-                        ]}
-
-                        value={password}
-
-                        onChangeText={
-                          setPassword
-                        }
-
-                        secureTextEntry={
-                          !showPassword
-                        }
-
-                        autoCapitalize="none"
-
-                        autoCorrect={false}
-
-                        editable={!loading}
-
-                        placeholder=""
-
-                        placeholderTextColor="transparent"
-
-                        returnKeyType="done"
-
-                        onFocus={() =>
-                          setPasswordFocused(true)
-                        }
-
-                        onBlur={() =>
-                          setPasswordFocused(false)
-                        }
-
-                        selectionColor="#9DBEFF"
-
-                        onSubmitEditing={
-                          handleLogin
-                        }
-                      />
-
-
-                      {/* SHOW / HIDE */}
-
-                      <TouchableOpacity
-                        style={
-                          styles.showButton
-                        }
-
-                        onPress={() =>
-                          setShowPassword(
-                            !showPassword
-                          )
-                        }
-
-                        disabled={loading}
-
-                        activeOpacity={0.7}
-                      >
-
-                        <Text
-                          style={
-                            styles.showText
-                          }
-                        >
-                          {showPassword
-                            ? "HIDE"
-                            : "SHOW"}
-                        </Text>
-
-                      </TouchableOpacity>
-
-                    </View>
-
-                  </View>
-
-
-                  {/* ==================================================
-                      FORGOT PASSWORD
-                  ================================================== */}
-
-                  <TouchableOpacity
-                    style={
-                      styles.forgotButton
-                    }
-
-                    disabled={loading}
-
-                    activeOpacity={0.7}
-                  >
-
-                    <Text
-                      style={
-                        styles.forgotText
-                      }
-                    >
-                      Forgot Password?
-                    </Text>
-
-                  </TouchableOpacity>
-
-
-                  {/* ==================================================
-                      LOGIN BUTTON
-                  ================================================== */}
-
-                  <TouchableOpacity
-                    style={[
-                      styles.loginButton,
-
-                      loading &&
-                        styles.loginButtonDisabled,
-                    ]}
-
-                    onPress={
-                      handleLogin
-                    }
-
-                    disabled={loading}
-
-                    activeOpacity={0.8}
-                  >
-
-                    {loading ? (
-
-                      <ActivityIndicator
-                        size="small"
-                        color="#FFFFFF"
-                      />
-
-                    ) : (
-
-                      <Text
-                        style={
-                          styles.loginButtonText
-                        }
-                      >
-                        LOGIN
-                      </Text>
-
-                    )}
-
-                  </TouchableOpacity>
-
-
-                  {/* ==================================================
-                      MEMBER QR SCANNER
-                  ================================================== */}
-
-                  <TouchableOpacity
-                    style={
-                      styles.scannerButton
-                    }
-
-                    onPress={() =>
-                      router.push(
-                        "/scanner"
-                      )
-                    }
-
-                    disabled={loading}
-
-                    activeOpacity={0.8}
-                  >
-
-                    <Text
-                      style={
-                        styles.scannerButtonText
-                      }
-                    >
-                      +
-                    </Text>
-
-                  </TouchableOpacity>
-
-
-                  <Text
-                    style={
-                      styles.scannerHint
-                    }
-                  >
-                    Scan gym QR to register
-                  </Text>
-
-                </View>
-
-              ) : (
-
-
-                /* ==================================================
-                    CREATE ACCOUNT
-                ================================================== */
-
-                <View
-                  style={[
-                    styles.loginCard,
-                    styles.createAccountCard,
-                  ]}
-                >
-
-
-                  {/* ==================================================
-                      FULL NAME
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
-                    }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        fullNameFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Full Name
-                    </Text>
-
-
-                    <TextInput
-                      ref={fullNameRef}
-
-                      style={[
-                        styles.input,
-
-                        fullNameFocused &&
-                          styles.inputFocused,
-                      ]}
-
-                      value={fullName}
-
-                      onChangeText={
-                        setFullName
-                      }
-
-                      autoCapitalize="words"
-
-                      autoCorrect={false}
-
-                      editable={!loading}
-
-                      placeholder=""
-
-                      placeholderTextColor="transparent"
-
-                      returnKeyType="next"
-
-                      onFocus={() =>
-                        setFullNameFocused(true)
-                      }
-
-                      onBlur={() =>
-                        setFullNameFocused(false)
-                      }
-
-                      selectionColor="#9DBEFF"
-
-                      onSubmitEditing={() =>
-                        emailRef.current?.focus()
-                      }
-
-                      blurOnSubmit={false}
-                    />
-
-                  </View>
-
-
-                  {/* ==================================================
-                      EMAIL
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
-                    }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        emailFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Email
-                    </Text>
-
-
-                    <TextInput
-                      ref={emailRef}
-
-                      style={[
-                        styles.input,
-
-                        emailFocused &&
-                          styles.inputFocused,
-                      ]}
-
-                      value={email}
-
-                      onChangeText={
-                        setEmail
-                      }
-
-                      keyboardType="email-address"
-
-                      autoCapitalize="none"
-
-                      autoCorrect={false}
-
-                      editable={!loading}
-
-                      placeholder=""
-
-                      placeholderTextColor="transparent"
-
-                      returnKeyType="next"
-
-                      onFocus={() =>
-                        setEmailFocused(true)
-                      }
-
-                      onBlur={() =>
-                        setEmailFocused(false)
-                      }
-
-                      selectionColor="#9DBEFF"
-
-                      onSubmitEditing={() =>
-                        createUsernameRef.current?.focus()
-                      }
-
-                      blurOnSubmit={false}
-                    />
-
-                  </View>
-
-
-                  {/* ==================================================
-                      USERNAME
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
-                    }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        createUsernameFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Username
-                    </Text>
-
-
-                    <TextInput
-                      ref={
-                        createUsernameRef
-                      }
-
-                      style={[
-                        styles.input,
-
-                        createUsernameFocused &&
-                          styles.inputFocused,
-                      ]}
-
-                      value={
-                        createUsername
-                      }
-
-                      onChangeText={
-                        setCreateUsername
-                      }
-
-                      autoCapitalize="none"
-
-                      autoCorrect={false}
-
-                      editable={!loading}
-
-                      placeholder=""
-
-                      placeholderTextColor="transparent"
-
-                      returnKeyType="next"
-
-                      onFocus={() =>
-                        setCreateUsernameFocused(
-                          true
-                        )
-                      }
-
-                      onBlur={() =>
-                        setCreateUsernameFocused(
-                          false
-                        )
-                      }
-
-                      selectionColor="#9DBEFF"
-
-                      onSubmitEditing={() =>
-                        createPasswordRef.current?.focus()
-                      }
-
-                      blurOnSubmit={false}
-                    />
-
-                  </View>
-
-
-                  {/* ==================================================
-                      CREATE PASSWORD
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
-                    }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        createPasswordFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Password
-                    </Text>
-
-
-                    <View
-                      style={
-                        styles.passwordWrapper
-                      }
-                    >
-
-                      <TextInput
-                        ref={
-                          createPasswordRef
-                        }
-
-                        style={[
-                          styles.input,
-                          styles.passwordInputDirect,
-
-                          createPasswordFocused &&
-                            styles.inputFocused,
-                        ]}
-
-                        value={
-                          createPassword
-                        }
-
-                        onChangeText={
-                          setCreatePassword
-                        }
-
-                        secureTextEntry={
-                          !showCreatePassword
-                        }
-
-                        autoCapitalize="none"
-
-                        autoCorrect={false}
-
-                        editable={!loading}
-
-                        placeholder=""
-
-                        placeholderTextColor="transparent"
-
-                        returnKeyType="next"
-
-                        onFocus={() =>
-                          setCreatePasswordFocused(
-                            true
-                          )
-                        }
-
-                        onBlur={() =>
-                          setCreatePasswordFocused(
-                            false
-                          )
-                        }
-
-                        selectionColor="#9DBEFF"
-
-                        onSubmitEditing={() =>
-                          confirmPasswordRef.current?.focus()
-                        }
-
-                        blurOnSubmit={false}
-                      />
-
-
-                      <TouchableOpacity
-                        style={
-                          styles.showButton
-                        }
-
-                        onPress={() =>
-                          setShowCreatePassword(
-                            !showCreatePassword
-                          )
-                        }
-
-                        disabled={loading}
-
-                        activeOpacity={0.7}
-                      >
-
-                        <Text
-                          style={
-                            styles.showText
-                          }
-                        >
-                          {showCreatePassword
-                            ? "HIDE"
-                            : "SHOW"}
-                        </Text>
-
-                      </TouchableOpacity>
-
-                    </View>
-
-                  </View>
-
-
-                  {/* ==================================================
-                      CONFIRM PASSWORD
-                  ================================================== */}
-
-                  <View
-                    style={
-                      styles.inputContainer
-                    }
-                  >
-
-                    <Text
-                      style={[
-                        styles.floatingLabel,
-
-                        confirmPasswordFocused &&
-                          styles.floatingLabelFocused,
-                      ]}
-                    >
-                      Confirm Password
-                    </Text>
-
-
-                    <View
-                      style={
-                        styles.passwordWrapper
-                      }
-                    >
-
-                      <TextInput
-                        ref={
-                          confirmPasswordRef
-                        }
-
-                        style={[
-                          styles.input,
-                          styles.passwordInputDirect,
-
-                          confirmPasswordFocused &&
-                            styles.inputFocused,
-                        ]}
-
-                        value={
-                          confirmPassword
-                        }
-
-                        onChangeText={
-                          setConfirmPassword
-                        }
-
-                        secureTextEntry={
-                          !showConfirmPassword
-                        }
-
-                        autoCapitalize="none"
-
-                        autoCorrect={false}
-
-                        editable={!loading}
-
-                        placeholder=""
-
-                        placeholderTextColor="transparent"
-
-                        returnKeyType="done"
-
-                        onFocus={() =>
-                          setConfirmPasswordFocused(
-                            true
-                          )
-                        }
-
-                        onBlur={() =>
-                          setConfirmPasswordFocused(
-                            false
-                          )
-                        }
-
-                        selectionColor="#9DBEFF"
-
-                        onSubmitEditing={
-                          handleCreateAccount
-                        }
-
-                        blurOnSubmit={true}
-                      />
-
-
-                      <TouchableOpacity
-                        style={
-                          styles.showButton
-                        }
-
-                        onPress={() =>
-                          setShowConfirmPassword(
-                            !showConfirmPassword
-                          )
-                        }
-
-                        disabled={loading}
-
-                        activeOpacity={0.7}
-                      >
-
-                        <Text
-                          style={
-                            styles.showText
-                          }
-                        >
-                          {showConfirmPassword
-                            ? "HIDE"
-                            : "SHOW"}
-                        </Text>
-
-                      </TouchableOpacity>
-
-                    </View>
-
-                  </View>
-
-
-                  {/* ==================================================
-                      CREATE ACCOUNT BUTTON
-                  ================================================== */}
-
-                  <TouchableOpacity
-                    style={[
-                      styles.loginButton,
-
-                      loading &&
-                        styles.loginButtonDisabled,
-                    ]}
-
-                    onPress={
-                      handleCreateAccount
-                    }
-
-                    disabled={loading}
-
-                    activeOpacity={0.8}
-                  >
-
-                    {loading ? (
-
-                      <ActivityIndicator
-                        size="small"
-                        color="#FFFFFF"
-                      />
-
-                    ) : (
-
-                      <Text
-                        style={
-                          styles.loginButtonText
-                        }
-                      >
-                        CREATE ACCOUNT
-                      </Text>
-
-                    )}
-
-                  </TouchableOpacity>
-
-                </View>
-
-              )}
-
-
-              {/* ==================================================
-                  FOOTER
-              ================================================== */}
-
-              <Text
-                style={
-                  styles.footer
-                }
-              >
-                GYMRYT • TRAIN • TRACK • TRANSFORM
+              <Text style={styles.headline}>
+                {item.title}
+                {"\n"}
+                <Text style={styles.headlineAccent}>
+                  {item.accent}
+                </Text>
               </Text>
 
+              <Text style={styles.slideBody}>
+                {item.body}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* PAGER */}
+
+        <View style={styles.pager}>
+          {SLIDES.map((item, index) => (
+            <View
+              key={item.title}
+              style={[
+                styles.pagerDot,
+                index === slide && styles.pagerDotActive,
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* ACTIONS */}
+
+        <View style={styles.actions}>
+          <CrestButton
+            label="Get started"
+            onPress={() => setStage("choose")}
+          />
+
+          <CrestButton
+            label="I have an account"
+            variant="outline"
+            onPress={() => openForm(false)}
+          />
+        </View>
+      </>
+    );
+  }
+
+
+  // ==========================================================
+  // CHOOSE: JOIN A GYM OR REGISTER ONE
+  // ==========================================================
+
+  function renderChoose() {
+    return (
+      <View style={styles.chooseContainer}>
+        <Text style={styles.chooseTitle}>
+          How are you joining?
+        </Text>
+
+        <OptionCard
+          icon="qr-code-outline"
+          title="Join my gym"
+          hint="Scan the QR code at your gym to sign up as a member"
+          onPress={() => router.push("/scanner")}
+        />
+
+        <OptionCard
+          icon="business-outline"
+          title="Register my gym"
+          hint="Create the owner account for your gym"
+          onPress={() => openForm(true)}
+        />
+
+        <Pressable
+          style={styles.textLink}
+          onPress={() => setStage("welcome")}
+          hitSlop={8}
+        >
+          <Text style={styles.textLinkMuted}>
+            Back
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+
+  // ==========================================================
+  // LOGIN / CREATE ACCOUNT FORM
+  // ==========================================================
+
+  function renderForm() {
+    return (
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior="padding"
+        keyboardVerticalOffset={
+          Platform.OS === "ios"
+            ? 0
+            : 20
+        }
+      >
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContainer,
+            {
+              paddingTop: insets.top + 12,
+              paddingBottom: insets.bottom + 32,
+            },
+          ]}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode={
+            Platform.OS === "ios"
+              ? "interactive"
+              : "on-drag"
+          }
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets={true}
+          nestedScrollEnabled={true}
+        >
+          <View style={styles.content}>
+
+            {/* ==================================================
+                TOP BAR
+            ================================================== */}
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.backButton,
+                pressed && styles.backButtonPressed,
+              ]}
+              onPress={goBack}
+              disabled={loading}
+              hitSlop={6}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={crest.text}
+              />
+            </Pressable>
+
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
+            <View style={styles.header}>
+              <Image
+                source={require(
+                  "../assets/images/crest-logo-small.png"
+                )}
+                style={styles.crest}
+                resizeMode="contain"
+              />
+
+              <Text style={styles.formTitle}>
+                {isCreateAccount
+                  ? "Register your gym"
+                  : "Welcome back"}
+              </Text>
+
+              <Text style={styles.formSubtitle}>
+                {isCreateAccount
+                  ? "Create the owner account for your gym."
+                  : "Log in to your GymRyt account."}
+              </Text>
             </View>
 
-          </ScrollView>
+            {/* ==================================================
+                LOGIN
+            ================================================== */}
 
-        </KeyboardAvoidingView>
+            {!isCreateAccount ? (
 
+              <View style={styles.card}>
+
+                <FormField
+                  icon="person-outline"
+                  label="Username"
+                  focused={usernameFocused}
+                >
+                  <TextInput
+                    style={styles.input}
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    returnKeyType="next"
+                    onFocus={() => setUsernameFocused(true)}
+                    onBlur={() => setUsernameFocused(false)}
+                    selectionColor={crest.brand}
+                    blurOnSubmit={false}
+                  />
+                </FormField>
+
+                <FormField
+                  icon="lock-closed-outline"
+                  label="Password"
+                  focused={passwordFocused}
+                >
+                  <TextInput
+                    style={styles.input}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    returnKeyType="done"
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    selectionColor={crest.brand}
+                    onSubmitEditing={handleLogin}
+                  />
+
+                  <ShowPasswordToggle
+                    visible={showPassword}
+                    onPress={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                  />
+                </FormField>
+
+                <Pressable
+                  style={styles.forgotButton}
+                  disabled={loading}
+                  hitSlop={8}
+                >
+                  <Text style={styles.linkText}>
+                    Forgot password?
+                  </Text>
+                </Pressable>
+
+                <CrestButton
+                  label="Log in"
+                  onPress={handleLogin}
+                  loading={loading}
+                />
+              </View>
+
+            ) : (
+
+              /* ==================================================
+                  CREATE ACCOUNT
+              ================================================== */
+
+              <View style={styles.card}>
+
+                <FormField
+                  icon="person-outline"
+                  label="Full name"
+                  focused={fullNameFocused}
+                >
+                  <TextInput
+                    ref={fullNameRef}
+                    style={styles.input}
+                    value={fullName}
+                    onChangeText={setFullName}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    editable={!loading}
+                    returnKeyType="next"
+                    onFocus={() => setFullNameFocused(true)}
+                    onBlur={() => setFullNameFocused(false)}
+                    selectionColor={crest.brand}
+                    onSubmitEditing={() => emailRef.current?.focus()}
+                    blurOnSubmit={false}
+                  />
+                </FormField>
+
+                <FormField
+                  icon="mail-outline"
+                  label="Email"
+                  focused={emailFocused}
+                >
+                  <TextInput
+                    ref={emailRef}
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    returnKeyType="next"
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    selectionColor={crest.brand}
+                    onSubmitEditing={() =>
+                      createUsernameRef.current?.focus()
+                    }
+                    blurOnSubmit={false}
+                  />
+                </FormField>
+
+                <FormField
+                  icon="at-outline"
+                  label="Username"
+                  focused={createUsernameFocused}
+                >
+                  <TextInput
+                    ref={createUsernameRef}
+                    style={styles.input}
+                    value={createUsername}
+                    onChangeText={setCreateUsername}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    returnKeyType="next"
+                    onFocus={() => setCreateUsernameFocused(true)}
+                    onBlur={() => setCreateUsernameFocused(false)}
+                    selectionColor={crest.brand}
+                    onSubmitEditing={() =>
+                      createPasswordRef.current?.focus()
+                    }
+                    blurOnSubmit={false}
+                  />
+                </FormField>
+
+                <FormField
+                  icon="lock-closed-outline"
+                  label="Password"
+                  focused={createPasswordFocused}
+                >
+                  <TextInput
+                    ref={createPasswordRef}
+                    style={styles.input}
+                    value={createPassword}
+                    onChangeText={setCreatePassword}
+                    secureTextEntry={!showCreatePassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    returnKeyType="next"
+                    onFocus={() => setCreatePasswordFocused(true)}
+                    onBlur={() => setCreatePasswordFocused(false)}
+                    selectionColor={crest.brand}
+                    onSubmitEditing={() =>
+                      confirmPasswordRef.current?.focus()
+                    }
+                    blurOnSubmit={false}
+                  />
+
+                  <ShowPasswordToggle
+                    visible={showCreatePassword}
+                    onPress={() =>
+                      setShowCreatePassword(!showCreatePassword)
+                    }
+                    disabled={loading}
+                  />
+                </FormField>
+
+                <FormField
+                  icon="shield-checkmark-outline"
+                  label="Confirm password"
+                  focused={confirmPasswordFocused}
+                >
+                  <TextInput
+                    ref={confirmPasswordRef}
+                    style={styles.input}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    returnKeyType="done"
+                    onFocus={() => setConfirmPasswordFocused(true)}
+                    onBlur={() => setConfirmPasswordFocused(false)}
+                    selectionColor={crest.brand}
+                    onSubmitEditing={handleCreateAccount}
+                    blurOnSubmit={true}
+                  />
+
+                  <ShowPasswordToggle
+                    visible={showConfirmPassword}
+                    onPress={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
+                    disabled={loading}
+                  />
+                </FormField>
+
+                <CrestButton
+                  label="Create account"
+                  onPress={handleCreateAccount}
+                  loading={loading}
+                />
+              </View>
+            )}
+
+            {/* ==================================================
+                BELOW CARD
+            ================================================== */}
+
+            {!isCreateAccount ? (
+
+              <OptionCard
+                icon="qr-code-outline"
+                title="New member?"
+                hint="Scan your gym's QR code to sign up"
+                onPress={() => router.push("/scanner")}
+                disabled={loading}
+              />
+
+            ) : (
+
+              <Pressable
+                style={styles.textLink}
+                onPress={() => switchMode(false)}
+                disabled={loading}
+                hitSlop={8}
+              >
+                <Text style={styles.textLinkMuted}>
+                  Already have an account?{" "}
+                  <Text style={styles.linkText}>Log in</Text>
+                </Text>
+              </Pressable>
+            )}
+
+            <Text style={styles.tagline}>
+              STRONGER EVERY DAY
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+}
+
+
+// ============================================================
+// WELCOME SLIDES
+// ============================================================
+
+const SLIDES = [
+  {
+    title: "Your club.",
+    accent: "Your crest.",
+    body: "Check in, book classes and track every workout at your gym.",
+  },
+  {
+    title: "Train with",
+    accent: "your coach.",
+    body: "Get workout plans from your trainer and log every set.",
+  },
+  {
+    title: "Stronger",
+    accent: "every day.",
+    body: "Attendance, payments and reminders, all in one place.",
+  },
+];
+
+
+// ============================================================
+// WORDMARK
+// ============================================================
+
+function Wordmark({ size }) {
+  return (
+    <Text
+      style={[
+        styles.wordmark,
+        { fontSize: size },
+      ]}
+    >
+      GYM
+      <Text style={styles.wordmarkAccent}>RYT</Text>
+    </Text>
+  );
+}
+
+
+// ============================================================
+// BUTTON
+// ============================================================
+
+function CrestButton({
+  label,
+  onPress,
+  variant = "primary",
+  loading = false,
+}) {
+  const outline = variant === "outline";
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={loading}
+      style={({ pressed }) => [
+        styles.button,
+        outline ? styles.buttonOutline : styles.buttonPrimary,
+        pressed && (
+          outline
+            ? styles.buttonOutlinePressed
+            : styles.buttonPrimaryPressed
+        ),
+        pressed && styles.buttonPressed,
+        loading && styles.buttonDisabled,
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator
+          size="small"
+          color={crest.text}
+        />
+      ) : (
+        <Text
+          style={[
+            styles.buttonText,
+            outline && styles.buttonOutlineText,
+          ]}
+        >
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
+
+// ============================================================
+// OPTION CARD
+// ============================================================
+
+function OptionCard({
+  icon,
+  title,
+  hint,
+  onPress,
+  disabled,
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.option,
+        pressed && styles.optionPressed,
+      ]}
+    >
+      <View style={styles.optionIcon}>
+        <Ionicons
+          name={icon}
+          size={22}
+          color={crest.brand}
+        />
       </View>
 
-    </ImageBackground>
+      <View style={styles.optionText}>
+        <Text style={styles.optionTitle}>{title}</Text>
+        <Text style={styles.optionHint}>{hint}</Text>
+      </View>
+
+      <Ionicons
+        name="chevron-forward"
+        size={18}
+        color={crest.textMuted}
+      />
+    </Pressable>
+  );
+}
+
+
+// ============================================================
+// FORM FIELD
+// ============================================================
+
+function FormField({
+  icon,
+  label,
+  focused,
+  children,
+}) {
+  return (
+    <View style={styles.inputContainer}>
+      <Text
+        style={[
+          styles.inputLabel,
+          focused && { color: crest.brand },
+        ]}
+      >
+        {label}
+      </Text>
+
+      <View
+        style={[
+          styles.inputRow,
+          focused && styles.inputRowFocused,
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={focused ? crest.brand : crest.textMuted}
+        />
+
+        {children}
+      </View>
+    </View>
+  );
+}
+
+
+// ============================================================
+// SHOW / HIDE PASSWORD
+// ============================================================
+
+function ShowPasswordToggle({
+  visible,
+  onPress,
+  disabled,
+}) {
+  return (
+    <Pressable
+      style={styles.showButton}
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={6}
+    >
+      <Ionicons
+        name={visible ? "eye-off-outline" : "eye-outline"}
+        size={19}
+        color={crest.textSecondary}
+      />
+    </Pressable>
   );
 }
 
@@ -2061,36 +1849,246 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
 
   // ==========================================================
-  // BACKGROUND
+  // SCREEN
   // ==========================================================
 
-  background: {
+  screen: {
     flex: 1,
-
-    backgroundColor:
-      "#050816",
+    backgroundColor: crest.bg,
   },
 
-  backgroundOverlay: {
-    flex: 1,
-
-    backgroundColor:
-      "rgba(2, 8, 23, 0.34)",
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
   },
 
+  formDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15, 11, 31, 0.82)",
+  },
 
   // ==========================================================
-  // KEYBOARD
+  // WORDMARK
+  // ==========================================================
+
+  wordmark: {
+    color: crest.text,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    textAlign: "center",
+  },
+
+  wordmarkAccent: {
+    color: crest.gold,
+  },
+
+  // ==========================================================
+  // WELCOME
+  // ==========================================================
+
+  introContainer: {
+    flex: 1,
+  },
+
+  introSpacer: {
+    flex: 1,
+  },
+
+  slides: {
+    flexGrow: 0,
+  },
+
+  slide: {
+    paddingHorizontal: 24,
+  },
+
+  headline: {
+    color: crest.text,
+    fontSize: 36,
+    lineHeight: 40,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+  },
+
+  headlineAccent: {
+    color: crest.gold,
+  },
+
+  slideBody: {
+    color: crest.text,
+    opacity: 0.85,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 14,
+    maxWidth: 340,
+  },
+
+  pager: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 24,
+    marginTop: 24,
+    marginBottom: 28,
+  },
+
+  pagerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: crest.textMuted,
+  },
+
+  pagerDotActive: {
+    width: 22,
+    backgroundColor: crest.gold,
+  },
+
+  actions: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+
+  // ==========================================================
+  // CHOOSE
+  // ==========================================================
+
+  chooseContainer: {
+    paddingHorizontal: 24,
+  },
+
+  chooseTitle: {
+    color: crest.text,
+    fontSize: 26,
+    fontWeight: "900",
+    marginBottom: 18,
+  },
+
+  // ==========================================================
+  // BUTTONS
+  // ==========================================================
+
+  button: {
+    height: 54,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  buttonPrimary: {
+    backgroundColor: crest.primary,
+  },
+
+  buttonPrimaryPressed: {
+    backgroundColor: crest.primaryHover,
+  },
+
+  buttonOutline: {
+    borderWidth: 1,
+    borderColor: crest.gold,
+    backgroundColor: "rgba(15, 11, 31, 0.6)",
+  },
+
+  buttonOutlinePressed: {
+    backgroundColor: "rgba(233, 185, 73, 0.12)",
+  },
+
+  buttonPressed: {
+    transform: [{ scale: 0.98 }],
+  },
+
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+
+  buttonText: {
+    color: crest.text,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  buttonOutlineText: {
+    color: crest.gold,
+  },
+
+  // ==========================================================
+  // OPTION CARD
+  // ==========================================================
+
+  option: {
+    minHeight: 76,
+    borderWidth: 1,
+    borderColor: crest.border,
+    borderRadius: 16,
+    backgroundColor: crest.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  optionPressed: {
+    backgroundColor: crest.surfaceRaised,
+  },
+
+  optionIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: crest.primaryTint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  optionText: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+
+  optionTitle: {
+    color: crest.text,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  optionHint: {
+    color: crest.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+
+  // ==========================================================
+  // LINKS
+  // ==========================================================
+
+  textLink: {
+    alignSelf: "center",
+    paddingVertical: 10,
+  },
+
+  textLinkMuted: {
+    color: crest.textSecondary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  linkText: {
+    color: crest.brand,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  // ==========================================================
+  // FORM LAYOUT
   // ==========================================================
 
   keyboardContainer: {
     flex: 1,
   },
-
-
-  // ==========================================================
-  // SCROLL
-  // ==========================================================
 
   scrollView: {
     flex: 1,
@@ -2098,579 +2096,124 @@ const styles = StyleSheet.create({
 
   scrollContainer: {
     flexGrow: 1,
-
-    justifyContent:
-      "center",
-
-    paddingHorizontal:
-      24,
-
-    paddingVertical:
-      20,
-
-    paddingBottom:
-      80,
+    paddingHorizontal: 20,
   },
-
-  createScrollContainer: {
-    justifyContent:
-      "center",
-
-    paddingTop:
-      20,
-
-    paddingBottom:
-      80,
-  },
-
-
-  // ==========================================================
-  // CONTENT
-  // ==========================================================
 
   content: {
     width: "100%",
-
-    alignItems:
-      "stretch",
-
-    justifyContent:
-      "center",
+    maxWidth: 480,
+    alignSelf: "center",
   },
 
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: crest.border,
+    backgroundColor: crest.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  backButtonPressed: {
+    backgroundColor: crest.surfaceRaised,
+  },
+
+  header: {
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 24,
+  },
+
+  crest: {
+    width: 60,
+    height: 72,
+  },
+
+  formTitle: {
+    color: crest.text,
+    fontSize: 28,
+    fontWeight: "900",
+    marginTop: 16,
+  },
+
+  formSubtitle: {
+    color: crest.textSecondary,
+    fontSize: 15,
+    marginTop: 6,
+  },
+
+  card: {
+    borderWidth: 1,
+    borderColor: crest.border,
+    borderRadius: 20,
+    backgroundColor: crest.surface,
+    padding: 18,
+    marginBottom: 14,
+  },
 
   // ==========================================================
-  // LOGO
-  // ==========================================================
-
-  logoContainer: {
-    alignItems:
-      "center",
-
-    marginBottom:
-      6,
-  },
-
-  logo: {
-    width:
-      190,
-
-    height:
-      190,
-  },
-
-  createLogo: {
-    width:
-      120,
-
-    height:
-      120,
-  },
-
-
-  // ==========================================================
-  // MODE SWITCH
-  // ==========================================================
-
-  modeSwitch: {
-    height:
-      46,
-
-    flexDirection:
-      "row",
-
-    backgroundColor:
-      "rgba(5, 15, 30, 0.45)",
-
-    borderRadius:
-      14,
-
-    padding:
-      3,
-
-    marginBottom:
-      10,
-
-    borderWidth:
-      1,
-
-    borderColor:
-      "rgba(157, 190, 255, 0.25)",
-  },
-
-  modeButton: {
-    flex:
-      1,
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-
-    borderRadius:
-      11,
-  },
-
-  modeButtonActive: {
-    backgroundColor:
-      "#2563EB",
-
-    shadowColor:
-      "#2563EB",
-
-    shadowOffset: {
-      width:
-        0,
-
-      height:
-        4,
-    },
-
-    shadowOpacity:
-      0.25,
-
-    shadowRadius:
-      8,
-
-    elevation:
-      4,
-  },
-
-  modeButtonText: {
-    color:
-      "#94A3B8",
-
-    fontSize:
-      10,
-
-    fontWeight:
-      "800",
-
-    letterSpacing:
-      0.6,
-  },
-
-  modeButtonTextActive: {
-    color:
-      "#FFFFFF",
-  },
-
-
-  // ==========================================================
-  // CARD
-  // ==========================================================
-
-  loginCard: {
-    backgroundColor:
-      "rgba(5, 15, 30, 0.40)",
-
-    borderRadius:
-      22,
-
-    padding:
-      18,
-
-    shadowColor:
-      "#006EFF",
-
-    shadowOffset: {
-      width:
-        0,
-
-      height:
-        5,
-    },
-
-    shadowOpacity:
-      0.20,
-
-    shadowRadius:
-      15,
-
-    elevation:
-      6,
-  },
-
-  createAccountCard: {
-    padding:
-      16,
-
-    borderRadius:
-      20,
-  },
-
-
-  // ==========================================================
-  // INPUT CONTAINER
+  // INPUT
   // ==========================================================
 
   inputContainer: {
-    position:
-      "relative",
-
-    marginBottom:
-      20,
+    marginBottom: 16,
   },
 
-
-  // ==========================================================
-  // LABEL
-  // ==========================================================
-
-  floatingLabel: {
-    position:
-      "absolute",
-
-    left:
-      16,
-
-    top:
-      -8,
-
-    zIndex:
-      10,
-
-    backgroundColor:
-      "rgba(4, 14, 28, 0.90)",
-
-    paddingHorizontal:
-      5,
-
-    color:
-      "#9DBEFF",
-
-    fontSize:
-      13,
-
-    fontWeight:
-      "500",
+  inputLabel: {
+    color: crest.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
   },
 
-  floatingLabelFocused: {
-    color:
-      "#A8C7FF",
+  inputRow: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: crest.border,
+    borderRadius: 14,
+    backgroundColor: crest.bg,
+    paddingLeft: 14,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
-
-  // ==========================================================
-  // NORMAL INPUT
-  // ==========================================================
+  inputRowFocused: {
+    borderColor: crest.primary,
+  },
 
   input: {
-    height:
-      54,
-
-    backgroundColor:
-      "rgba(0, 0, 0, 0.08)",
-
-    borderWidth:
-      2,
-
-    borderColor:
-      "#64748B",
-
-    borderRadius:
-      5,
-
-    paddingHorizontal:
-      16,
-
-    color:
-      "#FFFFFF",
-
-    fontSize:
-      15,
+    flex: 1,
+    height: "100%",
+    paddingHorizontal: 10,
+    color: crest.text,
+    fontSize: 15,
   },
-
-  inputFocused: {
-    borderColor:
-      "#9DBEFF",
-
-    backgroundColor:
-      "rgba(0, 0, 0, 0.04)",
-
-    shadowColor:
-      "#258DFF",
-
-    shadowOffset: {
-      width:
-        0,
-
-      height:
-        0,
-    },
-
-    shadowOpacity:
-      0.25,
-
-    shadowRadius:
-      6,
-
-    elevation:
-      3,
-  },
-
-
-  // ==========================================================
-  // PASSWORD WRAPPER
-  // ==========================================================
-
-  passwordWrapper: {
-    position:
-      "relative",
-
-    width:
-      "100%",
-
-    height:
-      54,
-  },
-
-  passwordInputDirect: {
-    width:
-      "100%",
-
-    height:
-      54,
-
-    paddingRight:
-      75,
-  },
-
-
-  // ==========================================================
-  // SHOW / HIDE BUTTON
-  // ==========================================================
 
   showButton: {
-    position:
-      "absolute",
-
-    right:
-      0,
-
-    top:
-      0,
-
-    height:
-      54,
-
-    width:
-      68,
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-
-    zIndex:
-      50,
-
-    elevation:
-      10,
+    height: "100%",
+    paddingHorizontal: 14,
+    justifyContent: "center",
   },
-
-  showText: {
-    color:
-      "#9DBEFF",
-
-    fontSize:
-      10,
-
-    fontWeight:
-      "800",
-
-    letterSpacing:
-      0.8,
-  },
-
-
-  // ==========================================================
-  // FORGOT PASSWORD
-  // ==========================================================
 
   forgotButton: {
-    alignSelf:
-      "flex-end",
-
-    marginTop:
-      -1,
-
-    marginBottom:
-      18,
+    alignSelf: "flex-end",
+    paddingVertical: 2,
+    marginTop: -4,
+    marginBottom: 18,
   },
-
-  forgotText: {
-    color:
-      "#60A5FA",
-
-    fontSize:
-      11,
-
-    fontWeight:
-      "600",
-  },
-
-
-  // ==========================================================
-  // LOGIN BUTTON
-  // ==========================================================
-
-  loginButton: {
-    height:
-      54,
-
-    backgroundColor:
-      "#2563EB",
-
-    borderRadius:
-      14,
-
-    flexDirection:
-      "row",
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-
-    shadowColor:
-      "#2563EB",
-
-    shadowOffset: {
-      width:
-        0,
-
-      height:
-        6,
-    },
-
-    shadowOpacity:
-      0.30,
-
-    shadowRadius:
-      10,
-
-    elevation:
-      6,
-  },
-
-  loginButtonDisabled: {
-    opacity:
-      0.7,
-  },
-
-  loginButtonText: {
-    color:
-      "#FFFFFF",
-
-    fontSize:
-      15,
-
-    fontWeight:
-      "800",
-
-    letterSpacing:
-      0.8,
-  },
-
-
-  // ==========================================================
-  // QR SCANNER BUTTON
-  // ==========================================================
-
-  scannerButton: {
-    width:
-      48,
-
-    height:
-      48,
-
-    borderRadius:
-      24,
-
-    alignSelf:
-      "center",
-
-    marginTop:
-      18,
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-
-    backgroundColor:
-      "rgba(37, 99, 235, 0.18)",
-
-    borderWidth:
-      1,
-
-    borderColor:
-      "rgba(157, 190, 255, 0.45)",
-  },
-
-  scannerButtonText: {
-    color:
-      "#9DBEFF",
-
-    fontSize:
-      30,
-
-    fontWeight:
-      "300",
-
-    lineHeight:
-      32,
-  },
-
-  scannerHint: {
-    textAlign:
-      "center",
-
-    color:
-      "#64748B",
-
-    fontSize:
-      9,
-
-    fontWeight:
-      "600",
-
-    marginTop:
-      7,
-  },
-
 
   // ==========================================================
   // FOOTER
   // ==========================================================
 
-  footer: {
-    textAlign:
-      "center",
-
-    color:
-      "#64748B",
-
-    fontSize:
-      9,
-
-    fontWeight:
-      "700",
-
-    letterSpacing:
-      1.5,
-
-    marginTop:
-      18,
-
-    marginBottom:
-      2,
+  tagline: {
+    color: crest.textMuted,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 3,
+    textAlign: "center",
+    marginTop: 18,
   },
-
 });

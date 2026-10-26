@@ -4,76 +4,96 @@ import React, {
   useState,
 } from "react";
 
+import { crest } from "../constants/brand";
+
 // ============================================================
-// DARK THEME
+// DARK THEME (GYMRYT CREST)
 // ============================================================
 
 const darkTheme = {
   mode: "dark",
 
-  background: "#050816",
-  card: "#0B1220",
-  input: "#0D0D0D",
-  nav: "#080D19",
+  background: crest.bg,
+  backgroundSecondary: "#15112A",
+  card: crest.surface,
+  cardSecondary: "#201A3A",
+  cardElevated: crest.surfaceRaised,
+  surface: crest.surfaceRaised,
+  input: crest.bg,
+  nav: "#15112A",
 
-  text: "#FFFFFF",
-  secondaryText: "#94A3B8",
-  mutedText: "#64748B",
+  text: crest.text,
+  secondaryText: crest.textSecondary,
+  mutedText: crest.textMuted,
 
-  border: "#172554",
-  inputBorder: "#334155",
+  border: crest.border,
+  borderLight: "#3A3260",
+  inputBorder: crest.border,
 
-  primary: "#2563EB",
-  primaryLight: "#60A5FA",
+  primary: crest.primary,
+  primaryDark: crest.primaryHover,
+  primaryLight: crest.brand,
 
-  iconBackground: "#172554",
+  gold: crest.gold,
+  info: crest.info,
 
-  success: "#22C55E",
-  successBackground: "#052E16",
+  iconBackground: crest.primaryTint,
 
-  warning: "#F59E0B",
-  warningBackground: "#451A03",
+  success: crest.success,
+  successBackground: "#12302A",
 
-  danger: "#EF4444",
-  dangerBackground: "#450A0A",
+  warning: crest.warning,
+  warningBackground: "#3A2A12",
 
-  revenue: "#22C55E",
+  danger: crest.danger,
+  dangerBackground: "#3D1824",
+
+  revenue: crest.success,
 };
 
 // ============================================================
-// LIGHT THEME
+// LIGHT THEME (GYMRYT CREST)
 // ============================================================
 
 const lightTheme = {
   mode: "light",
 
-  background: "#F8FAFC",
+  background: "#F6F4FB",
+  backgroundSecondary: "#EEEBF7",
   card: "#FFFFFF",
+  cardSecondary: "#FAF9FD",
+  cardElevated: "#FFFFFF",
+  surface: "#FAF9FD",
   input: "#FFFFFF",
   nav: "#FFFFFF",
 
-  text: "#0F172A",
-  secondaryText: "#475569",
-  mutedText: "#64748B",
+  text: crest.bg,
+  secondaryText: "#4F4868",
+  mutedText: crest.textMuted,
 
-  border: "#E2E8F0",
-  inputBorder: "#CBD5E1",
+  border: "#E4E0F0",
+  borderLight: "#D3CCE6",
+  inputBorder: "#D3CCE6",
 
-  primary: "#2563EB",
-  primaryLight: "#2563EB",
+  primary: crest.primary,
+  primaryDark: crest.primaryHover,
+  primaryLight: crest.primaryHover,
 
-  iconBackground: "#DBEAFE",
+  gold: "#8A6410",
+  info: "#2F7DD8",
 
-  success: "#16A34A",
-  successBackground: "#DCFCE7",
+  iconBackground: "#ECE8FF",
 
-  warning: "#D97706",
+  success: "#059669",
+  successBackground: "#D1FAE5",
+
+  warning: "#B45309",
   warningBackground: "#FEF3C7",
 
-  danger: "#DC2626",
-  dangerBackground: "#FEE2E2",
+  danger: "#D93950",
+  dangerBackground: "#FDE4E8",
 
-  revenue: "#16A34A",
+  revenue: "#059669",
 };
 
 // ============================================================

@@ -14,6 +14,7 @@ import {
     ActivityIndicator,
     Modal,
     RefreshControl,
+    Platform,
 } from "react-native";
 
 import {
@@ -29,6 +30,7 @@ import {
 } from "expo-router";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -36,7 +38,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_BASE_URL =
-    "http://192.168.1.52:8000/api/members";
+    SERVER_URL + "/api/members";
 
 
 // ============================================================
@@ -58,52 +60,56 @@ export default function TrainerWorkout() {
     const theme = {
         background:
             colors?.background ||
-            (isDark ? "#020617" : "#F5F7FB"),
+            (isDark ? "#0F0B1F" : "#F6F4FB"),
 
         card:
             colors?.card ||
-            (isDark ? "#071321" : "#FFFFFF"),
+            (isDark ? "#1B1631" : "#FFFFFF"),
 
         cardSecondary:
             colors?.surface ||
             colors?.cardSecondary ||
-            (isDark ? "#0A1728" : "#F8FAFC"),
+            (isDark ? "#201A3A" : "#F3F0FA"),
 
         text:
             colors?.text ||
-            (isDark ? "#FFFFFF" : "#172033"),
+            (isDark ? "#FFFFFF" : "#0F0B1F"),
 
         muted:
             colors?.mutedText ||
-            (isDark ? "#91A0B6" : "#6B7280"),
+            (isDark ? "#9C95B5" : "#6E6788"),
 
         border:
             colors?.border ||
-            (isDark ? "#102D56" : "#E3E8F0"),
+            (isDark ? "#2B2448" : "#E4E0F0"),
 
         primary:
             colors?.primary ||
-            "#2563EB",
+            "#6C4DF5",
 
         primaryLight:
             colors?.primaryLight ||
-            "#4DA3FF",
+            "#B7A8FF",
+
+        gold:
+            colors?.gold ||
+            "#E9B949",
 
         iconBackground:
             colors?.iconBackground ||
-            (isDark ? "#102F69" : "#EAF2FF"),
+            (isDark ? "#2B2160" : "#ECE8FF"),
 
         input:
-            isDark ? "#020A16" : "#F8FAFC",
+            isDark ? "#0F0B1F" : "#F3F0FA",
 
         nav:
-            isDark ? "#061321" : "#FFFFFF",
+            isDark ? "#15112A" : "#FFFFFF",
 
         divider:
-            isDark ? "#102344" : "#E8EDF4",
+            isDark ? "#2B2448" : "#E4E0F0",
 
         danger:
-            "#FF4D5E",
+            "#F25C6E",
     };
 
 
@@ -1097,7 +1103,7 @@ export default function TrainerWorkout() {
                             styles.headerEyebrow,
                             {
                                 color:
-                                    theme.primaryLight,
+                                    theme.gold,
                             },
                         ]}
                     >
@@ -1498,7 +1504,7 @@ export default function TrainerWorkout() {
                                             {
                                                 backgroundColor:
                                                     index % 3 === 0
-                                                        ? "#173C91"
+                                                        ? "#2B2160"
                                                         : index % 3 === 1
                                                             ? "#075746"
                                                             : "#744300",
@@ -3269,10 +3275,14 @@ const styles =
         // ====================================================
 
         header: {
-            minHeight: 105,
             paddingHorizontal: 18,
-            paddingTop: 45,
-            paddingBottom: 12,
+
+            paddingTop:
+                Platform.OS === "ios"
+                    ? 54
+                    : 44,
+
+            paddingBottom: 14,
 
             flexDirection:
                 "row",
@@ -3282,9 +3292,6 @@ const styles =
 
             justifyContent:
                 "space-between",
-
-            borderBottomWidth:
-                1,
         },
 
         headerTextContainer: {
@@ -3292,14 +3299,14 @@ const styles =
         },
 
         headerEyebrow: {
-            fontSize: 10,
+            fontSize: 9,
             fontWeight: "900",
-            letterSpacing: 1.8,
-            marginBottom: 3,
+            letterSpacing: 1.4,
+            marginBottom: 4,
         },
 
         headerTitle: {
-            fontSize: 26,
+            fontSize: 22,
             fontWeight: "900",
         },
 
@@ -3435,14 +3442,14 @@ const styles =
         },
 
         sectionEyebrow: {
-            fontSize: 9,
+            fontSize: 8,
             fontWeight: "900",
-            letterSpacing: 1.5,
-            marginBottom: 2,
+            letterSpacing: 1.3,
+            marginBottom: 3,
         },
 
         sectionTitle: {
-            fontSize: 17,
+            fontSize: 18,
             fontWeight: "900",
         },
 
@@ -3747,7 +3754,7 @@ const styles =
             borderRadius: 4,
 
             backgroundColor:
-                "#68758A",
+                "#6E6788",
 
             alignSelf:
                 "center",

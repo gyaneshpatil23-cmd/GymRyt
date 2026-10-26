@@ -32,6 +32,7 @@ import {
 import {
   useTheme,
 } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -39,7 +40,7 @@ import {
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.52:8000/api/members/";
+  SERVER_URL + "/api/members/";
 
 
 // ============================================================
@@ -412,10 +413,10 @@ export default function TrainerMembersScreen() {
 
       const statusColor =
         isExpired
-          ? "#FF5870"
+          ? "#F25C6E"
           : isExpiring
-          ? "#FFB21C"
-          : "#45E0A5";
+          ? "#F5A524"
+          : "#34D399";
 
 
       return (
@@ -522,7 +523,7 @@ export default function TrainerMembersScreen() {
                 {
                   color:
                     colors.secondaryText ||
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
 
@@ -539,11 +540,11 @@ export default function TrainerMembersScreen() {
                 {
                   color:
                     isExpired
-                      ? "#FF5870"
+                      ? "#F25C6E"
                       : isExpiring
-                      ? "#FFB21C"
+                      ? "#F5A524"
                       : colors.secondaryText ||
-                        colors.mutedText,
+                        colors.secondaryText,
                 },
               ]}
             >
@@ -645,7 +646,7 @@ export default function TrainerMembersScreen() {
             {
               color:
                 colors.secondaryText ||
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -696,7 +697,7 @@ export default function TrainerMembersScreen() {
                 styles.eyebrow,
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >
@@ -848,7 +849,7 @@ export default function TrainerMembersScreen() {
                 {
                   color:
                     colors.secondaryText ||
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -882,7 +883,7 @@ export default function TrainerMembersScreen() {
                 {
                   color:
                     colors.secondaryText ||
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -978,7 +979,7 @@ export default function TrainerMembersScreen() {
                     {
                       color:
                         colors.secondaryText ||
-                        colors.mutedText,
+                        colors.secondaryText,
                     },
                   ]}
                 >
@@ -1046,7 +1047,7 @@ export default function TrainerMembersScreen() {
                 {
                   color:
                     colors.secondaryText ||
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -1114,7 +1115,7 @@ function TrainerBottomNavigation({
       ) {
 
         router.push(
-          "/trainer/workouts"
+          "/trainer/workout"
         );
 
         return;

@@ -35,6 +35,7 @@ import {
 import {
   useTheme,
 } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -42,7 +43,7 @@ import {
 // ============================================================
 
 const BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  SERVER_URL + "/api/members";
 
 const DASHBOARD_API =
   `${BASE_URL}/dashboard-stats/`;
@@ -618,7 +619,7 @@ export default function TrainerDashboard() {
             styles.loadingText,
             {
               color:
-                colors.mutedText ||
+                colors.secondaryText ||
                 colors.secondaryText,
             },
           ]}
@@ -1018,7 +1019,7 @@ export default function TrainerDashboard() {
 
               icon="people-outline"
 
-              iconColor="#36B7FF"
+              iconColor="#7DB6FF"
 
               colors={
                 colors
@@ -1035,7 +1036,7 @@ export default function TrainerDashboard() {
 
               icon="checkmark-circle-outline"
 
-              iconColor="#45E0A5"
+              iconColor="#34D399"
 
               colors={
                 colors
@@ -1052,7 +1053,7 @@ export default function TrainerDashboard() {
 
               icon="time-outline"
 
-              iconColor="#FFB21C"
+              iconColor="#F5A524"
 
               colors={
                 colors
@@ -1069,7 +1070,7 @@ export default function TrainerDashboard() {
 
               icon="close-circle-outline"
 
-              iconColor="#FF5870"
+              iconColor="#F25C6E"
 
               colors={
                 colors
@@ -1289,7 +1290,7 @@ export default function TrainerDashboard() {
                 styles.emptySubtitle,
                 {
                   color:
-                    colors.mutedText ||
+                    colors.secondaryText ||
                     colors.secondaryText,
                 },
               ]}
@@ -1675,10 +1676,10 @@ function MemberCard({
 
   const statusColor =
     isExpired
-      ? "#FF5870"
+      ? "#F25C6E"
       : isExpiring
-      ? "#FFB21C"
-      : "#45E0A5";
+      ? "#F5A524"
+      : "#34D399";
 
 
   const memberName =
@@ -1793,9 +1794,9 @@ function MemberCard({
             {
               color:
                 isExpired
-                  ? "#FF5870"
+                  ? "#F25C6E"
                   : isExpiring
-                  ? "#FFB21C"
+                  ? "#F5A524"
                   : colors.secondaryText,
             },
           ]}
@@ -1897,7 +1898,7 @@ function TrainerBottomNavigation({
       ) {
 
         router.push(
-          "/trainer/workouts"
+          "/trainer/workout"
         );
 
         return;
@@ -1981,7 +1982,7 @@ function TrainerBottomNavigation({
           colors
         }
         onPress={() =>
-          goTo("trainer/workout")
+          goTo("workouts")
         }
       />
 

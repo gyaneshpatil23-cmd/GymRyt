@@ -6,10 +6,10 @@ SECRET_KEY = 'django-insecure-xq3uqye&&_r2v*t*=+1^$w-p$z6$d02@kjob5-i-5%o3-qhq8m
 
 DEBUG = True
 
-ALLOWED_HOSTS = [
+# In development the PC's LAN IP changes with DHCP, so accept any host.
+ALLOWED_HOSTS = ["*"] if DEBUG else [
     "127.0.0.1",
     "localhost",
-    "192.168.1.52",
 ]
 
 INSTALLED_APPS = [

@@ -26,6 +26,7 @@ import {
 } from "expo-router";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -33,7 +34,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.52:8000/api/members";
+  SERVER_URL + "/api/members";
 
 
 // ============================================================
@@ -471,13 +472,13 @@ export default function TrainerAttendanceScreen() {
     ) {
 
       case "PRESENT":
-        return "#2ECC71";
+        return "#34D399";
 
       case "LATE":
-        return "#F5A623";
+        return "#F5A524";
 
       case "ABSENT":
-        return "#FF4D5E";
+        return "#F25C6E";
 
       default:
         return colors.primaryLight;
@@ -648,7 +649,7 @@ export default function TrainerAttendanceScreen() {
             {
               color:
                 colors.secondaryText ||
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -693,7 +694,7 @@ export default function TrainerAttendanceScreen() {
               styles.eyebrow,
               {
                 color:
-                  colors.primaryLight,
+                  colors.gold,
               },
             ]}
           >
@@ -886,21 +887,21 @@ export default function TrainerAttendanceScreen() {
             <SummaryStat
               label="PRESENT"
               value={summary.present}
-              color="#2ECC71"
+              color="#34D399"
               colors={colors}
             />
 
             <SummaryStat
               label="LATE"
               value={summary.late}
-              color="#F5A623"
+              color="#F5A524"
               colors={colors}
             />
 
             <SummaryStat
               label="ABSENT"
               value={summary.absent}
-              color="#FF4D5E"
+              color="#F25C6E"
               colors={colors}
             />
 
@@ -977,7 +978,7 @@ export default function TrainerAttendanceScreen() {
                         active
                           ? "#FFFFFF"
                           : colors.secondaryText ||
-                            colors.mutedText,
+                            colors.secondaryText,
                     },
                   ]}
                 >
@@ -1050,7 +1051,7 @@ export default function TrainerAttendanceScreen() {
                         selectedDate === "ALL"
                           ? "#FFFFFF"
                           : colors.secondaryText ||
-                            colors.mutedText,
+                            colors.secondaryText,
                     },
                   ]}
                 >
@@ -1100,7 +1101,7 @@ export default function TrainerAttendanceScreen() {
                               active
                                 ? "#FFFFFF"
                                 : colors.secondaryText ||
-                                  colors.mutedText,
+                                  colors.secondaryText,
                           },
                         ]}
                       >
@@ -1196,7 +1197,7 @@ export default function TrainerAttendanceScreen() {
                 {
                   color:
                     colors.secondaryText ||
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -1268,7 +1269,7 @@ export default function TrainerAttendanceScreen() {
                 {
                   color:
                     colors.secondaryText ||
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -1379,7 +1380,7 @@ function SummaryStat({
           {
             color:
               colors.secondaryText ||
-              colors.mutedText,
+              colors.secondaryText,
           },
         ]}
       >
@@ -1494,7 +1495,7 @@ function AttendanceCard({
                 {
                   color:
                     colors.secondaryText ||
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
               numberOfLines={1}
@@ -1650,7 +1651,7 @@ function AttendanceCard({
               {
                 color:
                   colors.secondaryText ||
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
@@ -1713,7 +1714,7 @@ function DetailItem({
             {
               color:
                 colors.secondaryText ||
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -2094,7 +2095,7 @@ const styles =
     summaryCard: {
       borderWidth: 1,
 
-      borderRadius: 24,
+      borderRadius: 26,
 
       padding: 17,
 
