@@ -25,13 +25,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 // ======================================================
 // API
 // ======================================================
 
 const BASE_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 const DASHBOARD_API =
   `${BASE_URL}/dashboard-stats/`;
@@ -519,7 +520,7 @@ export default function OwnerTrainerDashboard() {
             styles.loadingText,
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -800,7 +801,7 @@ export default function OwnerTrainerDashboard() {
               }
               label="TOTAL MEMBERS"
               icon="people-outline"
-              iconColor="#36B7FF"
+              iconColor="#7DB6FF"
               colors={colors}
               onPress={() =>
                 router.push(
@@ -815,7 +816,7 @@ export default function OwnerTrainerDashboard() {
               }
               label="REVENUE"
               icon="cash-outline"
-              iconColor="#45E0A5"
+              iconColor="#34D399"
               colors={colors}
               onPress={() =>
                 router.push(
@@ -834,7 +835,7 @@ export default function OwnerTrainerDashboard() {
                   : "EXPIRED MEMBERS"
               }
               icon="close-circle-outline"
-              iconColor="#FF5870"
+              iconColor="#F25C6E"
               colors={colors}
               onPress={() =>
                 router.push(
@@ -849,7 +850,7 @@ export default function OwnerTrainerDashboard() {
               }
               label="TODAY'S ATTENDANCE"
               icon="checkmark-circle-outline"
-              iconColor="#FFB21C"
+              iconColor="#F5A524"
               colors={colors}
             />
 
@@ -1059,7 +1060,7 @@ export default function OwnerTrainerDashboard() {
                 styles.emptySubtitle,
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -1382,11 +1383,11 @@ function MemberCard({
 
   const statusColor =
     isExpired
-      ? "#FF5870"
+      ? "#F25C6E"
       : isExpiring
-      ? "#FFB21C"
+      ? "#F5A524"
       : isActive
-      ? "#45E0A5"
+      ? "#34D399"
       : colors.secondaryText;
 
   return (
@@ -1459,9 +1460,9 @@ function MemberCard({
             {
               color:
                 isExpired
-                  ? "#FF5870"
+                  ? "#F25C6E"
                   : isExpiring
-                  ? "#FFB21C"
+                  ? "#F5A524"
                   : colors.secondaryText,
             },
           ]}

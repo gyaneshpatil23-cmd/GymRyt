@@ -15,9 +15,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members/register/";
+  SERVER_URL + "/api/members/register/";
 
 export default function MemberRegisterScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
@@ -472,7 +473,7 @@ export default function MemberRegisterScreen() {
                 <Ionicons
                   name="checkmark-circle"
                   size={24}
-                  color="#45E0A5"
+                  color="#34D399"
                 />
               </View>
 

@@ -19,6 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -26,7 +27,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members/";
+  SERVER_URL + "/api/members/";
 
 
 // ============================================================
@@ -452,15 +453,15 @@ export default function MembersScreen() {
   ) => {
 
     if (status === "ACTIVE") {
-      return "#45E0A5";
+      return "#34D399";
     }
 
     if (status === "EXPIRING") {
-      return "#FFB21C";
+      return "#F5A524";
     }
 
     if (status === "EXPIRED") {
-      return "#FF5870";
+      return "#F25C6E";
     }
 
     return colors.secondaryText;
@@ -604,12 +605,12 @@ export default function MembersScreen() {
                   item.status ===
                   "EXPIRED"
 
-                    ? "#FF5870"
+                    ? "#F25C6E"
 
                     : item.status ===
                       "EXPIRING"
 
-                    ? "#FFB21C"
+                    ? "#F5A524"
 
                     : colors.secondaryText,
               },
@@ -750,7 +751,7 @@ export default function MembersScreen() {
 
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -803,7 +804,7 @@ export default function MembersScreen() {
 
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >
@@ -1325,7 +1326,7 @@ export default function MembersScreen() {
 
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >

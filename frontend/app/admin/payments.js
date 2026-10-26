@@ -25,13 +25,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 // ============================================================
 // API CONFIG
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 // ============================================================
 // PAYMENTS SCREEN
@@ -456,14 +457,14 @@ export default function Payments() {
       ).toUpperCase();
 
     if (value === "FAILED") {
-      return "#FF5870";
+      return "#F25C6E";
     }
 
     if (value === "PENDING") {
-      return "#FFB21C";
+      return "#F5A524";
     }
 
-    return "#45E0A5";
+    return "#34D399";
   };
 
   // ==========================================================
@@ -586,7 +587,7 @@ export default function Payments() {
             styles.loadingText,
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -652,7 +653,7 @@ export default function Payments() {
                 styles.eyebrow,
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >
@@ -831,7 +832,7 @@ export default function Payments() {
               <Ionicons
                 name="cash-outline"
                 size={26}
-                color="#45E0A5"
+                color="#34D399"
               />
             </View>
 
@@ -893,7 +894,7 @@ export default function Payments() {
                 }
               )}
               icon="calendar-outline"
-              iconColor="#36B7FF"
+              iconColor="#7DB6FF"
               colors={colors}
             />
 
@@ -906,7 +907,7 @@ export default function Payments() {
                 new Date().getFullYear()
               )}
               icon="trending-up-outline"
-              iconColor="#45E0A5"
+              iconColor="#34D399"
               colors={colors}
             />
 
@@ -917,7 +918,7 @@ export default function Payments() {
               )}
               subtext="Total transactions"
               icon="receipt-outline"
-              iconColor="#FFB21C"
+              iconColor="#F5A524"
               colors={colors}
             />
 
@@ -930,7 +931,7 @@ export default function Payments() {
               )}`}
               subtext="Per payment"
               icon="analytics-outline"
-              iconColor="#A78BFA"
+              iconColor="#B7A8FF"
               colors={colors}
             />
           </View>
@@ -1087,7 +1088,7 @@ export default function Payments() {
                           styles.paymentDate,
                           {
                             color:
-                              colors.mutedText,
+                              colors.secondaryText,
                           },
                         ]}
                       >
@@ -1170,7 +1171,7 @@ export default function Payments() {
             <Ionicons
               name="checkmark-circle"
               size={16}
-              color="#45E0A5"
+              color="#34D399"
             />
 
             <Text
@@ -1308,7 +1309,7 @@ function FinanceStat({
           styles.statSubtext,
           {
             color:
-              colors.mutedText,
+              colors.secondaryText,
           },
         ]}
         numberOfLines={1}
@@ -1444,12 +1445,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#45E0A5",
+    backgroundColor: "#34D399",
     marginRight: 5,
   },
 
   liveText: {
-    color: "#45E0A5",
+    color: "#34D399",
     fontSize: 8,
     fontWeight: "900",
     letterSpacing: 0.6,

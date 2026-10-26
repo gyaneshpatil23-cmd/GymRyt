@@ -26,6 +26,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -33,7 +34,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 
 export default function TrainerDetailsScreen() {
@@ -525,7 +526,7 @@ export default function TrainerDetailsScreen() {
             styles.loadingText,
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -628,8 +629,8 @@ export default function TrainerDetailsScreen() {
 
   const statusColor =
     isActive
-      ? "#45E0A5"
-      : "#FF5870";
+      ? "#34D399"
+      : "#F25C6E";
 
   const trainerName =
     trainer.name ||
@@ -689,7 +690,7 @@ export default function TrainerDetailsScreen() {
               styles.eyebrow,
               {
                 color:
-                  colors.primaryLight,
+                  colors.gold,
               },
             ]}
           >
@@ -1168,7 +1169,7 @@ export default function TrainerDetailsScreen() {
           {deleting ? (
 
             <ActivityIndicator
-              color="#FF4D5E"
+              color="#F25C6E"
             />
 
           ) : (
@@ -1177,7 +1178,7 @@ export default function TrainerDetailsScreen() {
               <Ionicons
                 name="trash-outline"
                 size={19}
-                color="#FF4D5E"
+                color="#F25C6E"
               />
 
               <Text
@@ -1647,7 +1648,7 @@ const styles = StyleSheet.create({
   },
 
   deleteButtonText: {
-    color: "#FF4D5E",
+    color: "#F25C6E",
     fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0.8,

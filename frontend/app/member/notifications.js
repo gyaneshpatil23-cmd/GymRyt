@@ -27,13 +27,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 // ============================================================
 // API CONFIGURATION
 // ============================================================
 
 const BASE_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 const NOTIFICATIONS_API =
   `${BASE_URL}/member-notifications/`;
@@ -843,28 +844,28 @@ export default function MemberNotifications() {
       switch (type) {
 
         case "TRAINER_ASSIGNED":
-          return "#36B7FF";
+          return "#7DB6FF";
 
         case "WORKOUT_UPLOADED":
-          return "#A78BFA";
+          return "#B7A8FF";
 
         case "MEMBERSHIP_EXPIRING":
-          return "#FFB21C";
+          return "#F5A524";
 
         case "MEMBERSHIP_EXPIRED":
-          return "#FF5870";
+          return "#F25C6E";
 
         case "PAYMENT_RECEIVED":
-          return "#45E0A5";
+          return "#34D399";
 
         case "PAYMENT_FAILED":
-          return "#FF5870";
+          return "#F25C6E";
 
         case "WELCOME":
-          return "#36B7FF";
+          return "#7DB6FF";
 
         default:
-          return "#60A5FA";
+          return "#7DB6FF";
       }
     };
 
@@ -1182,7 +1183,7 @@ export default function MemberNotifications() {
 
                   {
                     color:
-                      colors.mutedText,
+                      colors.secondaryText,
                   },
                 ]}
               >
@@ -1344,7 +1345,7 @@ export default function MemberNotifications() {
 
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -1413,7 +1414,7 @@ export default function MemberNotifications() {
 
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >

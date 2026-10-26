@@ -1,33 +1,38 @@
 import { router } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   Image,
-  ImageBackground,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Alert,
   ActivityIndicator,
+  BackHandler,
+  useWindowDimensions,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useTheme } from "../context/ThemeContext";
+import { crest } from "../constants/brand";
+import { SERVER_URL } from "../constants/api";
 
 
 // ============================================================
 // API
 // ============================================================
 
-const API_URL = "http://192.168.1.43:8000";
+const API_URL = SERVER_URL;
 
 
 // ============================================================
@@ -36,7 +41,18 @@ const API_URL = "http://192.168.1.43:8000";
 
 export default function LoginScreen() {
 
-  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+
+  // ==========================================================
+  // STAGE
+  // ==========================================================
+
+  // "welcome" → intro slides, "choose" → join or register a gym,
+  // "form" → login or create account
+
+  const [stage, setStage] = useState("welcome");
+  const [slide, setSlide] = useState(0);
 
   // ==========================================================
   // MODE
@@ -1053,20 +1069,240 @@ export default function LoginScreen() {
   };
 
   // ==========================================================
+  // NAVIGATION BETWEEN STAGES
+  // ==========================================================
+
+  const openForm = (createAccount) => {
+    switchMode(createAccount);
+    setStage("form");
+  };
+
+  const goBack = () => {
+    if (stage === "form" && isCreateAccount) {
+      setStage("choose");
+    } else {
+      setStage("welcome");
+    }
+  };
+
+
+  // ==========================================================
+  // ANDROID BACK BUTTON
+  // ==========================================================
+
+  useEffect(() => {
+
+    if (stage === "welcome") {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        setStage(
+          stage === "form" && isCreateAccount
+            ? "choose"
+            : "welcome"
+        );
+        return true;
+      }
+    );
+
+    return () => subscription.remove();
+
+  }, [stage, isCreateAccount]);
+
+
+  // ==========================================================
   // UI
   // ==========================================================
 
   return (
-    <ImageBackground
-      source={require(
-        "../assets/images/gymryt-bg.png"
+    <View style={styles.screen}>
+
+      <StatusBar style="light" />
+
+      {/* ==================================================
+          BACKGROUND
+      ================================================== */}
+
+      <Image
+        source={require(
+          "../assets/images/crest-login-background.jpg"
+        )}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+
+      <LinearGradient
+        colors={[
+          "rgba(15, 11, 31, 0)",
+          "rgba(15, 11, 31, 0.6)",
+          crest.bg,
+        ]}
+        locations={[0.35, 0.6, 0.9]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {stage === "form" && (
+        <View style={styles.formDim} />
       )}
-      style={styles.background}
-      resizeMode="cover"
-    >
+
+      {stage === "form"
+        ? renderForm()
+        : renderIntro()}
+    </View>
+  );
+
+
+  // ==========================================================
+  // WELCOME + CHOOSE
+  // ==========================================================
+
+  function renderIntro() {
+    return (
       <View
-        style={styles.backgroundOverlay}
+        style={[
+          styles.introContainer,
+          {
+            paddingTop: insets.top + 24,
+            paddingBottom: insets.bottom + 28,
+          },
+        ]}
       >
+        <Wordmark size={22} />
+
+        <View style={styles.introSpacer} />
+
+        {stage === "welcome"
+          ? renderWelcome()
+          : renderChoose()}
+      </View>
+    );
+  }
+
+
+  // ==========================================================
+  // WELCOME
+  // ==========================================================
+
+  function renderWelcome() {
+    return (
+      <>
+
+        {/* SLIDES */}
+
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(event) =>
+            setSlide(
+              Math.round(
+                event.nativeEvent.contentOffset.x / width
+              )
+            )
+          }
+          style={styles.slides}
+        >
+          {SLIDES.map((item) => (
+            <View
+              key={item.title}
+              style={[styles.slide, { width }]}
+            >
+              <Text style={styles.headline}>
+                {item.title}
+                {"\n"}
+                <Text style={styles.headlineAccent}>
+                  {item.accent}
+                </Text>
+              </Text>
+
+              <Text style={styles.slideBody}>
+                {item.body}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* PAGER */}
+
+        <View style={styles.pager}>
+          {SLIDES.map((item, index) => (
+            <View
+              key={item.title}
+              style={[
+                styles.pagerDot,
+                index === slide && styles.pagerDotActive,
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* ACTIONS */}
+
+        <View style={styles.actions}>
+          <CrestButton
+            label="Get started"
+            onPress={() => setStage("choose")}
+          />
+
+          <CrestButton
+            label="I have an account"
+            variant="outline"
+            onPress={() => openForm(false)}
+          />
+        </View>
+      </>
+    );
+  }
+
+
+  // ==========================================================
+  // CHOOSE: JOIN A GYM OR REGISTER ONE
+  // ==========================================================
+
+  function renderChoose() {
+    return (
+      <View style={styles.chooseContainer}>
+        <Text style={styles.chooseTitle}>
+          How are you joining?
+        </Text>
+
+        <OptionCard
+          icon="qr-code-outline"
+          title="Join my gym"
+          hint="Scan the QR code at your gym to sign up as a member"
+          onPress={() => router.push("/scanner")}
+        />
+
+        <OptionCard
+          icon="business-outline"
+          title="Register my gym"
+          hint="Create the owner account for your gym"
+          onPress={() => openForm(true)}
+        />
+
+        <Pressable
+          style={styles.textLink}
+          onPress={() => setStage("welcome")}
+          hitSlop={8}
+        >
+          <Text style={styles.textLinkMuted}>
+            Back
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+
+  // ==========================================================
+  // LOGIN / CREATE ACCOUNT FORM
+  // ==========================================================
+
+  function renderForm() {
+    return (
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior="padding"
@@ -1081,8 +1317,10 @@ export default function LoginScreen() {
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContainer,
-            isCreateAccount &&
-              styles.createScrollContainer,
+            {
+              paddingTop: insets.top + 12,
+              paddingBottom: insets.bottom + 32,
+            },
           ]}
           keyboardShouldPersistTaps="always"
           keyboardDismissMode={
@@ -1090,148 +1328,56 @@ export default function LoginScreen() {
               ? "interactive"
               : "on-drag"
           }
-          showsVerticalScrollIndicator={
-            false
-          }
-          automaticallyAdjustKeyboardInsets={
-            true
-          }
-          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets={true}
           nestedScrollEnabled={true}
         >
-          <View
-            style={styles.content}
-          >
+          <View style={styles.content}>
 
             {/* ==================================================
-                LOGO
+                TOP BAR
             ================================================== */}
 
-            <View
-              style={styles.logoContainer}
+            <Pressable
+              style={({ pressed }) => [
+                styles.backButton,
+                pressed && styles.backButtonPressed,
+              ]}
+              onPress={goBack}
+              disabled={loading}
+              hitSlop={6}
             >
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={crest.text}
+              />
+            </Pressable>
+
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
+            <View style={styles.header}>
               <Image
                 source={require(
-                  "../assets/images/gymryt-logo.png"
+                  "../assets/images/crest-logo-small.png"
                 )}
-                style={[
-                  styles.logo,
-                  isCreateAccount &&
-                    styles.createLogo,
-                ]}
+                style={styles.crest}
                 resizeMode="contain"
               />
 
-              <Text
-                style={[
-                  styles.eyebrow,
-                  {
-                    color:
-                      colors.primaryLight,
-                  },
-                ]}
-              >
+              <Text style={styles.formTitle}>
                 {isCreateAccount
-                  ? "GYMRYT • NEW GYM"
-                  : "GYMRYT • WELCOME BACK"}
+                  ? "Register your gym"
+                  : "Welcome back"}
               </Text>
 
-              <Text
-                style={[
-                  styles.title,
-                  {
-                    color:
-                      colors.text,
-                  },
-                ]}
-              >
+              <Text style={styles.formSubtitle}>
                 {isCreateAccount
-                  ? "Create Account"
-                  : "Login to GymRyt"}
+                  ? "Create the owner account for your gym."
+                  : "Log in to your GymRyt account."}
               </Text>
-            </View>
-
-            {/* ==================================================
-                MODE SWITCH
-            ================================================== */}
-
-            <View
-              style={[
-                styles.modeSwitch,
-                {
-                  backgroundColor:
-                    colors.card,
-                  borderColor:
-                    colors.border,
-                },
-              ]}
-            >
-
-              {/* LOGIN */}
-
-              <TouchableOpacity
-                style={[
-                  styles.modeButton,
-                  !isCreateAccount && {
-                    backgroundColor:
-                      colors.iconBackground,
-                    borderColor:
-                      colors.primaryLight,
-                  },
-                ]}
-                onPress={() =>
-                  switchMode(false)
-                }
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.modeButtonText,
-                    {
-                      color:
-                        !isCreateAccount
-                          ? colors.primaryLight
-                          : colors.secondaryText,
-                    },
-                  ]}
-                >
-                  LOGIN
-                </Text>
-              </TouchableOpacity>
-
-              {/* CREATE ACCOUNT */}
-
-              <TouchableOpacity
-                style={[
-                  styles.modeButton,
-                  isCreateAccount && {
-                    backgroundColor:
-                      colors.iconBackground,
-                    borderColor:
-                      colors.primaryLight,
-                  },
-                ]}
-                onPress={() =>
-                  switchMode(true)
-                }
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.modeButtonText,
-                    {
-                      color:
-                        isCreateAccount
-                          ? colors.primaryLight
-                          : colors.secondaryText,
-                    },
-                  ]}
-                >
-                  CREATE ACCOUNT
-                </Text>
-              </TouchableOpacity>
             </View>
 
             {/* ==================================================
@@ -1240,278 +1386,70 @@ export default function LoginScreen() {
 
             {!isCreateAccount ? (
 
-              <View
-                style={[
-                  styles.loginCard,
-                  {
-                    backgroundColor:
-                      colors.card,
-                    borderColor:
-                      colors.border,
-                  },
-                ]}
-              >
-
-                {/* ==================================================
-                    USERNAME
-                ================================================== */}
+              <View style={styles.card}>
 
                 <FormField
                   icon="person-outline"
-                  label="USERNAME"
+                  label="Username"
                   focused={usernameFocused}
-                  colors={colors}
                 >
                   <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
+                    style={styles.input}
                     value={username}
-                    onChangeText={
-                      setUsername
-                    }
+                    onChangeText={setUsername}
                     autoCapitalize="none"
                     autoCorrect={false}
                     editable={!loading}
-                    placeholder=""
-                    placeholderTextColor="transparent"
                     returnKeyType="next"
-                    onFocus={() =>
-                      setUsernameFocused(true)
-                    }
-                    onBlur={() =>
-                      setUsernameFocused(false)
-                    }
-                    selectionColor={
-                      colors.primaryLight
-                    }
+                    onFocus={() => setUsernameFocused(true)}
+                    onBlur={() => setUsernameFocused(false)}
+                    selectionColor={crest.brand}
                     blurOnSubmit={false}
                   />
                 </FormField>
 
-                {/* ==================================================
-                    PASSWORD
-                ================================================== */}
-
                 <FormField
                   icon="lock-closed-outline"
-                  label="PASSWORD"
+                  label="Password"
                   focused={passwordFocused}
-                  colors={colors}
                 >
                   <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
+                    style={styles.input}
                     value={password}
-                    onChangeText={
-                      setPassword
-                    }
-                    secureTextEntry={
-                      !showPassword
-                    }
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
                     editable={!loading}
-                    placeholder=""
-                    placeholderTextColor="transparent"
                     returnKeyType="done"
-                    onFocus={() =>
-                      setPasswordFocused(true)
-                    }
-                    onBlur={() =>
-                      setPasswordFocused(false)
-                    }
-                    selectionColor={
-                      colors.primaryLight
-                    }
-                    onSubmitEditing={
-                      handleLogin
-                    }
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    selectionColor={crest.brand}
+                    onSubmitEditing={handleLogin}
                   />
 
-                  {/* SHOW / HIDE */}
-
-                  <TouchableOpacity
-                    style={
-                      styles.showButton
-                    }
-                    onPress={() =>
-                      setShowPassword(
-                        !showPassword
-                      )
-                    }
+                  <ShowPasswordToggle
+                    visible={showPassword}
+                    onPress={() => setShowPassword(!showPassword)}
                     disabled={loading}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={
-                        showPassword
-                          ? "eye-off-outline"
-                          : "eye-outline"
-                      }
-                      size={19}
-                      color={
-                        colors.secondaryText
-                      }
-                    />
-                  </TouchableOpacity>
+                  />
                 </FormField>
 
-                {/* ==================================================
-                    FORGOT PASSWORD
-                ================================================== */}
-
-                <TouchableOpacity
-                  style={
-                    styles.forgotButton
-                  }
+                <Pressable
+                  style={styles.forgotButton}
                   disabled={loading}
-                  activeOpacity={0.7}
+                  hitSlop={8}
                 >
-                  <Text
-                    style={[
-                      styles.forgotText,
-                      {
-                        color:
-                          colors.primaryLight,
-                      },
-                    ]}
-                  >
-                    Forgot Password?
+                  <Text style={styles.linkText}>
+                    Forgot password?
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
 
-                {/* ==================================================
-                    LOGIN BUTTON
-                ================================================== */}
-
-                <TouchableOpacity
-                  style={[
-                    styles.loginButton,
-                    {
-                      backgroundColor:
-                        colors.primary,
-                    },
-                    loading &&
-                      styles.loginButtonDisabled,
-                  ]}
-                  onPress={
-                    handleLogin
-                  }
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  {loading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color="#FFFFFF"
-                    />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="log-in-outline"
-                        size={19}
-                        color="#FFFFFF"
-                      />
-
-                      <Text
-                        style={
-                          styles.loginButtonText
-                        }
-                      >
-                        LOGIN
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                {/* ==================================================
-                    MEMBER QR SCANNER
-                ================================================== */}
-
-                <TouchableOpacity
-                  style={[
-                    styles.scannerButton,
-                    {
-                      backgroundColor:
-                        colors.background,
-                      borderColor:
-                        colors.border,
-                    },
-                  ]}
-                  onPress={() =>
-                    router.push(
-                      "/scanner"
-                    )
-                  }
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  <View
-                    style={[
-                      styles.scannerIcon,
-                      {
-                        backgroundColor:
-                          colors.iconBackground,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name="qr-code-outline"
-                      size={21}
-                      color={
-                        colors.primaryLight
-                      }
-                    />
-                  </View>
-
-                  <View
-                    style={
-                      styles.scannerTextContainer
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.scannerButtonText,
-                        {
-                          color:
-                            colors.text,
-                        },
-                      ]}
-                    >
-                      Scan Gym QR
-                    </Text>
-
-                    <Text
-                      style={[
-                        styles.scannerHint,
-                        {
-                          color:
-                            colors.secondaryText,
-                        },
-                      ]}
-                    >
-                      Scan gym QR to register
-                    </Text>
-                  </View>
-
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={
-                      colors.secondaryText
-                    }
-                  />
-                </TouchableOpacity>
+                <CrestButton
+                  label="Log in"
+                  onPress={handleLogin}
+                  loading={loading}
+                />
               </View>
 
             ) : (
@@ -1520,102 +1458,48 @@ export default function LoginScreen() {
                   CREATE ACCOUNT
               ================================================== */
 
-              <View
-                style={[
-                  styles.loginCard,
-                  {
-                    backgroundColor:
-                      colors.card,
-                    borderColor:
-                      colors.border,
-                  },
-                ]}
-              >
-
-                {/* ==================================================
-                    FULL NAME
-                ================================================== */}
+              <View style={styles.card}>
 
                 <FormField
                   icon="person-outline"
-                  label="FULL NAME"
+                  label="Full name"
                   focused={fullNameFocused}
-                  colors={colors}
                 >
                   <TextInput
                     ref={fullNameRef}
-                    style={[
-                      styles.input,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
+                    style={styles.input}
                     value={fullName}
-                    onChangeText={
-                      setFullName
-                    }
+                    onChangeText={setFullName}
                     autoCapitalize="words"
                     autoCorrect={false}
                     editable={!loading}
-                    placeholder=""
-                    placeholderTextColor="transparent"
                     returnKeyType="next"
-                    onFocus={() =>
-                      setFullNameFocused(true)
-                    }
-                    onBlur={() =>
-                      setFullNameFocused(false)
-                    }
-                    selectionColor={
-                      colors.primaryLight
-                    }
-                    onSubmitEditing={() =>
-                      emailRef.current?.focus()
-                    }
+                    onFocus={() => setFullNameFocused(true)}
+                    onBlur={() => setFullNameFocused(false)}
+                    selectionColor={crest.brand}
+                    onSubmitEditing={() => emailRef.current?.focus()}
                     blurOnSubmit={false}
                   />
                 </FormField>
 
-                {/* ==================================================
-                    EMAIL
-                ================================================== */}
-
                 <FormField
                   icon="mail-outline"
-                  label="EMAIL"
+                  label="Email"
                   focused={emailFocused}
-                  colors={colors}
                 >
                   <TextInput
                     ref={emailRef}
-                    style={[
-                      styles.input,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
+                    style={styles.input}
                     value={email}
-                    onChangeText={
-                      setEmail
-                    }
+                    onChangeText={setEmail}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
                     editable={!loading}
-                    placeholder=""
-                    placeholderTextColor="transparent"
                     returnKeyType="next"
-                    onFocus={() =>
-                      setEmailFocused(true)
-                    }
-                    onBlur={() =>
-                      setEmailFocused(false)
-                    }
-                    selectionColor={
-                      colors.primaryLight
-                    }
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    selectionColor={crest.brand}
                     onSubmitEditing={() =>
                       createUsernameRef.current?.focus()
                     }
@@ -1623,52 +1507,23 @@ export default function LoginScreen() {
                   />
                 </FormField>
 
-                {/* ==================================================
-                    USERNAME
-                ================================================== */}
-
                 <FormField
                   icon="at-outline"
-                  label="USERNAME"
+                  label="Username"
                   focused={createUsernameFocused}
-                  colors={colors}
                 >
                   <TextInput
-                    ref={
-                      createUsernameRef
-                    }
-                    style={[
-                      styles.input,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
-                    value={
-                      createUsername
-                    }
-                    onChangeText={
-                      setCreateUsername
-                    }
+                    ref={createUsernameRef}
+                    style={styles.input}
+                    value={createUsername}
+                    onChangeText={setCreateUsername}
                     autoCapitalize="none"
                     autoCorrect={false}
                     editable={!loading}
-                    placeholder=""
-                    placeholderTextColor="transparent"
                     returnKeyType="next"
-                    onFocus={() =>
-                      setCreateUsernameFocused(
-                        true
-                      )
-                    }
-                    onBlur={() =>
-                      setCreateUsernameFocused(
-                        false
-                      )
-                    }
-                    selectionColor={
-                      colors.primaryLight
-                    }
+                    onFocus={() => setCreateUsernameFocused(true)}
+                    onBlur={() => setCreateUsernameFocused(false)}
+                    selectionColor={crest.brand}
                     onSubmitEditing={() =>
                       createPasswordRef.current?.focus()
                     }
@@ -1676,258 +1531,250 @@ export default function LoginScreen() {
                   />
                 </FormField>
 
-                {/* ==================================================
-                    CREATE PASSWORD
-                ================================================== */}
-
                 <FormField
                   icon="lock-closed-outline"
-                  label="PASSWORD"
+                  label="Password"
                   focused={createPasswordFocused}
-                  colors={colors}
                 >
                   <TextInput
-                    ref={
-                      createPasswordRef
-                    }
-                    style={[
-                      styles.input,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
-                    value={
-                      createPassword
-                    }
-                    onChangeText={
-                      setCreatePassword
-                    }
-                    secureTextEntry={
-                      !showCreatePassword
-                    }
+                    ref={createPasswordRef}
+                    style={styles.input}
+                    value={createPassword}
+                    onChangeText={setCreatePassword}
+                    secureTextEntry={!showCreatePassword}
                     autoCapitalize="none"
                     autoCorrect={false}
                     editable={!loading}
-                    placeholder=""
-                    placeholderTextColor="transparent"
                     returnKeyType="next"
-                    onFocus={() =>
-                      setCreatePasswordFocused(
-                        true
-                      )
-                    }
-                    onBlur={() =>
-                      setCreatePasswordFocused(
-                        false
-                      )
-                    }
-                    selectionColor={
-                      colors.primaryLight
-                    }
+                    onFocus={() => setCreatePasswordFocused(true)}
+                    onBlur={() => setCreatePasswordFocused(false)}
+                    selectionColor={crest.brand}
                     onSubmitEditing={() =>
                       confirmPasswordRef.current?.focus()
                     }
                     blurOnSubmit={false}
                   />
 
-                  <TouchableOpacity
-                    style={
-                      styles.showButton
-                    }
+                  <ShowPasswordToggle
+                    visible={showCreatePassword}
                     onPress={() =>
-                      setShowCreatePassword(
-                        !showCreatePassword
-                      )
+                      setShowCreatePassword(!showCreatePassword)
                     }
                     disabled={loading}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={
-                        showCreatePassword
-                          ? "eye-off-outline"
-                          : "eye-outline"
-                      }
-                      size={19}
-                      color={
-                        colors.secondaryText
-                      }
-                    />
-                  </TouchableOpacity>
+                  />
                 </FormField>
-
-                {/* ==================================================
-                    CONFIRM PASSWORD
-                ================================================== */}
 
                 <FormField
                   icon="shield-checkmark-outline"
-                  label="CONFIRM PASSWORD"
+                  label="Confirm password"
                   focused={confirmPasswordFocused}
-                  colors={colors}
                 >
                   <TextInput
-                    ref={
-                      confirmPasswordRef
-                    }
-                    style={[
-                      styles.input,
-                      {
-                        color:
-                          colors.text,
-                      },
-                    ]}
-                    value={
-                      confirmPassword
-                    }
-                    onChangeText={
-                      setConfirmPassword
-                    }
-                    secureTextEntry={
-                      !showConfirmPassword
-                    }
+                    ref={confirmPasswordRef}
+                    style={styles.input}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
                     editable={!loading}
-                    placeholder=""
-                    placeholderTextColor="transparent"
                     returnKeyType="done"
-                    onFocus={() =>
-                      setConfirmPasswordFocused(
-                        true
-                      )
-                    }
-                    onBlur={() =>
-                      setConfirmPasswordFocused(
-                        false
-                      )
-                    }
-                    selectionColor={
-                      colors.primaryLight
-                    }
-                    onSubmitEditing={
-                      handleCreateAccount
-                    }
+                    onFocus={() => setConfirmPasswordFocused(true)}
+                    onBlur={() => setConfirmPasswordFocused(false)}
+                    selectionColor={crest.brand}
+                    onSubmitEditing={handleCreateAccount}
                     blurOnSubmit={true}
                   />
 
-                  <TouchableOpacity
-                    style={
-                      styles.showButton
-                    }
+                  <ShowPasswordToggle
+                    visible={showConfirmPassword}
                     onPress={() =>
-                      setShowConfirmPassword(
-                        !showConfirmPassword
-                      )
+                      setShowConfirmPassword(!showConfirmPassword)
                     }
                     disabled={loading}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={
-                        showConfirmPassword
-                          ? "eye-off-outline"
-                          : "eye-outline"
-                      }
-                      size={19}
-                      color={
-                        colors.secondaryText
-                      }
-                    />
-                  </TouchableOpacity>
+                  />
                 </FormField>
 
-                {/* ==================================================
-                    CREATE ACCOUNT BUTTON
-                ================================================== */}
-
-                <TouchableOpacity
-                  style={[
-                    styles.loginButton,
-                    {
-                      backgroundColor:
-                        colors.primary,
-                    },
-                    loading &&
-                      styles.loginButtonDisabled,
-                  ]}
-                  onPress={
-                    handleCreateAccount
-                  }
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  {loading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color="#FFFFFF"
-                    />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="person-add-outline"
-                        size={18}
-                        color="#FFFFFF"
-                      />
-
-                      <Text
-                        style={
-                          styles.loginButtonText
-                        }
-                      >
-                        CREATE ACCOUNT
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                <CrestButton
+                  label="Create account"
+                  onPress={handleCreateAccount}
+                  loading={loading}
+                />
               </View>
             )}
 
             {/* ==================================================
-                FOOTER
+                BELOW CARD
             ================================================== */}
 
-            <View
-              style={styles.footerRow}
-            >
-              <View
-                style={[
-                  styles.footerIcon,
-                  {
-                    backgroundColor:
-                      colors.iconBackground,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="fitness-outline"
-                  size={15}
-                  color={
-                    colors.primaryLight
-                  }
-                />
-              </View>
+            {!isCreateAccount ? (
 
-              <Text
-                style={[
-                  styles.footer,
-                  {
-                    color:
-                      colors.secondaryText,
-                  },
-                ]}
+              <OptionCard
+                icon="qr-code-outline"
+                title="New member?"
+                hint="Scan your gym's QR code to sign up"
+                onPress={() => router.push("/scanner")}
+                disabled={loading}
+              />
+
+            ) : (
+
+              <Pressable
+                style={styles.textLink}
+                onPress={() => switchMode(false)}
+                disabled={loading}
+                hitSlop={8}
               >
-                GYMRYT • TRAIN • TRACK • TRANSFORM
-              </Text>
-            </View>
+                <Text style={styles.textLinkMuted}>
+                  Already have an account?{" "}
+                  <Text style={styles.linkText}>Log in</Text>
+                </Text>
+              </Pressable>
+            )}
+
+            <Text style={styles.tagline}>
+              STRONGER EVERY DAY
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      </View>
-    </ImageBackground>
+    );
+  }
+}
+
+
+// ============================================================
+// WELCOME SLIDES
+// ============================================================
+
+const SLIDES = [
+  {
+    title: "Your club.",
+    accent: "Your crest.",
+    body: "Check in, book classes and track every workout at your gym.",
+  },
+  {
+    title: "Train with",
+    accent: "your coach.",
+    body: "Get workout plans from your trainer and log every set.",
+  },
+  {
+    title: "Stronger",
+    accent: "every day.",
+    body: "Attendance, payments and reminders, all in one place.",
+  },
+];
+
+
+// ============================================================
+// WORDMARK
+// ============================================================
+
+function Wordmark({ size }) {
+  return (
+    <Text
+      style={[
+        styles.wordmark,
+        { fontSize: size },
+      ]}
+    >
+      GYM
+      <Text style={styles.wordmarkAccent}>RYT</Text>
+    </Text>
   );
 }
+
+
+// ============================================================
+// BUTTON
+// ============================================================
+
+function CrestButton({
+  label,
+  onPress,
+  variant = "primary",
+  loading = false,
+}) {
+  const outline = variant === "outline";
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={loading}
+      style={({ pressed }) => [
+        styles.button,
+        outline ? styles.buttonOutline : styles.buttonPrimary,
+        pressed && (
+          outline
+            ? styles.buttonOutlinePressed
+            : styles.buttonPrimaryPressed
+        ),
+        pressed && styles.buttonPressed,
+        loading && styles.buttonDisabled,
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator
+          size="small"
+          color={crest.text}
+        />
+      ) : (
+        <Text
+          style={[
+            styles.buttonText,
+            outline && styles.buttonOutlineText,
+          ]}
+        >
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
+
+// ============================================================
+// OPTION CARD
+// ============================================================
+
+function OptionCard({
+  icon,
+  title,
+  hint,
+  onPress,
+  disabled,
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.option,
+        pressed && styles.optionPressed,
+      ]}
+    >
+      <View style={styles.optionIcon}>
+        <Ionicons
+          name={icon}
+          size={22}
+          color={crest.brand}
+        />
+      </View>
+
+      <View style={styles.optionText}>
+        <Text style={styles.optionTitle}>{title}</Text>
+        <Text style={styles.optionHint}>{hint}</Text>
+      </View>
+
+      <Ionicons
+        name="chevron-forward"
+        size={18}
+        color={crest.textMuted}
+      />
+    </Pressable>
+  );
+}
+
 
 // ============================================================
 // FORM FIELD
@@ -1937,21 +1784,14 @@ function FormField({
   icon,
   label,
   focused,
-  colors,
   children,
 }) {
   return (
-    <View
-      style={styles.inputContainer}
-    >
+    <View style={styles.inputContainer}>
       <Text
         style={[
-          styles.floatingLabel,
-          {
-            color: focused
-              ? colors.primaryLight
-              : colors.secondaryText,
-          },
+          styles.inputLabel,
+          focused && { color: crest.brand },
         ]}
       >
         {label}
@@ -1960,23 +1800,13 @@ function FormField({
       <View
         style={[
           styles.inputRow,
-          {
-            backgroundColor:
-              colors.background,
-            borderColor: focused
-              ? colors.primaryLight
-              : colors.border,
-          },
+          focused && styles.inputRowFocused,
         ]}
       >
         <Ionicons
           name={icon}
           size={18}
-          color={
-            focused
-              ? colors.primaryLight
-              : colors.secondaryText
-          }
+          color={focused ? crest.brand : crest.textMuted}
         />
 
         {children}
@@ -1985,6 +1815,33 @@ function FormField({
   );
 }
 
+
+// ============================================================
+// SHOW / HIDE PASSWORD
+// ============================================================
+
+function ShowPasswordToggle({
+  visible,
+  onPress,
+  disabled,
+}) {
+  return (
+    <Pressable
+      style={styles.showButton}
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={6}
+    >
+      <Ionicons
+        name={visible ? "eye-off-outline" : "eye-outline"}
+        size={19}
+        color={crest.textSecondary}
+      />
+    </Pressable>
+  );
+}
+
+
 // ============================================================
 // STYLES
 // ============================================================
@@ -1992,30 +1849,246 @@ function FormField({
 const styles = StyleSheet.create({
 
   // ==========================================================
-  // BACKGROUND
+  // SCREEN
   // ==========================================================
 
-  background: {
+  screen: {
+    flex: 1,
+    backgroundColor: crest.bg,
+  },
+
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+
+  formDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15, 11, 31, 0.82)",
+  },
+
+  // ==========================================================
+  // WORDMARK
+  // ==========================================================
+
+  wordmark: {
+    color: crest.text,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    textAlign: "center",
+  },
+
+  wordmarkAccent: {
+    color: crest.gold,
+  },
+
+  // ==========================================================
+  // WELCOME
+  // ==========================================================
+
+  introContainer: {
     flex: 1,
   },
 
-  backgroundOverlay: {
+  introSpacer: {
     flex: 1,
-    backgroundColor:
-      "rgba(2, 8, 23, 0.34)",
+  },
+
+  slides: {
+    flexGrow: 0,
+  },
+
+  slide: {
+    paddingHorizontal: 24,
+  },
+
+  headline: {
+    color: crest.text,
+    fontSize: 36,
+    lineHeight: 40,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+  },
+
+  headlineAccent: {
+    color: crest.gold,
+  },
+
+  slideBody: {
+    color: crest.text,
+    opacity: 0.85,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 14,
+    maxWidth: 340,
+  },
+
+  pager: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 24,
+    marginTop: 24,
+    marginBottom: 28,
+  },
+
+  pagerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: crest.textMuted,
+  },
+
+  pagerDotActive: {
+    width: 22,
+    backgroundColor: crest.gold,
+  },
+
+  actions: {
+    paddingHorizontal: 24,
+    gap: 12,
   },
 
   // ==========================================================
-  // KEYBOARD
+  // CHOOSE
+  // ==========================================================
+
+  chooseContainer: {
+    paddingHorizontal: 24,
+  },
+
+  chooseTitle: {
+    color: crest.text,
+    fontSize: 26,
+    fontWeight: "900",
+    marginBottom: 18,
+  },
+
+  // ==========================================================
+  // BUTTONS
+  // ==========================================================
+
+  button: {
+    height: 54,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  buttonPrimary: {
+    backgroundColor: crest.primary,
+  },
+
+  buttonPrimaryPressed: {
+    backgroundColor: crest.primaryHover,
+  },
+
+  buttonOutline: {
+    borderWidth: 1,
+    borderColor: crest.gold,
+    backgroundColor: "rgba(15, 11, 31, 0.6)",
+  },
+
+  buttonOutlinePressed: {
+    backgroundColor: "rgba(233, 185, 73, 0.12)",
+  },
+
+  buttonPressed: {
+    transform: [{ scale: 0.98 }],
+  },
+
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+
+  buttonText: {
+    color: crest.text,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  buttonOutlineText: {
+    color: crest.gold,
+  },
+
+  // ==========================================================
+  // OPTION CARD
+  // ==========================================================
+
+  option: {
+    minHeight: 76,
+    borderWidth: 1,
+    borderColor: crest.border,
+    borderRadius: 16,
+    backgroundColor: crest.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  optionPressed: {
+    backgroundColor: crest.surfaceRaised,
+  },
+
+  optionIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: crest.primaryTint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  optionText: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+
+  optionTitle: {
+    color: crest.text,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  optionHint: {
+    color: crest.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+
+  // ==========================================================
+  // LINKS
+  // ==========================================================
+
+  textLink: {
+    alignSelf: "center",
+    paddingVertical: 10,
+  },
+
+  textLinkMuted: {
+    color: crest.textSecondary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  linkText: {
+    color: crest.brand,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  // ==========================================================
+  // FORM LAYOUT
   // ==========================================================
 
   keyboardContainer: {
     flex: 1,
   },
-
-  // ==========================================================
-  // SCROLL
-  // ==========================================================
 
   scrollView: {
     flex: 1,
@@ -2023,22 +2096,8 @@ const styles = StyleSheet.create({
 
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 18,
-    paddingTop:
-      Platform.OS === "ios"
-        ? 54
-        : 44,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
   },
-
-  createScrollContainer: {
-    justifyContent: "flex-start",
-  },
-
-  // ==========================================================
-  // CONTENT
-  // ==========================================================
 
   content: {
     width: "100%",
@@ -2046,88 +2105,52 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
 
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-  },
-
-  headerButton: {
-    width: 43,
-    height: 43,
-    borderRadius: 14,
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 1,
+    borderColor: crest.border,
+    backgroundColor: crest.surface,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  // ==========================================================
-  // LOGO
-  // ==========================================================
+  backButtonPressed: {
+    backgroundColor: crest.surfaceRaised,
+  },
 
-  logoContainer: {
+  header: {
     alignItems: "center",
-    marginBottom: 20,
-  },
-
-  logo: {
-    width: 220,
-    height: 160,
-  },
-
-  createLogo: {
-    width: 150,
-    height: 110,
-  },
-
-  eyebrow: {
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1.4,
     marginTop: 8,
+    marginBottom: 24,
   },
 
-  title: {
-    fontSize: 22,
+  crest: {
+    width: 60,
+    height: 72,
+  },
+
+  formTitle: {
+    color: crest.text,
+    fontSize: 28,
     fontWeight: "900",
-    marginTop: 4,
+    marginTop: 16,
   },
 
-  // ==========================================================
-  // MODE SWITCH
-  // ==========================================================
+  formSubtitle: {
+    color: crest.textSecondary,
+    fontSize: 15,
+    marginTop: 6,
+  },
 
-  modeSwitch: {
-    flexDirection: "row",
+  card: {
     borderWidth: 1,
-    borderRadius: 18,
-    padding: 5,
+    borderColor: crest.border,
+    borderRadius: 20,
+    backgroundColor: crest.surface,
+    padding: 18,
     marginBottom: 14,
-  },
-
-  modeButton: {
-    flex: 1,
-    height: 44,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  modeButtonText: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  // ==========================================================
-  // CARD
-  // ==========================================================
-
-  loginCard: {
-    borderWidth: 1,
-    borderRadius: 26,
-    padding: 16,
   },
 
   // ==========================================================
@@ -2135,31 +2158,37 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   inputContainer: {
-    marginBottom: 14,
+    marginBottom: 16,
   },
 
-  floatingLabel: {
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 1,
-    marginBottom: 7,
+  inputLabel: {
+    color: crest.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
   },
 
   inputRow: {
     height: 52,
     borderWidth: 1,
-    borderRadius: 16,
+    borderColor: crest.border,
+    borderRadius: 14,
+    backgroundColor: crest.bg,
     paddingLeft: 14,
     flexDirection: "row",
     alignItems: "center",
+  },
+
+  inputRowFocused: {
+    borderColor: crest.primary,
   },
 
   input: {
     flex: 1,
     height: "100%",
     paddingHorizontal: 10,
-    fontSize: 13,
-    fontWeight: "600",
+    color: crest.text,
+    fontSize: 15,
   },
 
   showButton: {
@@ -2168,102 +2197,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // ==========================================================
-  // FORGOT PASSWORD
-  // ==========================================================
-
   forgotButton: {
     alignSelf: "flex-end",
-    paddingVertical: 4,
-    marginBottom: 12,
-  },
-
-  forgotText: {
-    fontSize: 10,
-    fontWeight: "800",
-  },
-
-  // ==========================================================
-  // BUTTONS
-  // ==========================================================
-
-  loginButton: {
-    height: 54,
-    borderRadius: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-
-  loginButtonDisabled: {
-    opacity: 0.7,
-  },
-
-  loginButtonText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  scannerButton: {
-    minHeight: 70,
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-  },
-
-  scannerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  scannerTextContainer: {
-    flex: 1,
-    marginLeft: 11,
-  },
-
-  scannerButtonText: {
-    fontSize: 13,
-    fontWeight: "900",
-  },
-
-  scannerHint: {
-    fontSize: 9,
-    fontWeight: "600",
-    marginTop: 3,
+    paddingVertical: 2,
+    marginTop: -4,
+    marginBottom: 18,
   },
 
   // ==========================================================
   // FOOTER
   // ==========================================================
 
-  footerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 20,
-  },
-
-  footerIcon: {
-    width: 27,
-    height: 27,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 7,
-  },
-
-  footer: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 0.7,
+  tagline: {
+    color: crest.textMuted,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 3,
+    textAlign: "center",
+    marginTop: 18,
   },
 });

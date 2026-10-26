@@ -29,6 +29,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -36,7 +37,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const BASE_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 const MEMBER_NOTIFICATIONS_COUNT_API =
   `${BASE_URL}/member-notifications/unread-count/`;
@@ -47,42 +48,42 @@ const MEMBER_NOTIFICATIONS_COUNT_API =
 // ============================================================
 
 const GYM_COLORS = {
-  background: "#070B14",
-  backgroundSecondary: "#0B1120",
+  background: "#0F0B1F",
+  backgroundSecondary: "#15112A",
 
-  card: "#101827",
-  cardSecondary: "#131D2E",
-  cardElevated: "#172235",
+  card: "#1B1631",
+  cardSecondary: "#201A3A",
+  cardElevated: "#241D40",
 
-  border: "#223047",
-  borderLight: "#2A3A55",
+  border: "#2B2448",
+  borderLight: "#3A3260",
 
-  text: "#F8FAFC",
-  textSecondary: "#A8B3C5",
-  textMuted: "#6F7C91",
+  text: "#F3F0FA",
+  textSecondary: "#9C95B5",
+  textMuted: "#6E6788",
 
-  primary: "#6C63FF",
-  primaryDark: "#554BE8",
-  primaryLight: "#8B84FF",
+  primary: "#6C4DF5",
+  primaryDark: "#5B3FD6",
+  primaryLight: "#B7A8FF",
 
-  success: "#22C55E",
-  successSoft: "#163B2A",
+  success: "#34D399",
+  successSoft: "#12302A",
 
-  warning: "#F59E0B",
-  warningSoft: "#3B2D12",
+  warning: "#F5A524",
+  warningSoft: "#3A2A12",
 
-  danger: "#EF4444",
-  dangerSoft: "#3A181D",
+  danger: "#F25C6E",
+  dangerSoft: "#3D1824",
 
   white: "#FFFFFF",
   black: "#000000",
 
-  nav: "#0A101C",
+  nav: "#15112A",
 
-  iconPurple: "#6C63FF",
-  iconBlue: "#3B82F6",
-  iconGreen: "#22C55E",
-  iconOrange: "#F59E0B",
+  iconPurple: "#6C4DF5",
+  iconBlue: "#7DB6FF",
+  iconGreen: "#34D399",
+  iconOrange: "#F5A524",
 };
 
 
@@ -125,13 +126,13 @@ export default function MemberDashboard() {
         c.background ||
         (isDark
           ? GYM_COLORS.background
-          : "#F5F7FB"),
+          : "#F6F4FB"),
 
       backgroundSecondary:
         c.backgroundSecondary ||
         (isDark
           ? GYM_COLORS.backgroundSecondary
-          : "#EEF1F7"),
+          : "#EEEBF7"),
 
       card:
         c.card ||
@@ -143,7 +144,7 @@ export default function MemberDashboard() {
         c.cardSecondary ||
         (isDark
           ? GYM_COLORS.cardSecondary
-          : "#F8F9FC"),
+          : "#FAF9FD"),
 
       cardElevated:
         c.cardElevated ||
@@ -155,33 +156,33 @@ export default function MemberDashboard() {
         c.border ||
         (isDark
           ? GYM_COLORS.border
-          : "#E1E6EF"),
+          : "#E4E0F0"),
 
       borderLight:
         c.borderLight ||
         (isDark
           ? GYM_COLORS.borderLight
-          : "#D5DBE6"),
+          : "#D3CCE6"),
 
       text:
         c.text ||
         (isDark
           ? GYM_COLORS.text
-          : "#111827"),
+          : "#0F0B1F"),
 
       textSecondary:
         c.secondaryText ||
         c.textSecondary ||
         (isDark
           ? GYM_COLORS.textSecondary
-          : "#5B6472"),
+          : "#4F4868"),
 
       textMuted:
         c.mutedText ||
         c.textMuted ||
         (isDark
           ? GYM_COLORS.textMuted
-          : "#7B8494"),
+          : "#6E6788"),
 
       primary:
         c.primary ||
@@ -1052,10 +1053,10 @@ export default function MemberDashboard() {
 
   const statusColor =
     statusConfig.text === "EXPIRED"
-      ? "#FF5870"
+      ? "#F25C6E"
       : statusConfig.text === "ACTIVE"
-      ? "#45E0A5"
-      : "#FFB21C";
+      ? "#34D399"
+      : "#F5A524";
 
 
   // ==========================================================
@@ -1112,7 +1113,7 @@ export default function MemberDashboard() {
             styles.loadingText,
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -1503,7 +1504,7 @@ export default function MemberDashboard() {
               value={daysRemaining}
               label="DAYS REMAINING"
               icon="calendar-outline"
-              iconColor="#36B7FF"
+              iconColor="#7DB6FF"
               colors={colors}
             />
 
@@ -1511,7 +1512,7 @@ export default function MemberDashboard() {
               value={`${membershipPercentage}%`}
               label="REMAINING"
               icon="pie-chart-outline"
-              iconColor="#45E0A5"
+              iconColor="#34D399"
               colors={colors}
             />
 
@@ -1519,7 +1520,7 @@ export default function MemberDashboard() {
               value={totalMembershipDays}
               label="TOTAL DAYS"
               icon="time-outline"
-              iconColor="#FFB21C"
+              iconColor="#F5A524"
               colors={colors}
             />
 
@@ -1527,7 +1528,7 @@ export default function MemberDashboard() {
               value={unreadNotifications}
               label="NEW UPDATES"
               icon="notifications-outline"
-              iconColor="#A78BFA"
+              iconColor="#B7A8FF"
               colors={colors}
             />
 

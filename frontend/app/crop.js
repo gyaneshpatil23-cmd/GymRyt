@@ -611,7 +611,7 @@ export default function CropScreen() {
         <Text
           style={[
             styles.loadingText,
-            { color: colors.mutedText },
+            { color: colors.secondaryText },
           ]}
         >
           Loading image...
@@ -641,7 +641,7 @@ export default function CropScreen() {
           <Text
             style={[
               styles.eyebrow,
-              { color: colors.primaryLight },
+              { color: colors.gold },
             ]}
           >
             GYMRYT • PROFILE PHOTO

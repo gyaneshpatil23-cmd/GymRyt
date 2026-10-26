@@ -15,13 +15,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 // ============================================================
 // API
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members/trainer-applications/";
+  SERVER_URL + "/api/members/trainer-applications/";
 
 // ============================================================
 // TRAINER REGISTRATION
@@ -633,7 +634,7 @@ export default function TrainerRegisterScreen() {
                 <Ionicons
                   name="checkmark-circle"
                   size={24}
-                  color="#45E0A5"
+                  color="#34D399"
                 />
               </View>
 
@@ -1199,7 +1200,7 @@ export default function TrainerRegisterScreen() {
               <Ionicons
                 name="time-outline"
                 size={20}
-                color="#FFB21C"
+                color="#F5A524"
               />
 
               <Text

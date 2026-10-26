@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -27,7 +28,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 
 // ============================================================
@@ -432,8 +433,8 @@ export default function TrainersScreen() {
 
     const statusColor =
       isActive
-        ? "#45E0A5"
-        : "#FF5870";
+        ? "#34D399"
+        : "#F25C6E";
 
 
     return (
@@ -676,7 +677,7 @@ export default function TrainersScreen() {
 
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -736,7 +737,7 @@ export default function TrainersScreen() {
 
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >
@@ -1268,7 +1269,7 @@ export default function TrainersScreen() {
 
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >

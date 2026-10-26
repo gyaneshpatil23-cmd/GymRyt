@@ -25,9 +25,10 @@ import { fetch as expoFetch } from "expo/fetch";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 const PROFILE_PICTURE_API =
-  "http://192.168.1.43:8000/api/members/profile-picture/";
+  SERVER_URL + "/api/members/profile-picture/";
 
 // Every key the member session is stored under.
 const MEMBER_SESSION_KEYS = [
@@ -403,7 +404,7 @@ export default function MemberProfile() {
             styles.loadingText,
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -415,10 +416,10 @@ export default function MemberProfile() {
 
   const statusColor =
     member.status === "EXPIRED"
-      ? "#FF5870"
+      ? "#F25C6E"
       : member.status === "EXPIRING"
-      ? "#FFB21C"
-      : "#45E0A5";
+      ? "#F5A524"
+      : "#34D399";
 
   const headerButton = [
     styles.headerButton,
@@ -450,7 +451,7 @@ export default function MemberProfile() {
               styles.eyebrow,
               {
                 color:
-                  colors.primaryLight,
+                  colors.gold,
               },
             ]}
           >
@@ -680,7 +681,7 @@ export default function MemberProfile() {
               <Ionicons
                 name="trash-outline"
                 size={12}
-                color="#FF4D5E"
+                color="#F25C6E"
               />
 
               <Text
@@ -831,7 +832,7 @@ export default function MemberProfile() {
           <Ionicons
             name="log-out-outline"
             size={21}
-            color="#FF4D5E"
+            color="#F25C6E"
           />
 
           <Text
@@ -1245,7 +1246,7 @@ const styles =
     },
 
     removePhotoText: {
-      color: "#FF4D5E",
+      color: "#F25C6E",
       fontSize: 8,
       fontWeight: "900",
       letterSpacing: 0.8,
@@ -1314,7 +1315,7 @@ const styles =
     },
 
     logoutTitle: {
-      color: "#FF4D5E",
+      color: "#F25C6E",
       fontSize: 12,
       fontWeight: "900",
       marginLeft: 8,

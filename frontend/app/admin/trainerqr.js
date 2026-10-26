@@ -22,13 +22,14 @@ import * as Sharing from "expo-sharing";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 // ============================================================
 // API
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members/trainer-registration-qr/";
+  SERVER_URL + "/api/members/trainer-registration-qr/";
 
 // ============================================================
 // TRAINER QR SCREEN
@@ -416,7 +417,7 @@ export default function TrainerQRScreen() {
                 styles.eyebrow,
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >
@@ -839,7 +840,7 @@ export default function TrainerQRScreen() {
                   styles.adminLabel,
                   {
                     color:
-                      colors.mutedText,
+                      colors.secondaryText,
                   },
                 ]}
               >

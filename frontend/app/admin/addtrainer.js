@@ -15,8 +15,9 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
-const API_URL = "http://192.168.1.43:8000";
+const API_URL = SERVER_URL;
 
 export default function AddTrainer() {
   const router = useRouter();
@@ -191,7 +192,7 @@ export default function AddTrainer() {
         {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.eyebrow, { color: colors.primaryLight }]}>
+            <Text style={[styles.eyebrow, { color: colors.gold }]}>
               GYMRYT • GYM STAFF
             </Text>
             <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -323,7 +324,7 @@ export default function AddTrainer() {
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.helperText, { color: colors.mutedText }]}>
+            <Text style={[styles.helperText, { color: colors.secondaryText }]}>
               Minimum 6 characters
             </Text>
           </View>

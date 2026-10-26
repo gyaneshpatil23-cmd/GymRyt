@@ -37,6 +37,7 @@ import { File } from
 import {
   useTheme,
 } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -44,10 +45,10 @@ import {
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 const BACKEND_BASE_URL =
-  "http://192.168.1.43:8000";
+  SERVER_URL;
 
 
 // ============================================================
@@ -809,7 +810,7 @@ export default function TrainerProfile() {
             {
               color:
                 colors.secondaryText ||
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -858,7 +859,7 @@ export default function TrainerProfile() {
               styles.eyebrow,
               {
                 color:
-                  colors.primaryLight,
+                  colors.gold,
               },
             ]}
           >
@@ -1161,7 +1162,7 @@ export default function TrainerProfile() {
                 {
                   color:
                     colors.secondaryText ||
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
 
@@ -1392,7 +1393,7 @@ export default function TrainerProfile() {
               {
                 color:
                   colors.secondaryText ||
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
@@ -1434,7 +1435,7 @@ export default function TrainerProfile() {
 
             <ActivityIndicator
               size="small"
-              color="#FF4D5E"
+              color="#F25C6E"
             />
 
           ) : (
@@ -1442,7 +1443,7 @@ export default function TrainerProfile() {
             <Ionicons
               name="log-out-outline"
               size={21}
-              color="#FF4D5E"
+              color="#F25C6E"
             />
 
           )}
@@ -1611,7 +1612,7 @@ function InfoRow({
             {
               color:
                 colors.secondaryText ||
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -2240,7 +2241,7 @@ const styles =
     },
 
     logoutText: {
-      color: "#FF4D5E",
+      color: "#F25C6E",
 
       fontSize: 12,
 

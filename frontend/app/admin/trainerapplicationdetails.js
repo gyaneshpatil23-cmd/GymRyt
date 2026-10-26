@@ -25,6 +25,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -32,7 +33,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 const TRAINER_APPLICATIONS_API =
   API_BASE_URL + "/trainer-applications/list/";
@@ -691,16 +692,16 @@ export default function TrainerApplicationDetails() {
     if (
       status === "APPROVED"
     ) {
-      return "#45E0A5";
+      return "#34D399";
     }
 
     if (
       status === "REJECTED"
     ) {
-      return "#FF5870";
+      return "#F25C6E";
     }
 
-    return "#FFB21C";
+    return "#F5A524";
   };
 
 
@@ -727,7 +728,7 @@ export default function TrainerApplicationDetails() {
             styles.headerSmallTitle,
             {
               color:
-                colors.primaryLight,
+                colors.gold,
             },
           ]}
         >
@@ -850,7 +851,7 @@ export default function TrainerApplicationDetails() {
               styles.loadingText,
               {
                 color:
-                  colors.mutedText,
+                  colors.secondaryText,
               },
             ]}
           >
@@ -1454,7 +1455,7 @@ export default function TrainerApplicationDetails() {
               {processing ? (
 
                 <ActivityIndicator
-                  color="#FF4D5E"
+                  color="#F25C6E"
                 />
 
               ) : (
@@ -1464,7 +1465,7 @@ export default function TrainerApplicationDetails() {
                   <Ionicons
                     name="close-circle-outline"
                     size={19}
-                    color="#FF4D5E"
+                    color="#F25C6E"
                   />
 
                   <Text
@@ -1948,7 +1949,7 @@ const styles =
     },
 
     rejectionLabel: {
-      color: "#FF5870",
+      color: "#F25C6E",
       fontSize: 7.5,
       fontWeight: "900",
       letterSpacing: 1,
@@ -1984,7 +1985,7 @@ const styles =
     },
 
     rejectButtonText: {
-      color: "#FF4D5E",
+      color: "#F25C6E",
       fontSize: 12,
       fontWeight: "900",
       marginLeft: 7,

@@ -22,9 +22,10 @@ import * as Sharing from "expo-sharing";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members/registration-qr/";
+  SERVER_URL + "/api/members/registration-qr/";
 
 export default function AdminQRScreen() {
   const router = useRouter();
@@ -378,7 +379,7 @@ export default function AdminQRScreen() {
                 styles.eyebrow,
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >
@@ -753,7 +754,7 @@ export default function AdminQRScreen() {
                 style={[
                   styles.adminLabel,
                   {
-                    color: colors.mutedText,
+                    color: colors.secondaryText,
                   },
                 ]}
               >

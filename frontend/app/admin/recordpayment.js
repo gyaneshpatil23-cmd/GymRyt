@@ -25,6 +25,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -32,7 +33,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 const MEMBERS_API =
   `${API_BASE_URL}/`;
@@ -897,7 +898,7 @@ const handleDateDismiss = () => {
                   styles.loadingText,
                   {
                     color:
-                      colors.mutedText,
+                      colors.secondaryText,
                   },
                 ]}
               >
@@ -1003,7 +1004,7 @@ const handleDateDismiss = () => {
                           styles.memberEmail,
                           {
                             color:
-                              colors.mutedText,
+                              colors.secondaryText,
                           },
                         ]}
                         numberOfLines={1}
@@ -1085,7 +1086,7 @@ const handleDateDismiss = () => {
                       styles.emptyText,
                       {
                         color:
-                          colors.mutedText,
+                          colors.secondaryText,
                       },
                     ]}
                   >
@@ -1172,7 +1173,7 @@ const handleDateDismiss = () => {
             <Ionicons
               name="cash-outline"
               size={24}
-              color="#45E0A5"
+              color="#34D399"
             />
           </View>
 
@@ -1901,7 +1902,7 @@ function ScreenHeader({
             styles.smallTitle,
             {
               color:
-                colors.primaryLight,
+                colors.gold,
             },
           ]}
         >
@@ -2541,7 +2542,7 @@ const styles =
     },
 
     totalValue: {
-      color: "#45E0A5",
+      color: "#34D399",
       fontSize: 24,
       fontWeight: "900",
     },

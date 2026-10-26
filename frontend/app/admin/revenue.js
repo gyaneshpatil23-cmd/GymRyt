@@ -27,13 +27,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 // ============================================================
 // API CONFIG
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 // ============================================================
 // MONTH NAMES
@@ -768,14 +769,14 @@ export default function Revenue() {
       ).toUpperCase();
 
     if (value === "FAILED") {
-      return "#FF5870";
+      return "#F25C6E";
     }
 
     if (value === "PENDING") {
-      return "#FFB21C";
+      return "#F5A524";
     }
 
-    return "#45E0A5";
+    return "#34D399";
   };
 
   // ==========================================================
@@ -897,7 +898,7 @@ export default function Revenue() {
                 styles.paymentDate,
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -1081,7 +1082,7 @@ export default function Revenue() {
             styles.loadingText,
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -1149,7 +1150,7 @@ export default function Revenue() {
                 styles.eyebrow,
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >
@@ -1342,7 +1343,7 @@ export default function Revenue() {
               <Ionicons
                 name="cash-outline"
                 size={26}
-                color="#45E0A5"
+                color="#34D399"
               />
             </View>
 
@@ -1420,7 +1421,7 @@ export default function Revenue() {
                 }
               )}
               icon="calendar-outline"
-              iconColor="#36B7FF"
+              iconColor="#7DB6FF"
               colors={colors}
             />
 
@@ -1433,7 +1434,7 @@ export default function Revenue() {
                 new Date().getFullYear()
               )}
               icon="trending-up-outline"
-              iconColor="#45E0A5"
+              iconColor="#34D399"
               colors={colors}
             />
           </View>
@@ -1799,8 +1800,8 @@ export default function Revenue() {
                                 {
                                   color:
                                     monthData
-                                      ? "#45E0A5"
-                                      : colors.mutedText,
+                                      ? "#34D399"
+                                      : colors.secondaryText,
                                 },
                               ]}
                               numberOfLines={1}
@@ -2279,7 +2280,7 @@ function FinanceStat({
           styles.statSubtext,
           {
             color:
-              colors.mutedText,
+              colors.secondaryText,
           },
         ]}
         numberOfLines={1}
@@ -2416,12 +2417,12 @@ const styles =
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: "#45E0A5",
+      backgroundColor: "#34D399",
       marginRight: 5,
     },
 
     liveText: {
-      color: "#45E0A5",
+      color: "#34D399",
       fontSize: 8,
       fontWeight: "900",
       letterSpacing: 0.6,
@@ -2586,7 +2587,7 @@ const styles =
     },
 
     yearAmount: {
-      color: "#45E0A5",
+      color: "#34D399",
       fontSize: 14,
       fontWeight: "900",
       marginRight: 4,

@@ -291,7 +291,7 @@ export default function MemberScannerScreen() {
         <Text
           style={[
             styles.loadingText,
-            { color: colors.mutedText },
+            { color: colors.secondaryText },
           ]}
         >
           Checking camera permission...
@@ -337,7 +337,7 @@ export default function MemberScannerScreen() {
           <Text
             style={[
               styles.permissionEyebrow,
-              { color: colors.primaryLight },
+              { color: colors.gold },
             ]}
           >
             GYMRYT • QR SCANNER
@@ -418,7 +418,7 @@ export default function MemberScannerScreen() {
         <Text
           style={[
             styles.eyebrow,
-            { color: colors.primaryLight },
+            { color: colors.gold },
           ]}
         >
           GYMRYT • REGISTRATION
@@ -571,7 +571,7 @@ export default function MemberScannerScreen() {
           <Ionicons
             name="lock-closed"
             size={11}
-            color="#CBD5E1"
+            color="#C4BEDA"
           />
 
           <Text style={styles.secureText}>
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
-    color: "#E2E8F0",
+    color: "#F3F0FA",
     fontSize: 11,
     fontWeight: "600",
     marginTop: 6,
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
   },
 
   secureText: {
-    color: "#CBD5E1",
+    color: "#C4BEDA",
     fontSize: 9,
     fontWeight: "700",
     marginLeft: 4,

@@ -7,8 +7,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
-const BASE_URL = "http://192.168.1.43:8000/api/members";
+const BASE_URL = SERVER_URL + "/api/members";
 const MEMBERS_API = `${BASE_URL}/`;
 const PAYMENTS_API = `${BASE_URL}/payments/`;
 
@@ -111,16 +112,16 @@ export default function MemberDetails() {
     ]);
   };
 
-  const statusColor = member.status === "EXPIRED" ? "#FF5870" : member.status === "EXPIRING" ? "#FFB21C" : member.status === "ACTIVE" ? "#45E0A5" : colors.secondaryText;
+  const statusColor = member.status === "EXPIRED" ? "#F25C6E" : member.status === "EXPIRING" ? "#F5A524" : member.status === "ACTIVE" ? "#34D399" : colors.secondaryText;
   const headerButton = [styles.headerButton, { backgroundColor: colors.card, borderColor: colors.border }];
 
-  if (loading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /><Text style={[styles.loading, { color: colors.mutedText }]}>Loading member details...</Text></View>;
+  if (loading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /><Text style={[styles.loading, { color: colors.secondaryText }]}>Loading member details...</Text></View>;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* HEADER */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}><Text style={[styles.eyebrow, { color: colors.primaryLight }]}>GYMRYT • MEMBER</Text><Text style={[styles.title, { color: colors.text }]}>Member Details</Text></View>
+        <View style={styles.headerLeft}><Text style={[styles.eyebrow, { color: colors.gold }]}>GYMRYT • MEMBER</Text><Text style={[styles.title, { color: colors.text }]}>Member Details</Text></View>
         <View style={styles.headerActions}>
           <Pressable style={headerButton} onPress={toggleTheme}><Ionicons name={isDark ? "sunny-outline" : "moon-outline"} size={20} color={colors.text} /></Pressable>
           <Pressable style={headerButton} onPress={() => router.back()}><Ionicons name="arrow-back" size={20} color={colors.text} /></Pressable>
@@ -152,7 +153,7 @@ export default function MemberDetails() {
         <SectionTitle title="MEMBERSHIP DETAILS" colors={colors} />
         <View style={[styles.daysCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={[styles.daysIcon, { backgroundColor: `${statusColor}18` }]}><Ionicons name={member.status === "EXPIRED" ? "close-circle-outline" : "time-outline"} size={24} color={statusColor} /></View>
-          <View style={styles.daysInfo}><Text style={[styles.label, { color: colors.secondaryText }]}>DAYS REMAINING</Text><Text style={[styles.days, { color: member.status === "EXPIRED" ? "#FF5870" : colors.text }]}>{member.status === "EXPIRED" ? "Membership Expired" : `${daysLeft(member.membership_end)} Days`}</Text></View>
+          <View style={styles.daysInfo}><Text style={[styles.label, { color: colors.secondaryText }]}>DAYS REMAINING</Text><Text style={[styles.days, { color: member.status === "EXPIRED" ? "#F25C6E" : colors.text }]}>{member.status === "EXPIRED" ? "Membership Expired" : `${daysLeft(member.membership_end)} Days`}</Text></View>
         </View>
         <Card colors={colors}>
           <Info icon="ribbon-outline" label="Membership Type" value={plan} colors={colors} />
@@ -167,7 +168,7 @@ export default function MemberDetails() {
         {/* TRAINER ASSIGNMENT */}
         <SectionTitle title="TRAINER ASSIGNMENT" colors={colors} />
         <Card colors={colors}>
-          <Info icon="barbell-outline" label="Assigned Trainer" value={member.trainer_name || "No trainer assigned"} valueColor={member.trainer_name ? "#45E0A5" : "#FFB21C"} colors={colors} />
+          <Info icon="barbell-outline" label="Assigned Trainer" value={member.trainer_name || "No trainer assigned"} valueColor={member.trainer_name ? "#34D399" : "#F5A524"} colors={colors} />
           <Pressable style={[styles.secondaryButton, { backgroundColor: colors.iconBackground, borderColor: colors.border }]} onPress={() => router.push("/admin/trainerassignment")}>
             <Text style={[styles.secondaryText, { color: colors.primaryLight }]}>{member.trainer_name ? "CHANGE TRAINER" : "ASSIGN TRAINER"}</Text><Ionicons name="arrow-forward" size={15} color={colors.primaryLight} />
           </Pressable>
@@ -176,12 +177,12 @@ export default function MemberDetails() {
         {/* VERIFICATION */}
         <SectionTitle title="VERIFICATION" colors={colors} />
         <Card colors={colors}>
-          <Info icon={member.id_verified ? "shield-checkmark-outline" : "shield-outline"} label="ID Verification" value={member.id_verified ? "Verified" : "Verification Pending"} valueColor={member.id_verified ? "#45E0A5" : "#FFB21C"} colors={colors} />
+          <Info icon={member.id_verified ? "shield-checkmark-outline" : "shield-outline"} label="ID Verification" value={member.id_verified ? "Verified" : "Verification Pending"} valueColor={member.id_verified ? "#34D399" : "#F5A524"} colors={colors} />
         </Card>
 
         {/* ACTIONS */}
         <Pressable style={[styles.edit, { backgroundColor: colors.primary }]} onPress={edit} disabled={deleting}><Ionicons name="create-outline" size={19} color="#FFFFFF" /><Text style={styles.editText}>EDIT MEMBER</Text></Pressable>
-        <Pressable style={[styles.delete, { backgroundColor: isDark ? "#100D15" : "#FFF5F6", borderColor: "#55202B" }]} onPress={deleteMember} disabled={deleting}>{deleting ? <ActivityIndicator color="#FF4D5E" /> : <><Ionicons name="trash-outline" size={19} color="#FF4D5E" /><Text style={styles.deleteText}>DELETE MEMBER</Text></>}</Pressable>
+        <Pressable style={[styles.delete, { backgroundColor: isDark ? "#100D15" : "#FFF5F6", borderColor: "#55202B" }]} onPress={deleteMember} disabled={deleting}>{deleting ? <ActivityIndicator color="#F25C6E" /> : <><Ionicons name="trash-outline" size={19} color="#F25C6E" /><Text style={styles.deleteText}>DELETE MEMBER</Text></>}</Pressable>
         <Pressable style={styles.backLink} onPress={() => router.replace("/admin/members")}><View style={[styles.backLinkIcon, { backgroundColor: colors.iconBackground }]}><Ionicons name="people-outline" size={14} color={colors.primaryLight} /></View><Text style={[styles.backLinkText, { color: colors.secondaryText }]}>BACK TO MEMBERS</Text></Pressable>
       </ScrollView>
     </View>
@@ -201,6 +202,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 10, fontWeight: "900", letterSpacing: 1.2, marginTop: 20, marginBottom: 9 }, card: { borderWidth: 1, borderRadius: 21, paddingHorizontal: 13, paddingVertical: 3 }, info: { minHeight: 67, flexDirection: "row", alignItems: "center" }, infoIcon: { width: 43, height: 43, borderRadius: 14, alignItems: "center", justifyContent: "center", marginRight: 11 }, infoText: { flex: 1 }, infoLabel: { fontSize: 8, fontWeight: "700", marginBottom: 3 }, infoValue: { fontSize: 12, fontWeight: "800" }, divider: { height: 1, marginLeft: 54 }, label: { fontSize: 7.5, fontWeight: "900", letterSpacing: 0.8 },
   daysCard: { minHeight: 78, borderWidth: 1, borderRadius: 21, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", marginBottom: 9 }, daysIcon: { width: 46, height: 46, borderRadius: 15, alignItems: "center", justifyContent: "center" }, daysInfo: { marginLeft: 12, flex: 1 }, days: { fontSize: 22, fontWeight: "900", marginTop: 3 },
   secondaryButton: { height: 44, borderRadius: 14, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginBottom: 12, marginTop: 2 }, secondaryText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
-  edit: { height: 54, borderRadius: 17, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 22, marginBottom: 10 }, editText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900", letterSpacing: 1 }, delete: { height: 54, borderRadius: 17, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }, deleteText: { color: "#FF4D5E", fontSize: 12, fontWeight: "900", letterSpacing: 0.8 },
+  edit: { height: 54, borderRadius: 17, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 22, marginBottom: 10 }, editText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900", letterSpacing: 1 }, delete: { height: 54, borderRadius: 17, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }, deleteText: { color: "#F25C6E", fontSize: 12, fontWeight: "900", letterSpacing: 0.8 },
   backLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingTop: 22, paddingBottom: 8 }, backLinkIcon: { width: 27, height: 27, borderRadius: 9, alignItems: "center", justifyContent: "center", marginRight: 7 }, backLinkText: { fontSize: 8, fontWeight: "800", letterSpacing: 0.7 },
 });

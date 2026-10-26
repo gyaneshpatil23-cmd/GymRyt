@@ -25,6 +25,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -32,7 +33,7 @@ import { useTheme } from "../../context/ThemeContext";
 // ============================================================
 
 const API_BASE_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 const NOTIFICATIONS_API =
   API_BASE_URL + "/notifications/";
@@ -1090,67 +1091,67 @@ export default function Notifications() {
         case "TRAINER_APPLICATION":
           return {
             name: "barbell-outline",
-            color: "#36B7FF",
+            color: "#7DB6FF",
           };
 
         case "NEW_MEMBER":
           return {
             name: "person-add-outline",
-            color: "#45E0A5",
+            color: "#34D399",
           };
 
         case "TRAINER_ASSIGNED":
           return {
             name: "git-network-outline",
-            color: "#60A5FA",
+            color: "#7DB6FF",
           };
 
         case "WORKOUT_UPLOADED":
           return {
             name: "fitness-outline",
-            color: "#A78BFA",
+            color: "#B7A8FF",
           };
 
         case "MEMBERSHIP_EXPIRING":
           return {
             name: "time-outline",
-            color: "#FFB21C",
+            color: "#F5A524",
           };
 
         case "MEMBERSHIP_EXPIRED":
           return {
             name: "alert-circle-outline",
-            color: "#FF5870",
+            color: "#F25C6E",
           };
 
         case "PAYMENT_RECEIVED":
           return {
             name: "cash-outline",
-            color: "#45E0A5",
+            color: "#34D399",
           };
 
         case "PAYMENT_FAILED":
           return {
             name: "close-circle-outline",
-            color: "#FF5870",
+            color: "#F25C6E",
           };
 
         case "MEMBER_REMOVED":
           return {
             name: "person-remove-outline",
-            color: "#FF5870",
+            color: "#F25C6E",
           };
 
         case "WELCOME":
           return {
             name: "hand-left-outline",
-            color: "#36B7FF",
+            color: "#7DB6FF",
           };
 
         default:
           return {
             name: "notifications-outline",
-            color: "#60A5FA",
+            color: "#7DB6FF",
           };
       }
     };
@@ -1502,7 +1503,7 @@ export default function Notifications() {
 
                   {
                     color:
-                      colors.mutedText,
+                      colors.secondaryText,
                   },
                 ]}
               >
@@ -1664,7 +1665,7 @@ export default function Notifications() {
 
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -1721,7 +1722,7 @@ export default function Notifications() {
 
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >

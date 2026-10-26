@@ -22,13 +22,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 // ============================================================
 // API
 // ============================================================
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members/";
+  SERVER_URL + "/api/members/";
 
 // ============================================================
 // ADD MEMBER
@@ -901,7 +902,7 @@ export default function AddMembers() {
                 styles.eyebrow,
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >
@@ -1449,7 +1450,7 @@ export default function AddMembers() {
                     color:
                       selectedTrainer
                         ? colors.text
-                        : colors.mutedText,
+                        : colors.secondaryText,
                   },
                 ]}
               >
@@ -1556,7 +1557,7 @@ export default function AddMembers() {
             <Ionicons
               name="shield-checkmark-outline"
               size={22}
-              color="#45E0A5"
+              color="#34D399"
             />
           </View>
 

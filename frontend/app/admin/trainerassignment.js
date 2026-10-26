@@ -30,6 +30,7 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   useTheme,
 } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 
 // ============================================================
@@ -37,7 +38,7 @@ import {
 // ============================================================
 
 const BASE_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 const MEMBERS_API =
   `${BASE_URL}/`;
@@ -49,7 +50,7 @@ const ASSIGN_API =
   `${BASE_URL}/trainer/assign/`;
 
 const BACKEND_BASE_URL =
-  "http://192.168.1.43:8000";
+  SERVER_URL;
 
 
 // ============================================================
@@ -699,7 +700,7 @@ export default function TrainerAssignment() {
             styles.loadingText,
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -787,7 +788,7 @@ export default function TrainerAssignment() {
                 styles.eyebrow,
                 {
                   color:
-                    colors.primaryLight,
+                    colors.gold,
                 },
               ]}
             >
@@ -940,7 +941,7 @@ export default function TrainerAssignment() {
               value={members.length}
               label="MEMBERS"
               icon="people-outline"
-              iconColor="#36B7FF"
+              iconColor="#7DB6FF"
               colors={colors}
             />
 
@@ -948,7 +949,7 @@ export default function TrainerAssignment() {
               value={trainers.length}
               label="TRAINERS"
               icon="barbell-outline"
-              iconColor="#45E0A5"
+              iconColor="#34D399"
               colors={colors}
             />
 
@@ -956,7 +957,7 @@ export default function TrainerAssignment() {
               value={unassignedCount}
               label="UNASSIGNED"
               icon="alert-circle-outline"
-              iconColor="#FFB21C"
+              iconColor="#F5A524"
               colors={colors}
             />
 
@@ -1055,7 +1056,7 @@ export default function TrainerAssignment() {
                 styles.emptyText,
                 {
                   color:
-                    colors.mutedText,
+                    colors.secondaryText,
                 },
               ]}
             >
@@ -1075,8 +1076,8 @@ export default function TrainerAssignment() {
 
               const assignColor =
                 member.trainer
-                  ? "#45E0A5"
-                  : "#FFB21C";
+                  ? "#34D399"
+                  : "#F5A524";
 
               return (
 
@@ -1518,7 +1519,7 @@ export default function TrainerAssignment() {
                     borderColor:
                       selectedTrainerId ===
                       null
-                        ? "#FF5870"
+                        ? "#F25C6E"
                         : colors.border,
                   },
                 ]}
@@ -1540,7 +1541,7 @@ export default function TrainerAssignment() {
                   <Ionicons
                     name="remove-circle-outline"
                     size={22}
-                    color="#FF5870"
+                    color="#F25C6E"
                   />
                 </View>
 
@@ -1601,7 +1602,7 @@ export default function TrainerAssignment() {
                   color={
                     selectedTrainerId ===
                     null
-                      ? "#FF5870"
+                      ? "#F25C6E"
                       : colors.secondaryText
                   }
                 />
@@ -1871,7 +1872,7 @@ export default function TrainerAssignment() {
                     backgroundColor:
                       selectedTrainerId ===
                       null
-                        ? "#FF5870"
+                        ? "#F25C6E"
                         : colors.primary,
                   },
                   savingId &&

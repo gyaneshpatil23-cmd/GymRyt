@@ -26,9 +26,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 const API_URL =
-  "http://192.168.1.43:8000/api/members";
+  SERVER_URL + "/api/members";
 
 
 export default function EditTrainerScreen() {
@@ -535,7 +536,7 @@ export default function EditTrainerScreen() {
             styles.loadingText,
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -668,7 +669,7 @@ export default function EditTrainerScreen() {
               styles.eyebrow,
               {
                 color:
-                  colors.primaryLight,
+                  colors.gold,
               },
             ]}
           >
@@ -1169,7 +1170,7 @@ export default function EditTrainerScreen() {
                       : colors.background,
                   borderColor:
                     isActive
-                      ? "#45E0A5"
+                      ? "#34D399"
                       : colors.border,
                 },
               ]}
@@ -1186,7 +1187,7 @@ export default function EditTrainerScreen() {
                 size={19}
                 color={
                   isActive
-                    ? "#45E0A5"
+                    ? "#34D399"
                     : colors.secondaryText
                 }
               />
@@ -1197,7 +1198,7 @@ export default function EditTrainerScreen() {
                   {
                     color:
                       isActive
-                        ? "#45E0A5"
+                        ? "#34D399"
                         : colors.text,
                   },
                 ]}
@@ -1219,7 +1220,7 @@ export default function EditTrainerScreen() {
                       : colors.background,
                   borderColor:
                     !isActive
-                      ? "#FF5870"
+                      ? "#F25C6E"
                       : colors.border,
                 },
               ]}
@@ -1236,7 +1237,7 @@ export default function EditTrainerScreen() {
                 size={19}
                 color={
                   !isActive
-                    ? "#FF5870"
+                    ? "#F25C6E"
                     : colors.secondaryText
                 }
               />
@@ -1247,7 +1248,7 @@ export default function EditTrainerScreen() {
                   {
                     color:
                       !isActive
-                        ? "#FF5870"
+                        ? "#F25C6E"
                         : colors.text,
                   },
                 ]}

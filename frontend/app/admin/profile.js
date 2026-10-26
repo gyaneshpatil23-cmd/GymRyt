@@ -36,13 +36,14 @@ import {
 } from "expo-router";
 
 import { useTheme } from "../../context/ThemeContext";
+import { SERVER_URL } from "../../constants/api";
 
 // ======================================================
 // API
 // ======================================================
 
 const API_BASE_URL =
-  "http://192.168.1.43:8000";
+  SERVER_URL;
 
 // ======================================================
 // ADMIN PROFILE
@@ -821,7 +822,7 @@ export default function AdminProfile() {
             styles.loadingText,
             {
               color:
-                colors.mutedText,
+                colors.secondaryText,
             },
           ]}
         >
@@ -875,7 +876,7 @@ export default function AdminProfile() {
               styles.eyebrow,
               {
                 color:
-                  colors.primaryLight,
+                  colors.gold,
               },
             ]}
           >
@@ -1177,7 +1178,7 @@ export default function AdminProfile() {
                 <Ionicons
                   name="trash-outline"
                   size={12}
-                  color="#FF4D5E"
+                  color="#F25C6E"
                 />
 
                 <Text
@@ -1389,7 +1390,7 @@ export default function AdminProfile() {
           <Ionicons
             name="log-out-outline"
             size={21}
-            color="#FF4D5E"
+            color="#F25C6E"
           />
 
           <Text
@@ -1703,7 +1704,7 @@ const styles =
     },
 
     removePhotoText: {
-      color: "#FF4D5E",
+      color: "#F25C6E",
       fontSize: 8,
       fontWeight: "900",
       letterSpacing: 0.8,
@@ -1803,7 +1804,7 @@ const styles =
     },
 
     logoutText: {
-      color: "#FF4D5E",
+      color: "#F25C6E",
       fontSize: 12,
       fontWeight: "900",
       marginLeft: 8,
