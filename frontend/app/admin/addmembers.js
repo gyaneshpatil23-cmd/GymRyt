@@ -319,10 +319,10 @@ export default function AddMembers() {
       return;
     }
 
-    if (password.trim().length < 6) {
+    if (password.trim().length < 8) {
       Alert.alert(
         "Weak Password",
-        "Password must contain at least 6 characters."
+        "Password must contain at least 8 characters."
       );
 
       return;

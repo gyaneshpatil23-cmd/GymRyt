@@ -1,6 +1,37 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+
+
+# ============================================================
+# UPLOAD VALIDATION
+# ============================================================
+
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+MAX_UPLOAD_PIXELS = 8000
+
+
+def validate_profile_picture(image):
+    """
+    Cap the size of an uploaded picture.
+
+    Without a limit, a huge file fills the disk and a small file with
+    enormous dimensions ("decompression bomb") exhausts memory when
+    Pillow opens it.
+    """
+    if image.size > MAX_UPLOAD_BYTES:
+        raise ValidationError(
+            "Image must be 5 MB or smaller."
+        )
+
+    width = getattr(image, "width", 0) or 0
+    height = getattr(image, "height", 0) or 0
+
+    if width > MAX_UPLOAD_PIXELS or height > MAX_UPLOAD_PIXELS:
+        raise ValidationError(
+            f"Image must be at most {MAX_UPLOAD_PIXELS}px on each side."
+        )
 
 
 # ============================================================
@@ -42,6 +73,7 @@ class UserProfile(models.Model):
 
     profile_picture = models.ImageField(
         upload_to="admin_profiles/",
+        validators=[validate_profile_picture],
         blank=True,
         null=True,
     )
@@ -230,6 +262,7 @@ class TrainerProfile(models.Model):
 
     profile_picture = models.ImageField(
         upload_to="trainer_profiles/",
+        validators=[validate_profile_picture],
         blank=True,
         null=True,
     )
@@ -359,6 +392,7 @@ class Member(models.Model):
 
     profile_picture = models.ImageField(
         upload_to="member_profiles/",
+        validators=[validate_profile_picture],
         blank=True,
         null=True,
     )
@@ -735,6 +769,7 @@ class TrainerApplication(models.Model):
     
     profile_picture = models.ImageField(
         upload_to="trainer_applications/",
+        validators=[validate_profile_picture],
         blank=True,
         null=True,
     )

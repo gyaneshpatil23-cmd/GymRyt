@@ -912,12 +912,12 @@ export default function LoginScreen() {
 
 
     if (
-      createPassword.length < 6
+      createPassword.length < 8
     ) {
 
       Alert.alert(
         "Password Error",
-        "Password must be at least 6 characters."
+        "Password must be at least 8 characters."
       );
 
       return;

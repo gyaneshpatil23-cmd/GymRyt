@@ -1,16 +1,29 @@
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-xq3uqye&&_r2v*t*=+1^$w-p$z6$d02@kjob5-i-5%o3-qhq8m'
+# Secrets live in backend/.env, which is git-ignored.
+# See .env.example for the keys this expects.
+load_dotenv(BASE_DIR / ".env")
 
-DEBUG = True
+
+def env_list(name):
+    return [
+        item.strip()
+        for item in os.environ.get(name, "").split(",")
+        if item.strip()
+    ]
+
+
+SECRET_KEY = os.environ["SECRET_KEY"]
+
+DEBUG = os.environ.get("DEBUG", "0") == "1"
 
 # In development the PC's LAN IP changes with DHCP, so accept any host.
-ALLOWED_HOSTS = ["*"] if DEBUG else [
-    "127.0.0.1",
-    "localhost",
-]
+ALLOWED_HOSTS = ["*"] if DEBUG else env_list("ALLOWED_HOSTS")
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -58,11 +71,11 @@ WSGI_APPLICATION = 'gymryt.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "gymryt_db",
-        "USER": "root",
-        "PASSWORD": "Gy@ne$h23",
-        "HOST": "127.0.0.1",
-        "PORT": "3307",
+        "NAME": os.environ.get("DB_NAME", "gymryt_db"),
+        "USER": os.environ.get("DB_USER", "root"),
+        "PASSWORD": os.environ["DB_PASSWORD"],
+        "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("DB_PORT", "3307"),
     }
 }
 
@@ -97,7 +110,10 @@ MAILERS = {
     }
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
+# The phone app sends no Origin header, so it is unaffected either way.
+# Open it up only while developing, for the Expo web preview.
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -106,4 +122,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated"
     ],
+
+    # Slows down password guessing. "login" is applied to the
+    # login and registration views via ScopedRateThrottle.
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "10/min",
+        "register": "5/hour",
+    },
 }
