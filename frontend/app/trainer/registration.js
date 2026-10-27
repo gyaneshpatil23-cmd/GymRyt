@@ -261,10 +261,10 @@ export default function TrainerRegisterScreen() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       Alert.alert(
         "Password Error",
-        "Password must be at least 6 characters."
+        "Password must be at least 8 characters."
       );
 
       return;

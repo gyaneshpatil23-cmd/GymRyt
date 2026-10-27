@@ -619,7 +619,8 @@ export default function AdminQRScreen() {
               DOWNLOAD + SHARE
           ================================================== */}
 
-          {qrToken && !loading && (
+          {/* Boolean(): a bare empty qrToken would render "" as a text node */}
+          {Boolean(qrToken) && !loading && (
 
             <View style={styles.actionRow}>
 

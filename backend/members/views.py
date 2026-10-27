@@ -8,7 +8,9 @@ from django.contrib.auth.hashers import (
     make_password,
 )
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.core import signing
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
@@ -608,6 +610,22 @@ def build_trainer_qr_payload(token):
     return f"{TRAINER_QR_PREFIX}{token}"
 
 
+def password_error(password):
+    """
+    Run the password through the project's AUTH_PASSWORD_VALIDATORS.
+
+    A bare length check let through "123456" and other common
+    passwords. Returns a message to show the user, or None if the
+    password is acceptable.
+    """
+    try:
+        validate_password(password)
+    except DjangoValidationError as exc:
+        return " ".join(exc.messages)
+
+    return None
+
+
 def normalize_trainer_qr_payload(raw_payload):
     """
     Extract a RegistrationQR token from a trainer QR payload.
@@ -852,6 +870,8 @@ class AdminRegisterView(APIView):
 
     permission_classes = [AllowAny]
 
+    throttle_scope = "register"
+
     def post(self, request):
 
         full_name = str(
@@ -941,15 +961,14 @@ class AdminRegisterView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if len(password) < 6:
+        password_problem = password_error(password)
+
+        if password_problem:
 
             return Response(
                 {
                     "success": False,
-                    "message": (
-                        "Password must be at least "
-                        "6 characters."
-                    )
+                    "message": password_problem,
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
@@ -1152,6 +1171,9 @@ class AdminRegistrationQRView(APIView):
 class LoginView(APIView):
 
     permission_classes = [AllowAny]
+
+    # Caps password guessing at 10 attempts a minute per IP.
+    throttle_scope = "login"
 
     def post(self, request):
 
@@ -3908,6 +3930,8 @@ class TrainerRegistrationQRView(APIView):
 class TrainerApplicationCreateView(APIView):
     permission_classes = [AllowAny]
 
+    throttle_scope = "register"
+
     parser_classes = [
         MultiPartParser,
         FormParser,
@@ -4106,15 +4130,16 @@ class TrainerApplicationCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if len(password) < 6:
+        password_problem = password_error(password)
+
+        if password_problem:
 
             return Response(
                 {
                     "success": False,
-                    "message":
-                        "Password must contain at least 6 characters.",
+                    "message": password_problem,
                 },
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         if len(phone) < 10:
@@ -5913,14 +5938,14 @@ class TrainerCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if len(password) < 6:
+        password_problem = password_error(password)
+
+        if password_problem:
+
             return Response(
                 {
                     "success": False,
-                    "message": (
-                        "Password must be at least "
-                        "6 characters."
-                    )
+                    "message": password_problem,
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
@@ -6136,6 +6161,8 @@ class MemberProfilePictureView(APIView):
 class MemberRegisterView(APIView):
 
     permission_classes = [AllowAny]
+
+    throttle_scope = "register"
 
     def post(self, request):
 
@@ -6382,15 +6409,14 @@ class MemberRegisterView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if len(password) < 6:
+        password_problem = password_error(password)
+
+        if password_problem:
 
             return Response(
                 {
                     "success": False,
-                    "message": (
-                        "Password must contain at least "
-                        "6 characters."
-                    )
+                    "message": password_problem,
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
